@@ -11,7 +11,7 @@ import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 
 /**
- * 削除対象recordのmyColumnの値がrelatedTable.relatedTablecolumnに存在したら、削除をスキップ。
+ * Stores where clause settings.
  */
 public class WhereConditionInfoBean extends StringExcelTableBean {
   @NotEmpty
@@ -33,6 +33,12 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
         "conditionColumnValue"};
   }
 
+  /**
+   * Constructs a new instance.
+   * 
+   * @param colList colList
+   * @throws BizLogicAppException BizLogicAppException
+   */
   public WhereConditionInfoBean(List<String> colList) throws BizLogicAppException {
     super(colList);
 
