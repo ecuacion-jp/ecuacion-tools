@@ -16,7 +16,7 @@ import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * 
+ * Stores housekeeping settings.
  */
 // softDeleteColumn required for soft delete
 @ConditionalNotEmpty(field = "softDeleteColumn", conditionField = "isSoftDeleteInternalValue",
@@ -88,6 +88,12 @@ public class HousekeepInfoBean extends StringExcelTableBean {
         "softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue"};
   }
 
+  /**
+   * Constructs a new instance.
+   * 
+   * @param colList colList
+   * @throws BizLogicAppException BizLogicAppException
+   */
   public HousekeepInfoBean(List<String> colList) throws BizLogicAppException {
     super(colList);
   }
@@ -96,6 +102,11 @@ public class HousekeepInfoBean extends StringExcelTableBean {
     return taskId;
   }
 
+  /**
+   * Returns if the housekeeping task is soft delete or hard delete.
+   * 
+   * @return boolean, true if soft delete.
+   */
   public boolean isSoftDelete() {
     if (isSoftDeleteInternalValue.equals(DELETE_KIND_HARD)) {
       return false;
@@ -136,6 +147,11 @@ public class HousekeepInfoBean extends StringExcelTableBean {
     return softDeleteUpdateUserIdColumnValue;
   }
 
+  /**
+   * Returns the datatype of timestamp column.
+   * 
+   * @return TimestampKindEnum
+   */
   public TimestampKindEnum getTimestampColumnKind() {
     if (TimestampKindEnum.localDateTime.toString().equalsIgnoreCase(timestampColumnKind)) {
       return TimestampKindEnum.localDateTime;
@@ -158,7 +174,7 @@ public class HousekeepInfoBean extends StringExcelTableBean {
   }
 
   /**
-   * timestampColumnが定義されているかを返す。
+   * Returns {@code true} when a timestamp column is set.
    */
   public boolean timestampColumnDefines() {
     return !StringUtils.isEmpty(timestampColumn);
