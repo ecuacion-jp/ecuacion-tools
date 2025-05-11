@@ -9,7 +9,7 @@ import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 
 /**
- * 
+ * Stores database connection settings.
  */
 public class DbConnectionInfoBean extends StringExcelTableBean {
 
@@ -46,7 +46,9 @@ public class DbConnectionInfoBean extends StringExcelTableBean {
         username, password}));
   }
 
-  /**  */
+  /** 
+   * Constructs a new instance.
+   */
   public DbConnectionInfoBean(List<String> colList) {
     super(colList);
   }
