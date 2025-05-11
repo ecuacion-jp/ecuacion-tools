@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<housekeepFiles-taskList system="aSystem">
+  <task>
+    <taskId></taskId>
+    <taskName>copy-something</taskName>
+    <taskPtn>MOVE</taskPtn>
+    <isSrcPathDir>FALSE</isSrcPathDir>
+    <pathFrom>${TEST_HOME}/test-test-test.test</pathFrom>
+    <isDestPathDir>TRUE</isDestPathDir>
+    <pathTo>${TEST_HOME}/tmp</pathTo>
+    <unit>DAY</unit>
+    <value>1000</value>
+    <actionForNoSrcPath>IGNORE</actionForNoSrcPath>
+    <doesOverwriteDestPath>FALSE</doesOverwriteDestPath>
+    <actionForFileToExists>IGNORE</actionForFileToExists>
+  </task>
+</housekeepFiles-taskList>

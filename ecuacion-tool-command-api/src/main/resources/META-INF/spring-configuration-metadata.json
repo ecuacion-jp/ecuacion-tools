@@ -1,0 +1,17 @@
+{
+	"groups": [
+		{
+			"name": "app",
+			"type": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties",
+			"sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+		}
+	],
+	"properties": [
+		{
+			"name": "app.script-file-path",
+			"type": "java.lang.String",
+			"description": "",
+			"sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+		}
+	]
+}

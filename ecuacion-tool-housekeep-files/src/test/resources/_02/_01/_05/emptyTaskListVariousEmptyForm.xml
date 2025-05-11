@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<housekeepFiles-taskList system="aSystem">
+  <!-- task tag is empty -->
+  <task />
+  <!-- content of task tag is empty -->
+  <task></task>
+  <!-- child tag of task tag is empty -->
+  <task>
+    <taskId />
+    <taskName />
+    <taskPtn />
+    <isSrcPathDir />
+    <pathFrom />
+    <isDestPathDir />
+    <pathTo />
+    <unit />
+    <value />
+    <actionForNoSrcPath />
+    <doesOverwriteDestPath />
+    <actionForFileToExists />
+  </task>
+  <!-- content of child tag of task tag is empty -->
+  <task>
+    <taskId></taskId>
+    <taskName></taskName>
+    <taskPtn></taskPtn>
+    <isSrcPathDir></isSrcPathDir>
+    <pathFrom></pathFrom>
+    <isDestPathDir></isDestPathDir>
+    <pathTo></pathTo>
+    <unit></unit>
+    <value></value>
+    <actionForNoSrcPath></actionForNoSrcPath>
+    <doesOverwriteDestPath></doesOverwriteDestPath>
+    <actionForFileToExists></actionForFileToExists>
+  </task>
+</housekeepFiles-taskList>
