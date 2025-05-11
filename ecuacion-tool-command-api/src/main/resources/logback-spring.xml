@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Since logback-spring.xml is common to apps 
+     and by putting this file to tomcat's classpath, it influences other apps.
+     That's why this file is included in jar file. -->
+<!DOCTYPE xml>
+<configuration>
+
+	<!-- profile-independent properties -->
+	<include resource="logback-spring-profile-independent-properties.xml" />
+	<include resource="logback-spring-ecuacion-tool-command-api.xml" />
+
+</configuration>

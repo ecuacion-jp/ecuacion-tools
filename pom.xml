@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>jp.ecuacion.tool</groupId>
+	<artifactId>ecuacion-tool-parent</artifactId>
+	<packaging>pom</packaging>
+	<parent>
+		<groupId>jp.ecuacion.splib</groupId>
+		<artifactId>ecuacion-splib-parent</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+		<relativePath>../ecuacion-splib</relativePath>
+	</parent>
+	<properties>
+		<app.version>0.0.1-SNAPSHOT</app.version>
+	</properties>
+	
+	<modules>
+		<module>ecuacion-tool-command-api</module>
+		<module>ecuacion-tool-housekeep-db</module>
+		<module>ecuacion-tool-housekeep-files</module>
+	</modules>
+</project>

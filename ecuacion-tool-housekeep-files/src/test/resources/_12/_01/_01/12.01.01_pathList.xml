@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<housekeepFiles-pathList>
+  <path>
+    <pathKey>ABC</pathKey>
+    <pathValue>./target/test-home</pathValue>
+  </path>
+  <path>
+    <pathKey></pathKey>
+    <pathValue>./target/test-home</pathValue>
+  </path>
+</housekeepFiles-pathList>
