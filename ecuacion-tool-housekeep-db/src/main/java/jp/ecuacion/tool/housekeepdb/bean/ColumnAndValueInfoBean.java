@@ -3,17 +3,34 @@ package jp.ecuacion.tool.housekeepdb.bean;
 import jakarta.validation.constraints.NotEmpty;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 
+/**
+ * Stores database column and its value information to create condition clause.
+ */
 public class ColumnAndValueInfoBean extends ColumnInfoBean
     implements SqlConditionInterface {
 
   @NotEmpty
   private String value;
 
+  /**
+   * Construct a new instance.
+   * 
+   * @param column column
+   * @param needsQuationMark needsQuationMark
+   * @param value value
+   */
   public ColumnAndValueInfoBean(String column, boolean needsQuationMark, Object value) {
     super(column, needsQuationMark);
     this.value = getStringFromObject(value);
   }
 
+  /**
+   * Construct a new instance.
+   * 
+   * @param column column
+   * @param needsQuationMark needsQuationMark
+   * @param value value
+   */
   public ColumnAndValueInfoBean(String column, String needsQuationMark, Object value)
       throws BizLogicAppException {
     super(column, needsQuationMark);
@@ -34,6 +51,11 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean
     return value;
   }
 
+  /**
+   * Adds quotation mark at the both side of the string if isNeedsQuotationMark() == true.
+   * 
+   * @return String
+   */
   public String surroundWithQuotationMarks() {
     String mark = isNeedsQuotationMark() ? "'" : "";
 
