@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<housekeepFiles-taskList system="aSystem">
+  <task>
+    <taskId>aTaskId</taskId>
+    <taskName>aaa</taskName>
+    <taskPtn>ZIP_DELETE_ORIG</taskPtn>
+    <isSrcPathDir>FALSE</isSrcPathDir>
+    <pathFrom>${TEST_HOME}/test?.txt</pathFrom>
+    <isDestPathDir></isDestPathDir>
+    <pathTo></pathTo>
+    <unit>DAY</unit>
+    <value>0</value>
+    <actionForNoSrcPath>IGNORE</actionForNoSrcPath>
+    <doesOverwriteDestPath>FALSE</doesOverwriteDestPath>
+    <actionForFileToExists>IGNORE</actionForFileToExists>
+  </task>
+</housekeepFiles-taskList>

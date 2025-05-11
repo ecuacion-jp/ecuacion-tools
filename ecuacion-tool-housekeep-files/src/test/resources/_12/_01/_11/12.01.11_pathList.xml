@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<housekeepFiles-pathList>
+  <!-- first tag is OK -->
+  <path>
+    <pathKey>09AZ_</pathKey>
+    <pathValue>./target/test-home</pathValue>
+  </path>
+  <path>
+    <pathKey>TESTa</pathKey>
+    <pathValue>./target/test-home</pathValue>
+  </path>
+</housekeepFiles-pathList>

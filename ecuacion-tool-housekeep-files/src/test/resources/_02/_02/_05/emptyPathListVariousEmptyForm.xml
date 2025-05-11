@@ -1,0 +1,17 @@
+<?xml version="1.0" standalone="yes"?>
+<housekeepFiles-pathList>
+  <!-- empty tag -->
+  <path />
+  <!-- content of path tag is empty -->
+  <path></path>
+  <!-- child tag of path tag is empty -->
+  <path>
+    <pathKey />
+    <pathValue />
+  </path>
+  <!-- content of child tag of path tag is empty -->
+  <path>
+    <pathKey></pathKey>
+    <pathValue></pathValue>
+  </path>
+</housekeepFiles-pathList>
