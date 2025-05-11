@@ -14,6 +14,9 @@ import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 
+/**
+ * Stores related tables settings.
+ */
 //softDeleteColumn required for soft delete
 @ConditionalNotEmpty(field = "softDeleteColumn", conditionField = "isSoftDeleteInternalValue",
     conditionValue = HousekeepInfoBean.DELETE_KIND_SOFT)
@@ -87,6 +90,12 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
         "softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue"};
   }
 
+  /**
+   * Constructs a new instance.
+   * 
+   * @param colList colList
+   * @throws BizLogicAppException BizLogicAppException
+   */
   public RelatedTableInfoBean(List<String> colList) throws BizLogicAppException {
     super(colList);
   }
@@ -184,6 +193,9 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
     }
   }
 
+  /**
+   * Stores related table process pattern.
+   */
   public static enum RelatedTableProcessPatternEnum {
     deleteRelatedTableRecord, skipTargetTableRecordDeletion;
   }
