@@ -6,11 +6,19 @@ import java.util.Arrays;
 import java.util.List;
 import jp.ecuacion.lib.core.util.StringUtil;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Provides utilities to build sql sentence.
  */
 public class SqlUtil {
+
+  /**
+   * Prevents other classes from instantiating it.
+   */
+  private SqlUtil() {
+
+  }
 
   /**
    * Provides current date-time string considering database kinds.
@@ -36,11 +44,10 @@ public class SqlUtil {
   public static String getWhere(List<SqlConditionInterface> list) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("\nwhere ");
     sb.append(StringUtil.getSeparatedValuesString(
         list.stream().map(bean -> bean.getCondition()).toList(), " and "));
 
-    return sb.toString();
+    return (StringUtils.isEmpty(sb.toString()) ? "" : "\nwhere ") +  sb.toString();
   }
 
   /**

@@ -389,7 +389,7 @@ public class HousekeepDbTasklet implements Tasklet {
 
     dbConnectionInfoMap.values().stream().forEach(info -> {
       try {
-        ValidationUtil.builder().build().validateThenThrow(info);
+        ValidationUtil.validateThenThrow(info);
 
       } catch (MultipleAppException e) {
         throw new UncheckedAppException(e);
