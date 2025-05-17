@@ -37,7 +37,7 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
         null, "aPath", "はい", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {
@@ -68,7 +68,7 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
         null, "aPath", "TRUE", "DAY", "7", "無視", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {

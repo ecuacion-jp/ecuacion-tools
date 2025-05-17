@@ -35,7 +35,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
         null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {
@@ -52,7 +52,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
         null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {
@@ -79,7 +79,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
             "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {
@@ -97,7 +97,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {
