@@ -55,7 +55,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   private String taskName;
 
   @NotEmpty
-  @EnumElement(enumPackage = "jp.ecuacion.tool.housekeepfiles.enums", enumClass = "TaskPtnEnum")
+  @EnumElement(enumClass = TaskPtnEnum.class)
   public String taskPtnEnumName;
 
   @Size(min = 1, max = 40)
@@ -76,8 +76,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @DecimalMax(value = "1000")
   private String value;
 
-  @EnumElement(enumPackage = "jp.ecuacion.tool.housekeepfiles.enums",
-      enumClass = "IncidentTreatedAsEnum")
+  @EnumElement(enumClass = IncidentTreatedAsEnum.class)
   public String actionForNoSrcPathEnumName;
 
   @Size(min = 1, max = 300)
@@ -90,8 +89,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @BooleanString
   public String doesOverwriteDestPathEnumName;
 
-  @EnumElement(enumPackage = "jp.ecuacion.tool.housekeepfiles.enums",
-      enumClass = "IncidentTreatedAsEnum")
+  @EnumElement(enumClass = IncidentTreatedAsEnum.class)
   public String actionForDestFileExistsEnumName;
 
   public String options;
