@@ -67,7 +67,7 @@ public class HousekeepFilesBl extends AbstractBl {
   public void consistencyCheckBetweenMultipleData(HousekeepFilesForm form) throws AppException {
     // taskInfoHdRecはreaderで読み込んでいない＝validation checkが動いていないので実施。
     // 実質sysNameの存在チェック。
-    ValidationUtil.builder().build().validateThenThrow(form.getTaskInfoHdRec());
+    ValidationUtil.validateThenThrow(form.getTaskInfoHdRec());
 
     // taskがゼロの場合はエラー
     if (form.getTaskInfoHdRec().recList == null || form.getTaskInfoHdRec().recList.size() == 0) {

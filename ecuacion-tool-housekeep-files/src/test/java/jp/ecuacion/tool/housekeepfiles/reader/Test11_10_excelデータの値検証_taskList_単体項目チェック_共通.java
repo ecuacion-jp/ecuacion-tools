@@ -32,7 +32,7 @@ public class Test11_10_excelデータの値検証_taskList_単体項目チェッ
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
-    ValidationUtil.builder().build().validateThenThrow(rec);
+    ValidationUtil.validateThenThrow(rec);
   }
 
   @Test
@@ -42,6 +42,6 @@ public class Test11_10_excelデータの値検証_taskList_単体項目チェッ
         "SFTP_MOVE_FROM_SERVER", "aHost", "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE",
         "FALSE", "IGNORE", "key1=value2,key2");
 
-    ValidationUtil.builder().build().validateThenThrow(rec);
+    ValidationUtil.validateThenThrow(rec);
   }
 }
