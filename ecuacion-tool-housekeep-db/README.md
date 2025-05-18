@@ -11,7 +11,7 @@
 ## System Requirements
 
 - JDK 21 or above.
-- Postgresql is supported for now
+- Only `Postgresql` is supported (for now)
 
 ## Documentation
 
@@ -19,13 +19,32 @@
 
 ## Installation
 
-1. Download the war module from [here](https://maven-repo.ecuacion.jp/public/jp/ecuacion/tool/ecuacion-tool-housekeep-db/).  
+1. Download the jar module from [here](https://maven-repo.ecuacion.jp/public/jp/ecuacion/tool/ecuacion-tool-housekeep-db/).  
    (full url should be like 'https://maven-repo.ecuacion.jp/public/jp/ecuacion/tool/ecuacion-tool-housekeep-db/14.3.0/ecuacion-tool-housekeep-db-14.3.0.jar')
 
 1. Download the settings excel file template (housekeep-db(fmt-vx.x.x-xx)_sample.xlsx) from [here](https://github.com/ecuacion-jp/ecuacion-tools/tree/main/ecuacion-tool-housekeep-db/local-test) and update.
 
-1. (Optional) Create `logback-spring.xml` file and put classpath directory (any directory is fine).  
+1. (Optional) Create `logback-spring.xml` file and put CLASSPATH directory (any directory is fine).  
    Maybe it's easier that you download [the sample](https://github.com/ecuacion-jp/ecuacion-tools/tree/main/ecuacion-tool-housekeep-db/src/envs/local/resources) and update `log-dir` directory path.
+
+## Getting Started
+
+1. Prepare database
+   1. Create table
+      ```
+      CREATE TABLE test_table (num1 number, char1 varchar PRIMARY KEY (num1));
+      ```
+   1. Insert a record
+      ```
+      INSERT INTO test_table (num1, char1) VALUES (123, 'abc');
+      ```
+
+1. Prepare Settings Excel File
+   1. Fill in `DB Connection Settings` sheet (Let's say `DB Connection ID` is `test-conn` as an example.)
+   2. Fill in `Housekeep DB Settings` as follows (Left 6 columns only. Ignore right columns in the table for now)
+      | Task ID | DB Connection ID | Soft / Hard Delete | Table Name | ID Column Name | ID Column Literal Symbol |
+      | ----    | ----             | ----               | ----       | ----           | ----                     |
+      | sample  | test-conn        | Hard Delete        | test_table | num1           | (none)                   |
 
 1. Execute it with the command below.  
    (the filename of the excel file can be changed freely)
@@ -33,52 +52,15 @@
    ```
    java -jar ecuacion-tool-housekeep-db-14.3.0.jar [--classpath=/path/to/classpath/directory] excelPath=/path/to/housekeep-db\(fmt-vx.x.x-xx\)_sample.xlsx
    ```
-
-
-1. Create file `logback-spring-ecuacion-tool-command-api.xml` with the content below and put it to the CLASSPATH directory.  
-   (change '/path/to/logs/directory' to any directory in your serer)
-   ```xml
-   <?xml version="1.0" encoding="UTF-8"?>
-   <!DOCTYPE xml>
-   <configuration>
-
-	   <!-- appenders -->
-	   <property name="log-dir" value="/path/to/logs/directory" />
-	   <property name="loglevel-spring" value="INFO" />
-	   <include resource="logback-spring-appenders.xml" />
-	   <include resource="logback-spring-appenders-local.xml" />
-
-	   <!-- loggers -->
-	   <property name="loglevel-jp.ecuacion" value="INFO" />
-	   <property name="loglevel-security" value="INFO" />
-	   <property name="loglevel-sql" value="INFO" />
-	   <property name="loglevel-root" value="INFO" />
-	   <include resource="logback-spring-loggers-for-local.xml" />
-	   <include resource="logback-spring-loggers-web-for-local.xml" />
-
-   </configuration>
-   ```
-
-1. Put a new file `ecuacion-tool-command-api.properties` to the CLASSPATH directory.  
+   You can see the record created by insert statement has been deleted.
 
 ## Getting Started
 
-### Script Preparation
 
-1. Add the content below to `ecuacion-tool-command-api.properties`. (change '/path/to/script/directory' to any directory in your serer)
 
-   ```bash
-   script.say-hello=/path/to/script/directory/sayHello.sh
-   ```
-1. Put a script named 'sayHello.sh' where the path specifies and set proper access privileges with the user the application server works with.
 
-### Execute Script through ecuacion-tool-command-api
 
-1. Access URL below and the script `sayHello.sh` is executed.
 
-   ```URL
-   http[s]://yourdomain.com/ecuacion-tool-command-api/api/public/executeScript?scriptId=script.say-hello
-   ```
 
 ## Specification
 
