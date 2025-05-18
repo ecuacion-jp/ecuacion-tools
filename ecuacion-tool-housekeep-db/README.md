@@ -17,6 +17,12 @@
 
 - [javadoc](https://javadoc.ecuacion.jp/apidocs/ecuacion-tool-housekeep-db/)
 
+## Premises
+
+1. Tables to be deleted need to have single column primary key or unique index (not composite primary key / unique index).
+   (The column with primary key or unique index is referred to as `ID Column` in the document)
+1. Soft Delete Column needs to be `bool`. (`true` means soft-deleted)
+
 ## Installation
 
 1. Download the jar module from [here](https://maven-repo.ecuacion.jp/public/jp/ecuacion/tool/ecuacion-tool-housekeep-db/).  
@@ -40,8 +46,8 @@
       ```
 
 1. Prepare Settings Excel File
-   1. Fill in `DB Connection Settings` sheet (Let's say `DB Connection ID` is `test-conn` as an example.)
-   2. Fill in `Housekeep DB Settings` as follows (Left 6 columns only. Ignore right columns in the table for now)
+   1. Fill in `DB Connection Settings` sheet. (Let's say `DB Connection ID` is `test-conn` as an example)
+   2. Fill in `Housekeep DB Settings` as follows. (only left 6 columns shown below. Ignore right columns in the table for now)
       | Task ID | DB Connection ID | Soft / Hard Delete | Table Name | ID Column Name | ID Column Literal Symbol |
       | ----    | ----             | ----               | ----       | ----           | ----                     |
       | sample  | test-conn        | Hard Delete        | test_table | num1           | (none)                   |
@@ -54,7 +60,38 @@
    ```
    You can see the record created by insert statement has been deleted.
 
-## Getting Started
+### Explanation
+
+We don't think much of explanations are needed, but some supplement here.
+
+* `ID Column Literal Symbol` specifies ID column needs '' when you insert values. `(none)` for `int` or `boolean`, `quotes(')` for `varchar`.
+
+## Features
+
+### Soft Delete
+
+#### Basics
+
+1. `Soft Delete` means that the record is not deleted, just `Deleted` column is set to `true` or something like that.
+1. In excel settings of `Getting Started` `Hard Delete` was selected in `Soft / Hard Delete` column. To execute Soft Delete, set `Soft Delete` there, and you have to set `Soft Delete Column Name`.
+   By executing the procedure with this settings excel, all the records are soft-deleted.
+1. If you want to soft-delete records with specified terms passed only, set `Expiration Check: Timestamp Column Name`, `Expiration Check: Timestamp Column Data Type`, `Expiration Check: Validity Days` columns.
+   In the case that the timestamp column name is `last_updated` with `LocalDateTime` datatype (= timestamp without time zone. Set `OffsetDateTime` when you treat timestamp with time zone): 
+      | Expiration Check: Timestamp Column Name | Expiration Check: Timestamp Column Data Type | Expiration Check: Validity Days | 
+      | ----                                    | ----                                         | ----                            | 
+      | last_updated                            | v test-conn        | Hard Delete        | test_table | num1           | (none)                   |
+   
+
+
+### Hard Delete
+
+1. In `Getting Started` all the records in DB was deleted because no conditions on deletion added, but usually nobudy wants to delete all the records.
+   `ecuacion-tool-housekeep-db` sets conditions on expiration terms and delete
+   1. 
+   
+
+
+### 
 
 
 
