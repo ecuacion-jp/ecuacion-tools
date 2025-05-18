@@ -91,10 +91,10 @@ We don't think much of explanations are needed, but some supplement here.
 ### Search Condition Settings
 
 1. On deletion you sometimes want to add more conditions. Maybe you want to soft-delete records with status 'completed', for example.
-In that case, you can set the condition in `Search Condition Settings` sheet.
-   | Task ID | Search Condition Column Name | Search Condtion Column Literal Symbol | Search Condition Column Value |
-   | ----                                   | ----                                  | ----                          | 
-   | task-1  | exit_code                    | quotes(')                             | COMPLETED                     |
+   In that case, you can set the condition in `Search Condition Settings` sheet.
+     | Task ID | Search Condition Column Name | Search Condtion Column Literal Symbol | Search Condition Column Value |
+     | ----    | ----                         | ----                                  | ----                          | 
+     | task-1  | exit_code                    | quotes(')                             | COMPLETED                     |
 
 ### Related Table Settings
 
