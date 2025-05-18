@@ -34,9 +34,9 @@ public class CommandApiController {
    *     executable scripts from API must be pre-defined.
    * @param parameter parameter given to the script. 
    *     multiple parameters are able to be passed as comma-separated values.<br>
-   *     When you pass paraams like {@code param1,param2}, 
+   *     When you pass parameters like {@code parameter=param1,param2}, 
    *     then {@code script.sh param1 param2} will be executed. 
-   *     (parameters are splitted at "," and each csv elements will be an parameter.)
+   *     (parameters are splitted at "," and each csv element will be an parameter.)
    * @throws Exception Exception
    */
   @GetMapping("api/public/executeScript")
