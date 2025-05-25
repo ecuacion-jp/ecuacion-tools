@@ -8,8 +8,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
+import jp.ecuacion.lib.core.util.EmbeddedParameterUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -61,8 +64,8 @@ public class CommandApiController {
 
     // scriptId input validation
     if (!Pattern.compile("^[a-zA-Z0-9.\\-_]*$").matcher(scriptId).find()) {
-      throwException("String scriptId (" + scriptId
-          + ") should consists of alphanumerics, '.', '-' and '_'.");
+      throwException(
+          "String scriptId (" + scriptId + ") should consists of alphanumerics, '.', '-' and '_'.");
     }
 
     // Obtain scriptFilePath from scriptId
@@ -117,30 +120,13 @@ public class CommandApiController {
    * 
    * @param string any string
    * @return string with environment variables resolved
+   * @throws AppException AppException
    */
-  private String resolveEnvironmentVariables(String string) {
-    String rtnStr = string;
-    while (true) {
-      if (!rtnStr.contains("${")) {
-        return rtnStr;
-      }
-
-      int startIndex = rtnStr.indexOf("${");
-      int endIndex = rtnStr.indexOf("}");
-
-      if (startIndex > endIndex) {
-        throwException("\"}\" shows up before \"${\" does, or \"}\" not exist. (string: " + string);
-      }
-
-      String valuableName = rtnStr.substring(0, endIndex).substring(startIndex + 2);
-      String valuableWithBracket = "${" + valuableName + "}";
-      String value = System.getenv(valuableName);
-      if (value == null) {
-        throwException("Environment variable '" + valuableName + "' is not defined in the server.");
-      }
-
-      rtnStr = rtnStr.replace(valuableWithBracket, value);
-    }
+  private String resolveEnvironmentVariables(String string) throws AppException {
+    Function<String, String> func = (key) -> {
+      return System.getenv(key);
+    };
+    return EmbeddedParameterUtil.getParameterReplacedString(string, "${", "}", func);
   }
 
   private void throwException(String message) {

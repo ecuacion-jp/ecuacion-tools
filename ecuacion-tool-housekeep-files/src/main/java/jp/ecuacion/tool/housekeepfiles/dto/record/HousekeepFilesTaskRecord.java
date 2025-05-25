@@ -28,20 +28,19 @@ import java.util.List;
 import java.util.Map;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
+import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.jakartavalidation.validator.BooleanString;
 import jp.ecuacion.lib.core.jakartavalidation.validator.EnumElement;
 import jp.ecuacion.lib.core.jakartavalidation.validator.IntegerString;
+import jp.ecuacion.lib.core.util.EmbeddedParameterUtil;
 import jp.ecuacion.lib.core.util.PropertyFileUtil;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
-import jp.ecuacion.tool.housekeepfiles.util.ParameterUtil;
 import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 
 public class HousekeepFilesTaskRecord extends StringExcelTableBean {
-
-  private ParameterUtil pu = new ParameterUtil();
 
   @NotEmpty
   @Size(min = 1, max = 10)
@@ -234,8 +233,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
   /**
    * pathInfoMapを取得。 取得時にsrcPath、destPathの環境変数展開を併せて実施。
+   * @throws MultipleAppException 
    */
-  public void setEnvVarInfoMap(Map<String, String> envVarInfoMap) throws BizLogicAppException {
+  public void setEnvVarInfoMap(Map<String, String> envVarInfoMap) throws AppException {
     if (envVarInfoMap == null) {
       envVarInfoMap = new HashMap<>();
     }
@@ -246,8 +246,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
     envVarExpandedDestPath = destPath == null ? null : substituteEnvVars(destPath);
   }
 
-  private String substituteEnvVars(String path) throws BizLogicAppException {
-    String envVarExpandedPath = pu.substituteUnixEnvVars(path, envVarInfoMap);
+  private String substituteEnvVars(String path) throws BizLogicAppException, MultipleAppException {
+    String envVarExpandedPath =
+        EmbeddedParameterUtil.getParameterReplacedString(path, "${", "}", envVarInfoMap);
 
     // "//"を取り除く
     while (envVarExpandedPath.contains("//")) {
