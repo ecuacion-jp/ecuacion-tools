@@ -20,17 +20,20 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.exception.checked.SingleAppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
+import jp.ecuacion.lib.core.util.EmbeddedParameterUtil;
 import jp.ecuacion.lib.core.util.ExceptionUtil;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.util.MailUtil;
@@ -52,14 +55,12 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.util.DateTimeUtil;
 import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
-import jp.ecuacion.tool.housekeepfiles.util.ParameterUtil;
 
 public class HousekeepFilesBl extends AbstractBl {
   public static final String EXTENSION_NONE_WITH_DOT = "";
   public static final String EXTENSION_ZIP_WITH_DOT = ".zip";
 
   private DetailLogger dlog = new DetailLogger(this);
-  private ParameterUtil pu = new ParameterUtil();
   private DateTimeUtil dateUtil = new DateTimeUtil();
   private HkFileManipulateUtil fmu = new HkFileManipulateUtil();
 
@@ -114,7 +115,7 @@ public class HousekeepFilesBl extends AbstractBl {
 
   public void envVarExistenceCheckAndSetEnvBarExpandedPaths(
       List<HousekeepFilesTaskRecord> taskRecList, Map<String, String> envVarInfoMap)
-      throws MultipleAppException, BizLogicAppException {
+      throws AppException {
     List<SingleAppException> exArr = new ArrayList<>();
 
     // pathFrom, pathToのチェック
@@ -135,29 +136,20 @@ public class HousekeepFilesBl extends AbstractBl {
 
   private void analyzePathVarAndCheckIfExistsInSet(HousekeepFilesTaskRecord taskRec,
       Set<String> pathKeySet, List<SingleAppException> exArr, String path)
-      throws BizLogicAppException {
+      throws BizLogicAppException, MultipleAppException {
 
     // 一つのパスの中に、複数のパス変数が設定されている場合があるので、ループ処理
     String pathPart = path;
     String envVar = null;
 
-    while (true) {
-      // 「${」を含まない場合は終了
-      if (!pathPart.contains("${")) {
-        break;
-      }
+    // Create new keySet to add reserved keys.
+    Set<String> keySet = new HashSet<>(pathKeySet);
+    keySet.addAll(Arrays.asList(new String[] {Constants.ENV_VAR_TASK_NAME, Constants.ENV_VAR_DATE,
+        Constants.ENV_VAR_TIMESTAMP, Constants.ENV_VAR_HOSTNAME}));
 
-      envVar = pu.getFirstUnixEnvVar(pathPart);
-      pathPart = pathPart.substring(pathPart.indexOf(envVar) + envVar.length() + 1);
-      // pathKeySetの中にpathVarが存在しない場合はエラー
-      // ただし、TASK_NAME、YYYYMMDD、TIMESTAMPという名前は固定でエラーとしないようにする（SYS_NAMEは既に追加済み）
-      if (!pathKeySet.contains(envVar) && !envVar.equals(Constants.ENV_VAR_TASK_NAME)
-          && !envVar.equals(Constants.ENV_VAR_DATE) && !envVar.equals(Constants.ENV_VAR_TIMESTAMP)
-          && !envVar.equals(Constants.ENV_VAR_HOSTNAME)) {
-        exArr.add(
-            new BizLogicAppException("MSG_ERR_PATH_VAR_NOT_EXIST", taskRec.getTaskName(), envVar));
-      }
-    }
+    // To check the existence of keys, create map by set value the same value as key.
+    Map<String, String> paramMap = keySet.stream().collect(Collectors.toMap(s -> s, s -> s));
+    EmbeddedParameterUtil.getParameterReplacedString(path, "${", "}", paramMap);
   }
 
   public void createTaskAndTaskDependentCheck(HousekeepFilesForm form,
@@ -181,8 +173,8 @@ public class HousekeepFilesBl extends AbstractBl {
   public void createTaskInstance(List<SingleAppException> exList, HousekeepFilesTaskRecord dtRec,
       TaskPtnEnum taskPtn) throws Exception {
     @SuppressWarnings("unchecked")
-    Class<AbstractTask> cls = (Class<AbstractTask>) Class.forName(Constants.PACKAGE_HK_TASK + "."
-        + StringUtil.getUpperCamelFromSnake(taskPtn.getName()));
+    Class<AbstractTask> cls = (Class<AbstractTask>) Class.forName(
+        Constants.PACKAGE_HK_TASK + "." + StringUtil.getUpperCamelFromSnake(taskPtn.getName()));
     dtRec.task = cls.getDeclaredConstructor().newInstance();
   }
 
@@ -411,8 +403,7 @@ public class HousekeepFilesBl extends AbstractBl {
       IllegalArgumentException, InvocationTargetException, NoSuchMethodException,
       SecurityException {
     AbstractTask task;
-    String taskName =
-        StringUtil.getUpperCamelFromSnake(taskRec.getTaskPtn().getName());
+    String taskName = StringUtil.getUpperCamelFromSnake(taskRec.getTaskPtn().getName());
     @SuppressWarnings("unchecked")
     Class<AbstractTask> cls =
         (Class<AbstractTask>) Class.forName(Constants.PACKAGE_HK_TASK + "." + taskName);
