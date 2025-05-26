@@ -25,8 +25,14 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 
+/**
+ * Provides sftp delete from server task.
+ */
 public class SftpDeleteFromServer extends AbstractTaskSftp {
 
+  /**
+   * Constructs a new instance.
+   */
   public SftpDeleteFromServer() {
     taskPtn = TaskPtnEnum.SFTP_DELETE_FROM_SERVER;
   }

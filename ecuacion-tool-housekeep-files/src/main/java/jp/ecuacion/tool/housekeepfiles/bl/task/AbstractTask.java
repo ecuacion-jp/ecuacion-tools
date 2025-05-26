@@ -168,7 +168,7 @@ public abstract class AbstractTask {
 
   void checkTaskItem(String taskId, TaskPtnEnum taskPtn, TaskAttrCheckPtnEnum checkPtn,
       String itemTitle, Object itemValue) throws BizLogicAppException {
-    String taskPtnName = (taskPtn == null) ? "" : taskPtn.getName();
+    String taskPtnName = (taskPtn == null) ? "" : taskPtn.toString();
     boolean isEmpty = itemValue == null || (itemValue instanceof String && itemValue.equals(""));
     if (checkPtn == REQUIRED && isEmpty) {
       throw new BizLogicAppException("MSG_ERR_TASK_REQUIRED_CHECK", taskId, taskPtnName,

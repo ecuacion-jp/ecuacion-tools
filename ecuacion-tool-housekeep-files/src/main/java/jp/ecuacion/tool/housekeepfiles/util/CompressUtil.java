@@ -30,10 +30,7 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 /**
- * データの圧縮・解凍関連の処理。<br>
- * zipをサポート
- *
- * @author 庸介
+ * Provides zip and unzip function.
  */
 public class CompressUtil {
 
@@ -43,10 +40,10 @@ public class CompressUtil {
   }
 
   /**
-   * 指定されたディレクトリ内のファイルを ZIP アーカイブし、指定されたパスに作成。
+   * Zip files in specified directory and create zip file.
    *
-   * @param fromDirPath 圧縮するディレクトリ ( 例; C:/sample )
-   * @param toFilePath 圧縮後の出力ファイル名をフルパスで指定 ( 例: C:/sample.zip )
+   * @param fromDirPath directory to be archived (for example: C:/sample)
+   * @param toFilePath zipfile fullpath (for example: C:/sample.zip)
    * @param encoding "Shift-JIS", "UTF-8", etc...
    */
   public void zipDirectory(String fromDirPath, String toFilePath, String encoding)
@@ -87,7 +84,7 @@ public class CompressUtil {
   }
 
   /**
-   * 指定したファイルをzipする。
+   * Zip specified file.
    */
   public void zipFile(String fromFilePath, String toFilePath, String encoding) throws IOException {
     List<String> arr = new ArrayList<String>();
@@ -101,10 +98,10 @@ public class CompressUtil {
   }
 
   /**
-   * 指定された ArrayList のファイルを ZIP アーカイブし、指定されたパスに作成。
+   * Executes zip-archive files specified by ArrayList and create zip file.
    *
-   * @param filePath 圧縮後のファイル名をフルパスで指定 ( 例: C:/sample.zip )
-   * @param fromFileList 圧縮するファイルリスト ( 例; {C:/sample1.txt, C:/sample2.txt} )
+   * @param filePath zipfile fullpath (for example: C:/sample.zip)
+   * @param fromFileList file list to archive (for example: {C:/sample1.txt, C:/sample2.txt})
    */
   public void zipFileList(List<String> fromFileList, String filePath, String encoding)
       throws IOException {
@@ -141,7 +138,7 @@ public class CompressUtil {
     }
   }
 
-  /**
+  /*
    * ディレクトリ圧縮のための再帰処理。
    *
    * @param outZip ZipOutputStream
@@ -166,12 +163,11 @@ public class CompressUtil {
   }
 
   /**
-   * 圧縮処理。
+   * Provides {@code zip} function.
    *
    * @param outZip ZipOutputStream outputStream
-   * @param targetFile File 圧縮したいファイル
-   * @parma entryName 保存ファイル名
-   * @param enc 文字コード
+   * @param targetFile The file you want to zip
+   * @parma entryName saved zip file name
    */
   private void archive(ZipOutputStream outZip, File targetFile, String entryName)
       throws IOException {
@@ -202,8 +198,10 @@ public class CompressUtil {
   }
 
   /**
-   * unzip処理を行う。 こちらでは、既存処理を踏襲してjava.util.zip.ZipEntryを使用している。
-   * 全体としてはorg.apache.tools.zip.ZipEntryをimport、使用しているので注意
+   * Provides {@code unzip} function.
+   * 
+   * <p>This method uses java.util.zip.ZipEntry considering backward compatibility.
+   *     Notice that this app mainly uses org.apache.tools.zip.ZipEntry.</p>
    */
   public void unzip(String fromFullFilePath, String toFullDirPath) throws IOException {
     // unzipする
