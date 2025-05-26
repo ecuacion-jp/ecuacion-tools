@@ -15,6 +15,9 @@
  */
 package jp.ecuacion.tool.housekeepfiles.constant;
 
+/**
+ * Stores constants.
+ */
 public class Constants {
   public static final String PACKAGE_HK_TASK = "jp.ecuacion.tool.housekeepfiles.bl.task";
   public static final String HOUSEKEEP_FILES_PATH_LIST_XML = "housekeepFile-pathList.xml";

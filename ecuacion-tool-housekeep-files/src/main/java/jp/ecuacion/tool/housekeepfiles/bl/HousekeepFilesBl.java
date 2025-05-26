@@ -56,7 +56,10 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.util.DateTimeUtil;
 import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
 
-public class HousekeepFilesBl extends AbstractBl {
+/**
+ * Provides business logics.
+ */
+public class HousekeepFilesBl {
   public static final String EXTENSION_NONE_WITH_DOT = "";
   public static final String EXTENSION_ZIP_WITH_DOT = ".zip";
 
@@ -138,10 +141,6 @@ public class HousekeepFilesBl extends AbstractBl {
       Set<String> pathKeySet, List<SingleAppException> exArr, String path)
       throws BizLogicAppException, MultipleAppException {
 
-    // 一つのパスの中に、複数のパス変数が設定されている場合があるので、ループ処理
-    String pathPart = path;
-    String envVar = null;
-
     // Create new keySet to add reserved keys.
     Set<String> keySet = new HashSet<>(pathKeySet);
     keySet.addAll(Arrays.asList(new String[] {Constants.ENV_VAR_TASK_NAME, Constants.ENV_VAR_DATE,
@@ -174,7 +173,7 @@ public class HousekeepFilesBl extends AbstractBl {
       TaskPtnEnum taskPtn) throws Exception {
     @SuppressWarnings("unchecked")
     Class<AbstractTask> cls = (Class<AbstractTask>) Class.forName(
-        Constants.PACKAGE_HK_TASK + "." + StringUtil.getUpperCamelFromSnake(taskPtn.getName()));
+        Constants.PACKAGE_HK_TASK + "." + StringUtil.getUpperCamelFromSnake(taskPtn.toString()));
     dtRec.task = cls.getDeclaredConstructor().newInstance();
   }
 
@@ -403,7 +402,7 @@ public class HousekeepFilesBl extends AbstractBl {
       IllegalArgumentException, InvocationTargetException, NoSuchMethodException,
       SecurityException {
     AbstractTask task;
-    String taskName = StringUtil.getUpperCamelFromSnake(taskRec.getTaskPtn().getName());
+    String taskName = StringUtil.getUpperCamelFromSnake(taskRec.getTaskPtn().toString());
     @SuppressWarnings("unchecked")
     Class<AbstractTask> cls =
         (Class<AbstractTask>) Class.forName(Constants.PACKAGE_HK_TASK + "." + taskName);

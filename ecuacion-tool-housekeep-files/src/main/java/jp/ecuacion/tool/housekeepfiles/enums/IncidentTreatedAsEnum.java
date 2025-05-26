@@ -15,29 +15,12 @@
  */
 package jp.ecuacion.tool.housekeepfiles.enums;
 
-
-import java.util.Locale;
-import jp.ecuacion.lib.core.util.PropertyFileUtil;
-
 /** 
- * 
+ * Enumerates kinds of incident treatments.
  */
 public enum IncidentTreatedAsEnum {
 
-  /** 
-   * 
-   */
-  IGNORE("0"),
-
-  /** 
-   * 
-   */
-  ERROR("1"),
-
-  /** 
-   * 
-   */
-  WARN("2");
+  IGNORE("0"), ERROR("1"), WARN("2");
 
   private String code;
 
@@ -46,61 +29,9 @@ public enum IncidentTreatedAsEnum {
   }
 
   /**
-   * codeを返す。 codeがnull, 空文字の場合は、Enum生成時にチェックエラーとなるため考慮不要
+   * Returns code.
    */
   public String getCode() {
     return code;
-  }
-
-  /**
-   * nameを返す。 nameがnull, 空文字の場合は、Enum生成時にチェックエラーとなるため考慮不要
-   */
-  public String getName() {
-    return this.toString();
-  }
-
-  /**
-   * 画面で表示するための名称を返す。 この名称は、getはできるがそれをもとにenumを取得することはできない。 localizeされた言語で返す。
-   * 明らかに日本語専用のサイトを作成する場合も多いし、その場合にこの仕組みのほうが楽なので。 またどこかで変わるかもしれないけど。
-   */
-  public String getDispName(Locale locale) {
-    return PropertyFileUtil.getEnumName(locale,
-        this.getClass().getSimpleName() + "." + this.toString());
-  }
-
-  /**
-   * defaultのLocaleを使用。
-   */
-  public String getDispName() {
-    return PropertyFileUtil.getEnumName(Locale.getDefault(),
-        this.getClass().getSimpleName() + "." + this.toString());
-  }
-
-  /**
-   * 引数のcodeがEnum内に存在すればtrue、しなければfalseを返す。<br>
-   * codeがnullまたは空文字の場合はfalseを返す。
-   */
-  public static boolean hasEnum(String code) {
-    for (IncidentTreatedAsEnum enu : IncidentTreatedAsEnum.values()) {
-      if (code != null && code.equals(enu.getCode())) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * 引数のnameがEnum内に存在すればtrue、しなければfalseを返す。<br>
-   * nameがnullまたは空文字の場合はfalseを返す。
-   */
-  public static boolean hasEnumFromName(String name) {
-    for (IncidentTreatedAsEnum enu : IncidentTreatedAsEnum.values()) {
-      if (name != null && name.equals(enu.getName())) {
-        return true;
-      }
-    }
-
-    return false;
   }
 }
