@@ -15,6 +15,8 @@
  */
 package jp.ecuacion.tool.housekeepfiles.reader;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import java.io.IOException;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
@@ -22,10 +24,11 @@ import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
 import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
 import jp.ecuacion.lib.core.util.ValidationUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
+import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.apache.poi.EncryptedDocumentException;
 import org.junit.jupiter.api.Test;
 
-public class Test11_13_excelデータの値検証_taskList_単体項目チェック_処理パターン extends Test11_1x_common {
+public class Test11_13_excelデータの値検証_taskList_単体項目チェック_処理パターン extends TestTool {
 
   @Test
   public void test01_処理パターン_異常系_null()

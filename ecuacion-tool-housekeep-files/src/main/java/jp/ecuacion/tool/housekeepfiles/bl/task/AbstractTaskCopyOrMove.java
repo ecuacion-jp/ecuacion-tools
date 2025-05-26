@@ -27,6 +27,9 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
 
+/**
+ * Provides abstract task for copy and move.
+ */
 public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
   private HkFileManipulateUtil fmu = new HkFileManipulateUtil();
 
@@ -35,6 +38,9 @@ public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
     return TaskActionKindEnum.change;
   }
 
+  /**
+   * Executes task.
+   */
   protected abstract void doSpecificTask(HousekeepFilesTaskRecord taskRec, String fromPath,
       String toPath, TaskPtnEnum taskPtn, boolean isFromDir, boolean isToDir);
 

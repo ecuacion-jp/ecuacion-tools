@@ -15,21 +15,33 @@
  */
 package jp.ecuacion.tool.housekeepfiles.dto.other;
 
+/**
+ * Stores file info.
+ */
 public class FileInfo {
   private String filePath;
   private boolean isDirectory;
   private long lastUpdTimeInMillis;
   private boolean isLocked;
 
+  /**
+   * Constructs a new instance.
+   */
   public FileInfo() {
 
   }
 
+  /**
+   * Constructs a new instance.
+   */
   public FileInfo(String filePath, boolean isDirectory) {
     this.filePath = filePath;
     this.isDirectory = isDirectory;
   }
 
+  /**
+   * Constructs a new instance.
+   */
   public FileInfo(String filePath, boolean isDirectory, long lastUpdTimeInMillis,
       boolean isLocked) {
     this.filePath = filePath;

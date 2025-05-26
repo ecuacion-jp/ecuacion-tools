@@ -26,11 +26,17 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
+/**
+ * Housekeeps files.
+ */
 @Component
-public class HousekeepFilesTasklet extends SystemCommonTasklet implements Tasklet {
+public class HousekeepFilesTasklet implements Tasklet {
   HousekeepFilesBlf blf = new HousekeepFilesBlf();
   HousekeepFilesForm form = null;
 
+  /**
+   * Executes housekeeping files. 
+   */
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
     Map<String, Object> paramMap = chunkContext.getStepContext().getJobParameters();
@@ -42,6 +48,9 @@ public class HousekeepFilesTasklet extends SystemCommonTasklet implements Taskle
     return RepeatStatus.FINISHED;
   }
 
+  /**
+   * Housekeeps files.
+   */
   public void execute(String excelFilePath) throws AppException, Exception {
 
     // 第一引数をチェック
@@ -66,7 +75,10 @@ public class HousekeepFilesTasklet extends SystemCommonTasklet implements Taskle
     blf.execute(form);
   }
 
-  protected HousekeepFilesForm getFormFromExcel(String excelPath) throws AppException {
+  /**
+   * It's package scope for unit-test.
+   */
+  HousekeepFilesForm getFormFromExcel(String excelPath) throws AppException {
     return new HousekeepFilesForm(excelPath);
   }
 }

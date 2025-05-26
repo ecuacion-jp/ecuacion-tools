@@ -15,6 +15,9 @@
  */
 package jp.ecuacion.tool.housekeepfiles.constant;
 
+/**
+ * Stores constants.
+ */
 public abstract class BaseConstants {
 
   public static final String PAC_APP_HOME = "jp.ecuacion.tool.housekeepfiles";
