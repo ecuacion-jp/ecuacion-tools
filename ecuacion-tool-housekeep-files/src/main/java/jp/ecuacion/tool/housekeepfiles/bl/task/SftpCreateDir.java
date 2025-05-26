@@ -29,8 +29,14 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 
+/**
+ * Provides sftp create directory task.
+ */
 public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterface {
 
+  /**
+   * Constructs a new instance.
+   */
   public SftpCreateDir() {
     taskPtn = TaskPtnEnum.SFTP_CREATE_DIR;
   }

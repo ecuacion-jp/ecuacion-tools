@@ -19,10 +19,11 @@ import java.io.IOException;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.util.ValidationUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
+import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.apache.poi.EncryptedDocumentException;
 import org.junit.jupiter.api.Test;
 
-public class Test11_10_excelデータの値検証_taskList_単体項目チェック_共通 extends Test11_1x_common {
+public class Test11_10_excelデータの値検証_taskList_単体項目チェック_共通 extends TestTool {
 
   
   
@@ -32,7 +33,7 @@ public class Test11_10_excelデータの値検証_taskList_単体項目チェッ
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
-    ValidationUtil.builder().build().validateThenThrow(rec);
+    ValidationUtil.validateThenThrow(rec);
   }
 
   @Test
@@ -42,6 +43,6 @@ public class Test11_10_excelデータの値検証_taskList_単体項目チェッ
         "SFTP_MOVE_FROM_SERVER", "aHost", "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE",
         "FALSE", "IGNORE", "key1=value2,key2");
 
-    ValidationUtil.builder().build().validateThenThrow(rec);
+    ValidationUtil.validateThenThrow(rec);
   }
 }

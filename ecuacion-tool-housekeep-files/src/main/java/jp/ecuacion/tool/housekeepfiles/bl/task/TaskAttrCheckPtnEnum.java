@@ -15,6 +15,9 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
+/**
+ * Provides task attribute check pattern enumeration.
+ */
 public enum TaskAttrCheckPtnEnum {
   REQUIRED, PROHIBITED, ARBITRARY
 }

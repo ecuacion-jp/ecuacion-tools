@@ -15,6 +15,13 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bean;
 
+/**
+ * Provides connection to remote server.
+ */
 public abstract class ConnectionToRemoteServer {
+  
+  /**
+   * Provides close connection implementation.
+   */
   public abstract void closeConnection();
 }

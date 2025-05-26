@@ -20,6 +20,9 @@ import jp.ecuacion.lib.core.util.MailUtil;
 import jp.ecuacion.splib.core.exceptionhandler.SplibExceptionHandlerAction;
 import org.springframework.stereotype.Component;
 
+/**
+ * Provides Exception Handler.
+ */
 @Component
 public class AppExceptionHandlerAction implements SplibExceptionHandlerAction {
 

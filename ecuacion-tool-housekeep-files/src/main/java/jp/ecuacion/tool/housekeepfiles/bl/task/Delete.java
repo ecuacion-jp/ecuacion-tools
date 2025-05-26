@@ -26,8 +26,14 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import org.apache.commons.io.FileUtils;
 
+/**
+ * Provides delete task.
+ */
 public class Delete extends AbstractTaskLocal {
 
+  /**
+   * Constructs a new instance.
+   */
   public Delete() {
     taskPtn = TaskPtnEnum.DELETE;
   }

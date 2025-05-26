@@ -11,6 +11,9 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
+/**
+ * Provides batch config.
+ */
 @Configuration
 @ComponentScan(basePackages = "jp.ecuacion.splib.batch.config")
 public class AppBatchConfig extends SplibAppParentBatchConfig {

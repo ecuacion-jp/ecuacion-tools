@@ -15,6 +15,9 @@
  */
 package jp.ecuacion.tool.housekeepfiles.enums;
 
+/** 
+ * Enumerates task actions.
+ */
 public enum TaskActionKindEnum {
   create, change, delete, createFromOriginal;
 }
