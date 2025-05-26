@@ -34,19 +34,28 @@ import jp.ecuacion.tool.housekeepfiles.dto.other.HousekeepFilesExpandedPathsInfo
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 
+/**
+ * Provides business logics for housekeeping files.
+ */
 public class HousekeepFilesBlf {
   DetailLogger dlog = new DetailLogger(this);
   HousekeepFilesBl bl = new HousekeepFilesBl();
 
+  /**
+   * Construct a new instance.
+   */
   public HousekeepFilesBlf() {
 
   }
 
-  /** test用。 */
+  /** only for unit test. */
   public HousekeepFilesBlf(HousekeepFilesBl bl) {
     this.bl = bl;
   }
 
+  /**
+   * Executes housekeeping.
+   */
   public void execute(HousekeepFilesForm form) throws Exception {
     // ログ出力
     logJobStartMsg(form);
@@ -111,6 +120,9 @@ public class HousekeepFilesBlf {
     dlog.debug("##### finishJob:" + form.getTaskInfoHdRec().getSysName());
   }
 
+  /**
+   * Execute by task.
+   */
   protected void execEachTask(AbstractTask task,
       Map<String, ConnectionToRemoteServer> connectionMap, HousekeepFilesTaskRecord taskInfo,
       Map<String, String> envVarInfoMap, Map<String, HousekeepFilesAuthRecord> authMap,
