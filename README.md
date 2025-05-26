@@ -1,17 +1,18 @@
 # ecuacion-tools
 
-## What is it?
+ ## What is it?
 
-`ecuacion-tools` provides executable modules which can be useful to maintain servers and apps.
+ `ecuacion-tools` provides executable modules which can be useful to maintain servers and apps.
 
-## System Requirements
+ ## System Requirements
 
-- JDK 21 or above.
+ - JDK 21 or above.
 
-## Documentation
+ ## Documentation
 
-(See `Documentation` part of `README` in each module)
+ (See `Documentation` part of `README` in each module)
 
-## Installation
+ ## Installation
 
-(See `Installation` part of `README` in each module)
+ (See `Installation` part of `README` in each module)
+ 

@@ -27,8 +27,14 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 
+/**
+ * Provides sftp move to server task.
+ */
 public class SftpMoveFromServer extends AbstractTaskSftp {
 
+  /**
+   * Constructs a new instance.
+   */
   public SftpMoveFromServer() {
     taskPtn = TaskPtnEnum.SFTP_MOVE_FROM_SERVER;
   }

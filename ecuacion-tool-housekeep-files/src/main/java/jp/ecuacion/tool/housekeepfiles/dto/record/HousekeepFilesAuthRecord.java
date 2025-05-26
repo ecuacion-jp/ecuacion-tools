@@ -27,6 +27,9 @@ import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.tool.housekeepfiles.enums.AuthTypeEnum;
 import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 
+/**
+ * Store Auth info.
+ */
 public class HousekeepFilesAuthRecord extends StringExcelTableBean {
 
   @NotEmpty
@@ -61,11 +64,18 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
         "keyPath"};
   }
 
+  /**
+   * Constructs a new instance.
+   * 
+   * @param colList colList
+   */
   public HousekeepFilesAuthRecord(List<String> colList) {
     super(colList);
   }
 
-  /** テスト用。 */
+  /**
+   * only for unit test.
+   */
   public HousekeepFilesAuthRecord(String remoteServer, String protocol, String port,
       String authType, String userName, String password, String keyPath) {
 

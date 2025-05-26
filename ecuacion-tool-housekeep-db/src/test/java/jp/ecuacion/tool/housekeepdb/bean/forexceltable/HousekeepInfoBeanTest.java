@@ -7,14 +7,11 @@ import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.exception.checked.SingleAppException;
 import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
 import jp.ecuacion.lib.core.util.ValidationUtil;
-import jp.ecuacion.lib.core.util.ValidationUtil.ValidationExecutor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class HousekeepInfoBeanTest {
-
-  private final ValidationExecutor valUtil = ValidationUtil.builder().build();
 
   @DisplayName("requiredTest")
   @Test
@@ -25,7 +22,7 @@ public class HousekeepInfoBeanTest {
     List<String> list = Arrays.asList(new String[] {null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null});
 
-    MultipleAppException multiple = valUtil.validateThenReturn(new HousekeepInfoBean(list));
+    MultipleAppException multiple = ValidationUtil.validateThenReturn(new HousekeepInfoBean(list)).get();
 
     Assertions.assertEquals(7, multiple.getList().size());
 
@@ -52,7 +49,7 @@ public class HousekeepInfoBeanTest {
     list = Arrays.asList(new String[] {"taskId", "dbConnectionInfoId", "isSoftDelete",
         "isSoftDeleteInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark", null, null,
         null, null, null, null, null, null});
-    multiple = valUtil.validateThenReturn(new HousekeepInfoBean(list));
+    multiple = ValidationUtil.validateThenReturn(new HousekeepInfoBean(list)).get();
     Assertions.assertEquals(2, multiple.getList().size());
     for (SingleAppException ex : multiple.getList()) {
       Assertions.assertTrue(ex instanceof ValidationAppException);
@@ -65,7 +62,7 @@ public class HousekeepInfoBeanTest {
 
     list = Arrays.asList(new String[] {"taskId", "dbConnectionInfoId", "論理廃止", "SOFT_DELETE",
         "table", "idColumn", "(none)", null, null, null, null, null, null, null, null});
-    multiple = valUtil.validateThenReturn(new HousekeepInfoBean(list));
+    multiple = ValidationUtil.validateThenReturn(new HousekeepInfoBean(list)).get();
     Assertions.assertEquals(1, multiple.getList().size());
     ValidationAppException valEx = (ValidationAppException) multiple.getList().get(0);
     Assertions.assertEquals("jp.ecuacion.lib.core.jakartavalidation.validator.ConditionalNotEmpty",
@@ -75,16 +72,16 @@ public class HousekeepInfoBeanTest {
 
     list = Arrays.asList(new String[] {"taskId", "dbConnectionInfoId", "削除", "HARD_DELETE", "table",
         "idColumn", "quotes(')", null, null, null, null, null, null, null, null});
-    multiple = valUtil.validateThenReturn(new HousekeepInfoBean(list));
+    multiple = ValidationUtil.validateThenReturn(new HousekeepInfoBean(list)).get();
     Assertions.assertEquals((String) null, multiple);
 
     // soft-delete related columns needs to be empty when "HARD_DELETE"
     // softDeleteUpdateUserIdColumnNeedsQuotationMark should be one of the patterns
-    
+
     list = Arrays.asList(
         new String[] {"taskId", "dbConnectionInfoId", "削除", "HARD_DELETE", "table", "idColumn",
             "(none)", "lst_upd_time", "OffsetDateTime", "30", "rem_flg", "a", "b", "c", "d"});
-    multiple = valUtil.validateThenReturn(new HousekeepInfoBean(list));
+    multiple = ValidationUtil.validateThenReturn(new HousekeepInfoBean(list)).get();
     Assertions.assertEquals(2, multiple.getList().size());
   }
 }

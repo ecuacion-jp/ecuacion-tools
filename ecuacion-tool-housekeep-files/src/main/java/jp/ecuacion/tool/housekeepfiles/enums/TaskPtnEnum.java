@@ -15,95 +15,19 @@
  */
 package jp.ecuacion.tool.housekeepfiles.enums;
 
-
-import java.util.Locale;
-import jp.ecuacion.lib.core.util.PropertyFileUtil;
-
 /** 
- * 
+ * Enumerates task patterns.
  */
 public enum TaskPtnEnum {
-
-  /** 
-   * 
-   */
-  CREATE_DIR("101"),
-
-  /** 
-   * 
-   */
-  CREATE_FILE("102"),
-  
-  /** 
-   * 
-   */
-  MOVE("111"),
-
-  /** 
-   * 
-   */
-  COPY("121"),
-
-  /** 
-   * 
-   */
-  DELETE("131"),
-
-  /** 
-   * 
-   */
-  ZIP_DELETE_ORIG("141"),
-
-  /** 
-   * 
-   */
-  ZIP_REMAIN_ORIG("142"),
-
-  /** 
-   * 
-   */
-  UNZIP_DELETE_ORIG("151"),
-
-  /** 
-   * 
-   */
+  //@formatter:off
+  CREATE_DIR("101"), CREATE_FILE("102"), MOVE("111"), COPY("121"), DELETE("131"),
+  ZIP_DELETE_ORIG("141"), ZIP_REMAIN_ORIG("142"), UNZIP_DELETE_ORIG("151"), 
   UNZIP_REMAIN_ORIG("152"),
-
-  /** 
-   * 
-   */
-  SFTP_CREATE_DIR("201"),
-
-  /** 
-   * 
-   */
-  SFTP_CREATE_FILE("202"),
-
-  /** 
-   * 
-   */
-  SFTP_MOVE_FROM_SERVER("211"),
-
-  /** 
-   * 
-   */
-  SFTP_MOVE_TO_SERVER("212"),
-
-  /** 
-   * 
-   */
-  SFTP_COPY_FROM_SERVER("221"),
-
-  /** 
-   * 
-   */
-  SFTP_COPY_TO_SERVER("222"),
-
-  /** 
-   * 
-   */
+  SFTP_CREATE_DIR("201"), SFTP_CREATE_FILE("202"), SFTP_MOVE_FROM_SERVER("211"), 
+  SFTP_MOVE_TO_SERVER("212"), SFTP_COPY_FROM_SERVER("221"), SFTP_COPY_TO_SERVER("222"), 
   SFTP_DELETE_FROM_SERVER("231");
-  
+  //@formatter:on
+
   private String code;
 
   private TaskPtnEnum(String code) {
@@ -111,61 +35,9 @@ public enum TaskPtnEnum {
   }
 
   /**
-   * codeを返す。 codeがnull, 空文字の場合は、Enum生成時にチェックエラーとなるため考慮不要
+   * Returns code.
    */
   public String getCode() {
     return code;
-  }
-
-  /**
-   * nameを返す。 nameがnull, 空文字の場合は、Enum生成時にチェックエラーとなるため考慮不要
-   */
-  public String getName() {
-    return this.toString();
-  }
-
-  /**
-   * 画面で表示するための名称を返す。 この名称は、getはできるがそれをもとにenumを取得することはできない。 localizeされた言語で返す。
-   * 明らかに日本語専用のサイトを作成する場合も多いし、その場合にこの仕組みのほうが楽なので。 またどこかで変わるかもしれないけど。
-   */
-  public String getDispName(Locale locale) {
-    return PropertyFileUtil.getEnumName(locale,
-        this.getClass().getSimpleName() + "." + this.toString());
-  }
-
-  /**
-   * defaultのLocaleを使用。
-   */
-  public String getDispName() {
-    return PropertyFileUtil.getEnumName(Locale.getDefault(),
-        this.getClass().getSimpleName() + "." + this.toString());
-  }
-
-  /**
-   * 引数のcodeがEnum内に存在すればtrue、しなければfalseを返す。<br>
-   * codeがnullまたは空文字の場合はfalseを返す。
-   */
-  public static boolean hasEnum(String code) {
-    for (TaskPtnEnum enu : TaskPtnEnum.values()) {
-      if (code != null && code.equals(enu.getCode())) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * 引数のnameがEnum内に存在すればtrue、しなければfalseを返す。<br>
-   * nameがnullまたは空文字の場合はfalseを返す。
-   */
-  public static boolean hasEnumFromName(String name) {
-    for (TaskPtnEnum enu : TaskPtnEnum.values()) {
-      if (name != null && name.equals(enu.getName())) {
-        return true;
-      }
-    }
-
-    return false;
   }
 }

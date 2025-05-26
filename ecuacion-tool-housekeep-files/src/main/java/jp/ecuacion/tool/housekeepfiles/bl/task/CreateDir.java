@@ -26,8 +26,14 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 
+/**
+ * Provides create directory task.
+ */
 public class CreateDir extends AbstractTaskLocal implements CreateDirInterface {
 
+  /**
+   * Constructs a new instance.
+   */
   public CreateDir() {
     taskPtn = TaskPtnEnum.CREATE_FILE;
   }

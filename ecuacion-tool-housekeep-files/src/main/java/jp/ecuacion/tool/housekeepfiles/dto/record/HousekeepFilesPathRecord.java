@@ -23,6 +23,9 @@ import java.util.List;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 
+/**
+ * Stores path info.
+ */
 public class HousekeepFilesPathRecord extends StringExcelTableBean {
 
   @NotEmpty
@@ -59,6 +62,11 @@ public class HousekeepFilesPathRecord extends StringExcelTableBean {
     return new String[] {"key", "value"};
   }
 
+  /**
+   * Constructs a new instance.
+   * 
+   * @param colList colList
+   */
   public HousekeepFilesPathRecord(List<String> colList) {
     super(colList);
   }

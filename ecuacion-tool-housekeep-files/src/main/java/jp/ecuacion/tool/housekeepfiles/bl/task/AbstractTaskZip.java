@@ -24,6 +24,9 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.util.CompressUtil;
 import org.apache.commons.io.FileUtils;
 
+/**
+ * Provides abstract zip tasks.
+ */
 public abstract class AbstractTaskZip extends AbstractTaskLocal {
 
   @Override

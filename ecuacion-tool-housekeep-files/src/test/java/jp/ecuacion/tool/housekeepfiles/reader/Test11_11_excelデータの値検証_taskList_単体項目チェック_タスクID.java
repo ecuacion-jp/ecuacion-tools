@@ -15,6 +15,9 @@
  */
 package jp.ecuacion.tool.housekeepfiles.reader;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
@@ -24,10 +27,11 @@ import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
 import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
 import jp.ecuacion.lib.core.util.ValidationUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
+import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.apache.poi.EncryptedDocumentException;
 import org.junit.jupiter.api.Test;
 
-public class Test11_11_excelデータの値検証_taskList_単体項目チェック_タスクID extends Test11_1x_common {
+public class Test11_11_excelデータの値検証_taskList_単体項目チェック_タスクID extends TestTool {
 
   @Test
   public void test01_タスクID_異常系_null() throws EncryptedDocumentException, IOException, AppException {
@@ -36,7 +40,7 @@ public class Test11_11_excelデータの値検証_taskList_単体項目チェッ
 
     try {
       
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {
@@ -53,7 +57,7 @@ public class Test11_11_excelデータの値検証_taskList_単体項目チェッ
         null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {
@@ -79,7 +83,7 @@ public class Test11_11_excelデータの値検証_taskList_単体項目チェッ
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {
@@ -97,7 +101,7 @@ public class Test11_11_excelデータの値検証_taskList_単体項目チェッ
         null, null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {

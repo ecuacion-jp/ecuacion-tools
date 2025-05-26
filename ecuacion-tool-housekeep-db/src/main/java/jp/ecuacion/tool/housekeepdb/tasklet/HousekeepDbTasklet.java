@@ -44,15 +44,19 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
+/**
+ * Executes housekeeping DB.
+ */
 @Component
 public class HousekeepDbTasklet implements Tasklet {
-
-  private SqlUtil sqlUtil = new SqlUtil();
 
   private static final int MAX_SELECT_LINES = 1000;
   private DetailLogger detailLogger = new DetailLogger(this);
   private LangExcel lang = null;
 
+  /**
+   * Executes the procedure.
+   */
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
 
@@ -155,7 +159,7 @@ public class HousekeepDbTasklet implements Tasklet {
 
     if (info.timestampColumnDefines()) {
       whereList.add(new ColumnAndValueStringBean(
-          "'" + sqlUtil.getTimestampNow(info.getDbConnectionInfo().getProtocol()) + "' - "
+          "'" + SqlUtil.getTimestampNow(info.getDbConnectionInfo().getProtocol()) + "' - "
               + info.getTimestampColumn() + " > '" + info.getDeleteTargetInDays() + " days'"));
     }
 
@@ -170,7 +174,7 @@ public class HousekeepDbTasklet implements Tasklet {
       }
     }
 
-    String where = sqlUtil.getWhere(whereList);
+    String where = SqlUtil.getWhere(whereList);
 
     return "select * from " + info.getTable() + where + " order by "
         + info.getIdColumnInfo().getColumn() + " limit " + MAX_SELECT_LINES;
@@ -207,7 +211,9 @@ public class HousekeepDbTasklet implements Tasklet {
   }
 
   /**
-   * 指定されたrecordが関連テーブルに存在する場合はskipする。レコードがなければ（＝物理削除済み）skipせず削除対象とする。 trueを返す場合はskipすることを意味する。
+   * Skip deleting if specified related-table record exists.
+   * 
+   * <p>Returning true means that record is skipped to delete.</p>
    */
   private boolean needsSkipFromRelatedTableDataCheck(Connection connection, HousekeepInfoBean info,
       Object id, ResultSet mainSqlRs) throws SQLException {
@@ -289,11 +295,11 @@ public class HousekeepDbTasklet implements Tasklet {
 
         // related tableのcolumnに取得した値があるレコードは削除
         String softDeleteSql =
-            "update " + relatedInfo.getRelatedTable() + sqlUtil.getUpdateSet(updateSetList);
+            "update " + relatedInfo.getRelatedTable() + SqlUtil.getUpdateSet(updateSetList);
         String hardDeleteSql = "delete from " + relatedInfo.getRelatedTable();
 
         String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
-        sql = sql + sqlUtil.getWhere(whereList);
+        sql = sql + SqlUtil.getWhere(whereList);
 
         PreparedStatement delStmt = getStatement(conn, sql, false);
         int count = delStmt.executeUpdate();
@@ -325,7 +331,7 @@ public class HousekeepDbTasklet implements Tasklet {
       }
     }
 
-    String softDeleteSql = "update " + info.getTable() + sqlUtil.getUpdateSet(updateSetList);
+    String softDeleteSql = "update " + info.getTable() + SqlUtil.getUpdateSet(updateSetList);
     String hardDeleteSql = "delete from " + info.getTable();
 
     List<SqlConditionInterface> whereList = new ArrayList<>();
@@ -337,7 +343,7 @@ public class HousekeepDbTasklet implements Tasklet {
     }
 
     String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
-    sql = sql + sqlUtil.getWhere(whereList);
+    sql = sql + SqlUtil.getWhere(whereList);
 
     PreparedStatement delStmt = getStatement(conn, sql, false);
     int count = delStmt.executeUpdate();
@@ -383,7 +389,7 @@ public class HousekeepDbTasklet implements Tasklet {
 
     dbConnectionInfoMap.values().stream().forEach(info -> {
       try {
-        ValidationUtil.builder().build().validateThenThrow(info);
+        ValidationUtil.validateThenThrow(info);
 
       } catch (MultipleAppException e) {
         throw new UncheckedAppException(e);

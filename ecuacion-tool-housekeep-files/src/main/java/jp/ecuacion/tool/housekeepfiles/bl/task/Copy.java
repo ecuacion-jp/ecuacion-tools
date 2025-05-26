@@ -21,8 +21,14 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import org.apache.commons.io.FileUtils;
 
+/**
+ * Provides copy task.
+ */
 public class Copy extends AbstractTaskCopyOrMove {
 
+  /**
+   * Constructs a new instance.
+   */
   public Copy() {
     taskPtn = TaskPtnEnum.COPY;
   }
