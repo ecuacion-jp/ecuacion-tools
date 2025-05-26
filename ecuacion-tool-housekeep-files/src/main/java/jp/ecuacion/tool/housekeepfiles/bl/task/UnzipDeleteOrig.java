@@ -25,8 +25,14 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 
+/**
+ * Provides unzip deleting original file task.
+ */
 public class UnzipDeleteOrig extends AbstractTaskLocal {
 
+  /**
+   * Constructs a new instance.
+   */
   public UnzipDeleteOrig() {
     taskPtn = TaskPtnEnum.UNZIP_DELETE_ORIG;
   }

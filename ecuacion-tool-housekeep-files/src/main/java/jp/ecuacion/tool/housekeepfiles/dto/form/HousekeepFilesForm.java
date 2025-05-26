@@ -23,15 +23,17 @@ import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesPathRecord;
-import jp.ecuacion.tool.housekeepfiles.reader.ExcelAuthListReader;
+import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.reader.ExcelInfoListReader;
-import jp.ecuacion.tool.housekeepfiles.reader.ExcelPathListReader;
-import jp.ecuacion.tool.housekeepfiles.reader.ExcelTaskListReader;
+import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
 import org.apache.poi.EncryptedDocumentException;
 
+/**
+ * Stores multiple records.
+ */
 public class HousekeepFilesForm {
 
-  /** infoはmapの形で保持。 */
+  /** info records are stored as map format. */
   private Map<String, String> infoMap;
 
   // taskListを保持
@@ -44,26 +46,51 @@ public class HousekeepFilesForm {
   // authListを保持
   private List<HousekeepFilesAuthRecord> authInfoRecList = null;
 
-  /** テスト用。 */
+  private static final String[] HEADER_LABELS_TASK = new String[] {"タスクID", "タスク名", "処理パターン\n日本語名",
+      "処理パターン", "接続先サーバ", "元パス", "元パスがディレクトリ", "元パス処理実施対象\n経過期間単位", "元パス処理実施対象\n経過期間値",
+      "元パス存在なし時処理", "先パス", "先パスがディレクトリ", "先パス存在時上書き", "先パス存在時処理", "options"};
+  private static final String[] HEADER_LABELS_PATH = new String[] {"パス変数名", "パス値"};
+  private static final String[] HEADER_LABELS_AUTH =
+      new String[] {"サーバ名", "protocol", "port", "認証方式", "ユーザ名", "password / passphrase", "秘密鍵パス"};
+
+  /** only for unit-test. */
   public HousekeepFilesForm() {
     taskInfoHdRec = new HousekeepFilesHdRecord();
     pathInfoRecList = new ArrayList<>();
     authInfoRecList = new ArrayList<>();
   }
 
+  /**
+   * Constructs a new instance.
+   * 
+   * @param excelPath excelPath
+   * @throws AppException AppException
+   */
   public HousekeepFilesForm(String excelPath) throws AppException {
     readExcel(excelPath);
   }
 
+  /**
+   * Constructs a new instance.
+   * 
+   * @param excelPath excelPath
+   * @throws AppException AppException
+   */
   protected void readExcel(String excelPath) throws AppException {
     try {
       infoMap = new ExcelInfoListReader().readToMap(excelPath);
       taskInfoHdRec = new HousekeepFilesHdRecord();
       taskInfoHdRec.setSysName(infoMap.get("env-name"));
-      taskInfoHdRec.recList = ((ExcelTaskListReader) (new ExcelTaskListReader()
-          .ignoresAdditionalColumnsOfHeaderData(true))).readToBean(excelPath);
-      pathInfoRecList = new ExcelPathListReader().readToBean(excelPath);
-      authInfoRecList = new ExcelAuthListReader().readToBean(excelPath);
+      taskInfoHdRec.recList =
+          (new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesTaskRecord>(
+              HousekeepFilesTaskRecord.class, "タスク設定", HEADER_LABELS_TASK, null, 1, null)
+                  .ignoresAdditionalColumnsOfHeaderData(true)).readToBean(excelPath);
+      pathInfoRecList = new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesPathRecord>(
+          HousekeepFilesPathRecord.class, "パス設定", HEADER_LABELS_PATH, null, 1, null)
+              .readToBean(excelPath);
+      authInfoRecList = new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesAuthRecord>(
+          HousekeepFilesAuthRecord.class, "サーバ認証設定", HEADER_LABELS_AUTH, null, 1, null)
+              .readToBean(excelPath);
 
     } catch (EncryptedDocumentException | IOException ex) {
       throw new RuntimeException(ex);

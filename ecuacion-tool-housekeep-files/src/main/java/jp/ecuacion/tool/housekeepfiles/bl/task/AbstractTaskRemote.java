@@ -15,6 +15,9 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
+/**
+ * Provides abstract remote tasks.
+ */
 public abstract class AbstractTaskRemote extends AbstractTask {
   
 }

@@ -22,10 +22,11 @@ import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
 import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
 import jp.ecuacion.lib.core.util.ValidationUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
+import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.apache.poi.EncryptedDocumentException;
 import org.junit.jupiter.api.Test;
 
-public class Test11_14_excelデータの値検証_taskList_単体項目チェック_その他項目 extends Test11_1x_common {
+public class Test11_14_excelデータの値検証_taskList_単体項目チェック_その他項目 extends TestTool {
 
 //  test01_接続先サーバ_異常系_長さ上限超過
 //  test11_元パス_異常系_長さ上限超過
@@ -37,7 +38,7 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
         null, "aPath", "はい", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {
@@ -68,7 +69,7 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
         null, "aPath", "TRUE", "DAY", "7", "無視", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
     try {
-      ValidationUtil.builder().build().validateThenThrow(rec);
+      ValidationUtil.validateThenThrow(rec);
       fail();
 
     } catch (MultipleAppException ex) {
