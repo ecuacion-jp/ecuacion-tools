@@ -21,8 +21,14 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 
+/**
+ * Provides zip remaining original file task.
+ */
 public class ZipRemainOrig extends AbstractTaskZip {
 
+  /**
+   * Constructs a new instance.
+   */
   public ZipRemainOrig() {
     taskPtn = TaskPtnEnum.ZIP_REMAIN_ORIG;
   }

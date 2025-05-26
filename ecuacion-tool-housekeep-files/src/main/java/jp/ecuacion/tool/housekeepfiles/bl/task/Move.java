@@ -22,10 +22,16 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.util.DateTimeUtil;
 import org.apache.commons.io.FileUtils;
 
+/**
+ * Provides move task.
+ */
 public class Move extends AbstractTaskCopyOrMove {
 
   private DateTimeUtil dateUtil = new DateTimeUtil();
 
+  /**
+   * Constructs a new instance.
+   */
   public Move() {
     taskPtn = TaskPtnEnum.MOVE;
   }

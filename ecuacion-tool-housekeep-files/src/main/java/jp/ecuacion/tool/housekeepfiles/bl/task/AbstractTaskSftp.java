@@ -16,6 +16,7 @@
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import static jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum.create;
+
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
@@ -40,6 +41,9 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.AuthTypeEnum;
 
+/**
+ * Provides abstract sftp tasks.
+ */
 public abstract class AbstractTaskSftp extends AbstractTaskRemote {
 
   @Override
@@ -47,6 +51,9 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     return "SFTP";
   }
 
+  /**
+   * Executes task.
+   */
   protected abstract void doSpecificTask(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String fromPath, String toPath, List<AppException> warnList)
       throws Exception;
@@ -130,8 +137,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
   }
 
   /**
-   * ディレクトリ指定の場合は、そのディレクトリ配下に存在するファイル・ディレクトリ一覧を取得、ファイル指定の場合は、存在すればそのファイルを取得。
-   * →ディレクトリでもそのディレクトリ自体を取得するよう変更
+   * Returns specified file or directory if exists.
    */
   protected List<FileInfo> getRemoteFileInfoList(AbstractTask task,
       ConnectionToRemoteServer connection, boolean isPathDir, String path) {
@@ -231,7 +237,9 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     }
   }
 
-  /** フォルダはあるが配下のファイル／フォルダがないのと、フォルダがない、またはpathがファイルの場合を区別するため、後者はエラーとする。 */
+  /**
+   *  フォルダはあるが配下のファイル／フォルダがないのと、フォルダがない、またはpathがファイルの場合を区別するため、後者はエラーとする。 
+   */
   public List<String> getRemoteDirChildrenNameList(ChannelSftp channel, String dirPath)
       throws SftpException {
     if (!remoteDirExists(channel, dirPath)) {

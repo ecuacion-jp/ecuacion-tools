@@ -18,10 +18,16 @@ package jp.ecuacion.tool.housekeepfiles.bean;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.Session;
 
+/**
+ * Provides connection to remote server through sftp.
+ */
 public class ConnectionToSftpServer extends ConnectionToRemoteServer {
   private Session sftpSession;
   private ChannelSftp sftpChannel;
 
+  /**
+   * Construct a new instance.
+   */
   public ConnectionToSftpServer(Session sftpSession, ChannelSftp sftpConnection) {
     this.sftpSession = sftpSession;
     this.sftpChannel = sftpConnection;
