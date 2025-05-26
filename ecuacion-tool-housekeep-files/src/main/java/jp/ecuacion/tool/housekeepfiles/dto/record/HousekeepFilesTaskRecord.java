@@ -40,6 +40,9 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 
+/**
+ * Stores task info.
+ */
 public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
   @NotEmpty
@@ -112,7 +115,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
         "options"};
   }
 
-  /** テスト用。 */
+  /** 
+   * only for unit test.
+   */
   public HousekeepFilesTaskRecord(String taskId, String taskName, String taskPtnEnumName,
       String remoteServer, String pathFrom, String isSrcPathDirEnumName, String unitName,
       String value, String actionForNoSrcPathEnumName, String pathTo, String isDestPathDirEnumName,
@@ -124,10 +129,18 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
         options}));
   }
 
+  /**
+   * Constructs a new instance.
+   * 
+   * @param colList colList
+   */
   public HousekeepFilesTaskRecord(List<String> colList) {
     super(colList);
   }
 
+  /**
+   * Gets unit.
+   */
   public Integer getUnit() {
     int rtn = -1;
     if (unitName == null || unitName.equals("")) {
@@ -157,6 +170,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
     return rtn;
   }
 
+  /**
+   * Sets unit.
+   */
   public void setUnit(String unit) {
     throw new RuntimeException("Unit cannot be set. set 'unitName'.");
   }
@@ -177,6 +193,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
     return remoteServer;
   }
 
+  /**
+   * Gets isSrcPathDir.
+   */
   public Boolean getIsSrcPathDir() throws BizLogicAppException {
     return (StringUtils.isEmpty(isSrcPathDirEnumName)) ? null
         : Boolean.valueOf(isSrcPathDirEnumName.toLowerCase());
@@ -212,9 +231,11 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   public IncidentTreatedAsEnum getActionForDestFileExists() {
     return (StringUtils.isEmpty(actionForDestFileExistsEnumName)) ? null
         : IncidentTreatedAsEnum.valueOf(actionForDestFileExistsEnumName);
-
   }
 
+  /**
+   * Gets EnvVarExpandedSrcPath.
+   */
   public String getEnvVarExpandedSrcPath() {
     if (envVarInfoMap == null) {
       throw new RuntimeException("envVarInfoMap must be set before call the method.");
@@ -223,6 +244,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
     return envVarExpandedSrcPath;
   }
 
+  /**
+   * Gets EnvVarExpandedDestPath.
+   */
   public String getEnvVarExpandedDestPath() {
     if (envVarInfoMap == null) {
       throw new RuntimeException("envVarInfoMap must be set before call the method.");
@@ -232,8 +256,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   }
 
   /**
-   * pathInfoMapを取得。 取得時にsrcPath、destPathの環境変数展開を併せて実施。
-   * @throws MultipleAppException 
+   * Sets EnvVarInfoMap.
+   *
+   * @throws MultipleAppException MultipleAppException
    */
   public void setEnvVarInfoMap(Map<String, String> envVarInfoMap) throws AppException {
     if (envVarInfoMap == null) {
@@ -242,6 +267,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
     this.envVarInfoMap = envVarInfoMap;
 
+    // pathInfoMapを取得。 取得時にsrcPath、destPathの環境変数展開を併せて実施。
     envVarExpandedSrcPath = srcPath == null ? null : substituteEnvVars(srcPath);
     envVarExpandedDestPath = destPath == null ? null : substituteEnvVars(destPath);
   }

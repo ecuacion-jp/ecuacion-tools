@@ -21,6 +21,9 @@ import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 
+/**
+ * Provides abstract local tasks.
+ */
 public abstract class AbstractTaskLocal extends AbstractTask {
 
   @Override
@@ -34,26 +37,14 @@ public abstract class AbstractTaskLocal extends AbstractTask {
     return null;
   }
 
-  // @Override
-  // public boolean makeToDir(ConnectionToRemoteServer connection, String dirPath) {
-  // return makeLocalDirs(dirPath);
-  // }
-  //
-  // /** localなのでremoteはない。呼ばれることはないが、実装しないと怒られるので常にfalseを返す処理として作成しておく。 */
-  // @Override
-  // public boolean makeRemoteDirs(ConnectionToRemoteServer connection, String path)
-  // throws AppException {
-  // return false;
-  // }
-
-  /** 呼ばれることはないので常にnullを返す。 */
+  /** Returns null since it's never called. */
   @Override
   protected FileInfo getRemoteFileInfo(AbstractTask task, ConnectionToRemoteServer connection,
       boolean isPathDir, String path) {
     return null;
   }
 
-  /** 呼ばれることはないので常にnullを返す。 */
+  /** Returns null since it's never called. */
   @Override
   protected List<FileInfo> getRemoteFileInfoList(AbstractTask task,
       ConnectionToRemoteServer connection, boolean isPathDir, String path) {
@@ -65,7 +56,7 @@ public abstract class AbstractTaskLocal extends AbstractTask {
     return true;
   }
 
-  /** toPath側は、設定の不要なtaskもあるので必須とはしない。default falseにしておく。 */
+  @Override
   public Boolean isDestPathLocal() {
     return true;
   }

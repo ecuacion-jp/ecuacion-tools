@@ -20,8 +20,14 @@ import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 
+/**
+ * Provides utilities.
+ */
 public class HkFileManipulateUtil {
 
+  /**
+   * Checks if overwritten files or directories exist.
+   */
   public boolean checkIfToOverwrittenFileOrDirExists(HousekeepFilesTaskRecord taskRec,
       String fromPath, String toPath) throws BizLogicAppException {
 

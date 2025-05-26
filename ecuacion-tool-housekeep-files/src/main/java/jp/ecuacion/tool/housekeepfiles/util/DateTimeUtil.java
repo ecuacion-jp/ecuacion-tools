@@ -20,35 +20,32 @@ import java.util.Date;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * @author 庸介
- *
+ * Provides utilities on date and time.
  */
 public class DateTimeUtil {
 
-  /* ■□■□ 日付関連 ■□■□ */
-
   /**
-   * 年取得BL。
+   * Obtains year from YYYYMMDD string.
    *
-   * @param date String:YYYYMMDD形式
+   * @param date String:YYYYMMDD
    */
   public String getYear(String date) {
     return date.substring(0, 4);
   }
 
   /**
-   * 月取得BL。
+   * Obtains month from YYYYMMDD string.
    *
-   * @param date String:YYYYMMDD形式
+   * @param date String:YYYYMMDD
    */
   public String getMonth(String date) {
     return date.substring(4, 6);
   }
 
   /**
-   * 日取得BL。
+   * Obtains day of month from YYYYMMDD string.
    *
-   * @param date String:YYYYMMDD形式
+   * @param date String: YYYYMMDD
    */
   public String getDay(String date) {
     return date.substring(6, 8);
@@ -58,34 +55,8 @@ public class DateTimeUtil {
     return StringUtils.leftPad(Integer.toString(number), size, "0");
   }
 
-  // /**
-  // * 現在時刻を、「YYYY-MM-DD-HH-MM-SS」のStringで返す。DB格納用を想定。
-  // */
-  // public String getDateTimeHyphenString(Calendar cal) {
-  // return String.valueOf(cal.get(Calendar.YEAR)) + "-"
-  // + lpadZero(cal.get(Calendar.MONTH) + 1, 2) + "-"
-  // + lpadZero(cal.get(Calendar.DAY_OF_MONTH), 2) + "-"
-  // + lpadZero(cal.get(Calendar.HOUR_OF_DAY), 2) + "-"
-  // + lpadZero(cal.get(Calendar.MINUTE), 2) + "-"
-  // + lpadZero(cal.get(Calendar.SECOND), 2);
-  // }
-
-  // /**
-  // * 現在時刻を、一般的なタイムスタンプ表示形式である「YYYY/MM/DD HH:MM:SS.sss」のStringで返す。
-  // */
-  // public String getTimestampString() {
-  // Calendar cal = Calendar.getInstance();
-  // return String.valueOf(cal.get(Calendar.YEAR)) + "/"
-  // + lpadZero(cal.get(Calendar.MONTH) + 1, 2) + "/"
-  // + lpadZero(cal.get(Calendar.DAY_OF_MONTH), 2) + " "
-  // + lpadZero(cal.get(Calendar.HOUR_OF_DAY), 2) + ":"
-  // + lpadZero(cal.get(Calendar.MINUTE), 2) + ":"
-  // + lpadZero(cal.get(Calendar.SECOND), 2) + "."
-  // + StringUtils.rightPad(String.valueOf(cal.get(Calendar.MILLISECOND)), 3, "0");
-  // }
-
   /**
-   * タイムスタンプを、ファイル名等で使用できる「YYYYMMDD-HHMMSS.sss」のStringで返す。
+   * Returns timestamp with YYYYMMDD-HHMMSS.sss format for filename and others.
    */
   public String getTimestampNumString() {
     Calendar cal = Calendar.getInstance();
@@ -97,15 +68,8 @@ public class DateTimeUtil {
         + StringUtils.rightPad(String.valueOf(cal.get(Calendar.MILLISECOND)), 3, "0");
   }
 
-  // /**
-  // * YYYYMMDDをYYYY/MM/DDに変更。
-  // */
-  // public String getDateStringWithSlashFromStr8(String strDate) {
-  // return getYear(strDate) + "/" + getMonth(strDate) + "/" + getDay(strDate);
-  // }
-
   /**
-   * 現在時刻に対応するYYYYMMDDを返す。
+   * Returns today's YYYYMMDD.
    */
   public String getDateStr8() {
     Calendar cal = Calendar.getInstance();
@@ -114,44 +78,14 @@ public class DateTimeUtil {
         + lpadZero(cal.get(Calendar.DAY_OF_MONTH), 2);
   }
 
-  // /**
-  // * YYYYMMDDからカレンダークラスを取得する。
-  // */
-  // private Calendar getCalFromDateStr8(String dateStr8) {
-  // int y = Integer.parseInt(getYear(dateStr8));
-  // int m = Integer.parseInt(getMonth(dateStr8));
-  // int d = Integer.parseInt(getDay(dateStr8));
-  //
-  // Calendar cal = Calendar.getInstance();
-  // cal.clear();
-  // cal.set(y, m - 1, d);
-  //
-  // return cal;
-  // }
-
-  // /**
-  // * 日付にどれだけずれがあるかをチェックする処理。ひとつめの引数のほうが小さい日付の場合に正の値が返る。
-  // */
-  // public int getDayDiff(String strYyyyMmDd1, String strYyyyMmDd2) {
-  //
-  // Calendar cal1 = getCalFromDateStr8(strYyyyMmDd1);
-  // Calendar cal2 = getCalFromDateStr8(strYyyyMmDd2);
-  //
-  // // ミリ秒を取得
-  // long cal1Long = cal1.getTime().getTime();
-  // long cal2Long = cal2.getTime().getTime();
-  //
-  // int dayDiffInMsec = (int) ((cal2Long - cal1Long) / (1000 * 60 * 60 * 24));
-  //
-  // return (dayDiffInMsec);
-  // }
-
   /**
-   * たとえば、日次で夜間に動くバッチ処理で、ファイルコピーと、3日後にそのコピーしたファイルを削除する処理があるとする。
-   * その際、3日後にはファイルが消えてほしいのだが、普通の日時比較をすると、86400000*3ミリ秒経過したかどうか、 で判断してしまう。
-   * そうではなくて、日単位なら時刻は見ずに日だけで比較する、というロジック。
+   * Provides boolean whether designated time passes.
    */
   public boolean hasDesignatedTermPassed(long lastModified, int unit, int value) {
+    // * たとえば、日次で夜間に動くバッチ処理で、ファイルコピーと、3日後にそのコピーしたファイルを削除する処理があるとする。
+    // * その際、3日後にはファイルが消えてほしいのだが、普通の日時比較をすると、86400000*3ミリ秒経過したかどうか、 で判断してしまう。
+    //  * そうではなくて、日単位なら時刻は見ずに日だけで比較する、というロジック。
+
     // fileのlastModifiedをもとに作成したCalendar
     Calendar calFileLastModified = Calendar.getInstance();
     calFileLastModified.setTimeInMillis(lastModified);
@@ -194,13 +128,15 @@ public class DateTimeUtil {
   }
 
   /**
-   * テストしやすくするため抜き出しし、またprotectedとしている。
+   * Provides calender instance with current dateTime.
+   * 
+   * <p>To make easier to execute unit tests, this method is extracted and protected scope.
    */
   protected Calendar getCurrentCal() {
     return Calendar.getInstance();
   }
 
-  /**
+  /*
    * calendarのままで判断しようとするとどうにもうまくいかず、ネットで見るとdateで比較する例があったのでdateを返すこととする。
    */
   private Date makeUnusedCalendarUnitValToFixedVal(Calendar cal, int timeUnit) {

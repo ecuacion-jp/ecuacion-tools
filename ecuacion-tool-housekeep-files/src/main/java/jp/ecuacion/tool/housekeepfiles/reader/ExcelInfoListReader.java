@@ -23,14 +23,23 @@ import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
 import org.apache.poi.EncryptedDocumentException;
 
+/**
+ * Reads info sheet of the settings excel.
+ */
 public class ExcelInfoListReader extends StringOneLineHeaderExcelTableReader {
 
   private static final String[] headerLabels = new String[] {"項目", "値"};
 
+  /**
+   * Constructs a new instance.
+   */
   public ExcelInfoListReader() {
     super("基礎情報設定", headerLabels, null, 1, null);
   }
 
+  /**
+   * Returns excel data as map format.
+   */
   public Map<String, String> readToMap(String excelPath)
       throws EncryptedDocumentException, IOException, AppException {
     // 表の情報をlistの形で取得
