@@ -24,7 +24,6 @@
 
 	<!-- appenders -->
 	<property name="log-dir" value="./target/logs" />
-	<property name="loglevel-spring" value="INFO" />
 	<include resource="logback-spring-appenders.xml" />
 	<include resource="logback-spring-appenders-batch.xml" />
 	<include resource="logback-spring-appenders-local.xml" />
