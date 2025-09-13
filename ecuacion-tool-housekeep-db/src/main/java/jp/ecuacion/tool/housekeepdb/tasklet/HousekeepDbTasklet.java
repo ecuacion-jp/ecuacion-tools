@@ -361,7 +361,7 @@ public class HousekeepDbTasklet implements Tasklet {
     delStmt.close();
 
     logDeleteLines(info.getTable(), count,
-        info.getIdColumnInfo().getColumnAndValueInfo(idValue).getCondition(), Level.INFO);
+        info.getIdColumnInfo().getColumnAndValueInfo(idValue).getCondition(), Level.DEBUG);
   }
 
   private void logDeleteLines(String table, int count, String condition, Level logLevel) {
