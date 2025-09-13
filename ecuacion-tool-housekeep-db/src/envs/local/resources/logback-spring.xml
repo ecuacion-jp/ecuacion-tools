@@ -3,17 +3,16 @@
 <configuration>
 
 	<!-- profile-independent properties -->
-	<property name="project-name" value="ecuacion-util-housekeep-db" />
+	<property name="project-name" value="ecuacion-tool-housekeep-db" />
 
 	<!-- appenders -->
 	<property name="log-dir" value="./target/logs" />
-	<property name="loglevel-spring" value="INFO" />
 	<include resource="logback-spring-appenders.xml" />
 	<include resource="logback-spring-appenders-batch.xml" />
 	<include resource="logback-spring-appenders-local.xml" />
 
 	<!-- loggers -->
-	<property name="loglevel-jp.ecuacion" value="INFO" />
+	<property name="loglevel-jp.ecuacion" value="DEBUG" />
 	<property name="loglevel-security" value="INFO" />
 	<property name="loglevel-sql" value="INFO" />
 	<property name="loglevel-root" value="INFO" />
