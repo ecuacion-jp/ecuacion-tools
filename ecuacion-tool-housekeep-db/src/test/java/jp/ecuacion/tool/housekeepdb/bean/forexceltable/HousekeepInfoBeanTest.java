@@ -2,6 +2,7 @@ package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.exception.checked.SingleAppException;
@@ -72,8 +73,8 @@ public class HousekeepInfoBeanTest {
 
     list = Arrays.asList(new String[] {"taskId", "dbConnectionInfoId", "削除", "HARD_DELETE", "table",
         "idColumn", "quotes(')", null, null, null, null, null, null, null, null});
-    multiple = ValidationUtil.validateThenReturn(new HousekeepInfoBean(list)).get();
-    Assertions.assertEquals((String) null, multiple);
+    Optional<MultipleAppException> opt = ValidationUtil.validateThenReturn(new HousekeepInfoBean(list));
+    Assertions.assertTrue(opt.isEmpty());
 
     // soft-delete related columns needs to be empty when "HARD_DELETE"
     // softDeleteUpdateUserIdColumnNeedsQuotationMark should be one of the patterns
