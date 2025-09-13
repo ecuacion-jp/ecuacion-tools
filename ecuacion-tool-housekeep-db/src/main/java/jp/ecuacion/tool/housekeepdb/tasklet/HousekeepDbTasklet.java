@@ -38,6 +38,7 @@ import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcel
 import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.EncryptedDocumentException;
+import org.slf4j.event.Level;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -93,6 +94,10 @@ public class HousekeepDbTasklet implements Tasklet {
 
         // 大量件数がある場合でもMAX_SELECT_LINES件で区切って処理
         while (true) {
+          String msg = "The following procedure is Looped and committed every " + MAX_SELECT_LINES
+              + " lines to prevent from using too much memory and time.";
+          detailLogger.info(msg);
+
           try (PreparedStatement stmt = getStatement(conn, selectSql)) {
             ResultSet rs = stmt.executeQuery();
 
@@ -196,15 +201,14 @@ public class HousekeepDbTasklet implements Tasklet {
   }
 
   private PreparedStatement getStatement(Connection conn, String sql) throws SQLException {
-    return getStatement(conn, sql, true);
+    return getStatement(conn, sql, Level.INFO);
   }
 
-  private PreparedStatement getStatement(Connection conn, String sql, boolean isLogLevelInfo)
+  private PreparedStatement getStatement(Connection conn, String sql, Level logLevel)
       throws SQLException {
-    if (isLogLevelInfo) {
-      detailLogger.info(sql);
-    } else {
-      detailLogger.debug(sql);
+
+    if (logLevel != null) {
+      detailLogger.log(logLevel, sql);
     }
 
     return conn.prepareStatement(sql);
@@ -227,7 +231,7 @@ public class HousekeepDbTasklet implements Tasklet {
       String selectSql = "select count(*) count from " + relatedBean.getRelatedTable() + " where "
           + relatedBean.getRelatedTableIdColumnInfo().getColumnAndValueInfo(value).getCondition();
 
-      PreparedStatement stmt = getStatement(connection, selectSql, false);
+      PreparedStatement stmt = getStatement(connection, selectSql, Level.DEBUG);
       ResultSet rs = stmt.executeQuery();
 
       rs.next();
@@ -277,7 +281,7 @@ public class HousekeepDbTasklet implements Tasklet {
           "select " + relatedInfo.getTargetTableColumn() + " from " + info.getTable() + " where "
               + info.getIdColumnInfo().getColumnAndValueInfo(id).getCondition();
 
-      try (PreparedStatement stmt = getStatement(conn, sqlTargetSelect, false);
+      try (PreparedStatement stmt = getStatement(conn, sqlTargetSelect, Level.DEBUG);
           ResultSet rs = stmt.executeQuery();) {
 
         // number of records is always one because 'id' is specified to the where clause.
@@ -301,7 +305,7 @@ public class HousekeepDbTasklet implements Tasklet {
         String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
         sql = sql + SqlUtil.getWhere(whereList);
 
-        PreparedStatement delStmt = getStatement(conn, sql, false);
+        PreparedStatement delStmt = getStatement(conn, sql, Level.DEBUG);
         int count = delStmt.executeUpdate();
         tableRecordDeleted.put(relatedInfo.getRelatedTable(),
             tableRecordDeleted.get(relatedInfo.getRelatedTable()) + count);
@@ -309,7 +313,8 @@ public class HousekeepDbTasklet implements Tasklet {
         delStmt.close();
 
         logDeleteLines(relatedInfo.getRelatedTable(), count,
-            relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val).getCondition());
+            relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val).getCondition(),
+            Level.DEBUG);
       }
     }
   }
@@ -345,7 +350,7 @@ public class HousekeepDbTasklet implements Tasklet {
     String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
     sql = sql + SqlUtil.getWhere(whereList);
 
-    PreparedStatement delStmt = getStatement(conn, sql, false);
+    PreparedStatement delStmt = getStatement(conn, sql, Level.DEBUG);
     int count = delStmt.executeUpdate();
 
     if (count > 0 && !tableRecordDeleted.containsKey(info.getTable())) {
@@ -356,11 +361,13 @@ public class HousekeepDbTasklet implements Tasklet {
     delStmt.close();
 
     logDeleteLines(info.getTable(), count,
-        info.getIdColumnInfo().getColumnAndValueInfo(idValue).getCondition());
+        info.getIdColumnInfo().getColumnAndValueInfo(idValue).getCondition(), Level.INFO);
   }
 
-  private void logDeleteLines(String table, int count, String condition) {
-    detailLogger.info(table + ": " + count + " lines deleted. (" + condition + ")");
+  private void logDeleteLines(String table, int count, String condition, Level logLevel) {
+    if (logLevel != null) {
+      detailLogger.log(logLevel, table + ": " + count + " lines deleted. (" + condition + ")");
+    }
   }
 
   private String getDbConnectionUrl(DbConnectionInfoBean dbInfo) {
