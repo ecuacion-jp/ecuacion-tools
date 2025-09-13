@@ -419,7 +419,7 @@ public class HousekeepFilesBl {
     }
 
     // メッセージを作成
-    final String title = PropertyFileUtil.getApp("jp.ecuacion.lib.core.mail.title-prefix")
+    final String title = PropertyFileUtil.getApplication("jp.ecuacion.lib.core.mail.title-prefix")
         + "[WARN] HousekeepFiles:" + hdE.getSysName();
     String hostname = InetAddress.getLocalHost().getHostName();
     StringBuilder msg = new StringBuilder();
@@ -433,7 +433,7 @@ public class HousekeepFilesBl {
     // メール送信
     List<String> mailTo = new ArrayList<String>();
     for (String to : PropertyFileUtil
-        .getApp("jp.ecuacion.lib.core.mail.address-csv-on-system-error").split(",")) {
+        .getApplication("jp.ecuacion.lib.core.mail.address-csv-on-system-error").split(",")) {
       mailTo.add(to);
     }
 
