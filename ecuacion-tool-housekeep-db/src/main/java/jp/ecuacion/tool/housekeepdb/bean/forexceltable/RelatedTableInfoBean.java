@@ -1,5 +1,8 @@
 package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 
+import static jp.ecuacion.lib.core.jakartavalidation.validator.enums.ConditionPattern.stringValueOfConditionPropertyPathIsEqualTo;
+import static jp.ecuacion.lib.core.jakartavalidation.validator.enums.ConditionPattern.valueOfConditionPropertyPathIsEmpty;
+
 import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
@@ -17,27 +20,35 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * Stores related tables settings.
  */
-//softDeleteColumn required for soft delete
-@ConditionalNotEmpty(field = "softDeleteColumn", conditionField = "isSoftDeleteInternalValue",
-    conditionValue = HousekeepInfoBean.DELETE_KIND_SOFT)
+// softDeleteColumn required for soft delete
+@ConditionalNotEmpty(propertyPath = "softDeleteColumn",
+    conditionPropertyPath = "isSoftDeleteInternalValue",
+    conditionPattern = stringValueOfConditionPropertyPathIsEqualTo,
+    conditionValueString = HousekeepInfoBean.DELETE_KIND_SOFT)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty.
 @ConditionalEmpty(
-    field = {"softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue"},
-    conditionField = "softDeleteUpdateUserIdColumn", conditionValueIsEmpty = true,
-    notEmptyForOtherValues = true)
+    propertyPath = {"softDeleteUpdateUserIdColumnNeedsQuotationMark",
+        "softDeleteUpdateUserIdColumnValue"},
+    conditionPropertyPath = "softDeleteUpdateUserIdColumn",
+    conditionPattern = valueOfConditionPropertyPathIsEmpty,
+    notEmptyWhenConditionNotSatisfied = true)
 // fields related to soft delete must be null when isSoftDelete is hard
 // ("softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue" are
 // covered with the next @ConditionalEmpty)
-@ConditionalEmpty(field = {"softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn"},
-    conditionField = "isSoftDeleteInternalValue",
-    conditionValue = HousekeepInfoBean.DELETE_KIND_HARD)
+@ConditionalEmpty(
+    propertyPath = {"softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn"},
+    conditionPropertyPath = "isSoftDeleteInternalValue",
+    conditionPattern = stringValueOfConditionPropertyPathIsEqualTo,
+    conditionValueString = HousekeepInfoBean.DELETE_KIND_HARD)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty
 @ConditionalEmpty(
-    field = {"softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue"},
-    conditionField = "softDeleteUpdateUserIdColumn", conditionValueIsEmpty = true,
-    notEmptyForOtherValues = true)
+    propertyPath = {"softDeleteUpdateUserIdColumnNeedsQuotationMark",
+        "softDeleteUpdateUserIdColumnValue"},
+    conditionPropertyPath = "softDeleteUpdateUserIdColumn",
+    conditionPattern = valueOfConditionPropertyPathIsEmpty,
+    notEmptyWhenConditionNotSatisfied = true)
 public class RelatedTableInfoBean extends StringExcelTableBean {
 
   public static final String RELATED_TABLE_PROCESS_PATTERN_DELETE = "DELETE";
