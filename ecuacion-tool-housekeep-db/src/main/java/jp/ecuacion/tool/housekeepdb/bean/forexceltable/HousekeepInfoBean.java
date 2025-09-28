@@ -1,7 +1,7 @@
 package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 
-import static jp.ecuacion.lib.core.jakartavalidation.validator.enums.ConditionPattern.stringValueOfConditionPropertyPathIsEqualTo;
-import static jp.ecuacion.lib.core.jakartavalidation.validator.enums.ConditionPattern.valueOfConditionPropertyPathIsEmpty;
+import static jp.ecuacion.lib.core.jakartavalidation.validator.enums.ConditionValuePattern.empty;
+import static jp.ecuacion.lib.core.jakartavalidation.validator.enums.ConditionValuePattern.string;
 
 import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.NotEmpty;
@@ -24,12 +24,12 @@ import org.apache.commons.lang3.StringUtils;
 // softDeleteColumn required for soft delete
 @ConditionalNotEmpty(propertyPath = "softDeleteColumn",
     conditionPropertyPath = "isSoftDeleteInternalValue",
-    conditionPattern = stringValueOfConditionPropertyPathIsEqualTo,
+    conditionPattern = string,
     conditionValueString = HousekeepInfoBean.DELETE_KIND_SOFT)
 // timestampColumn, timestampColumnKind and deleteTargetInDays must be all empty or all not empty
 @ConditionalEmpty(propertyPath = {"timestampColumnKind", "deleteTargetInDays"},
     conditionPropertyPath = "timestampColumn",
-    conditionPattern = valueOfConditionPropertyPathIsEmpty,
+    conditionPattern = empty,
     notEmptyWhenConditionNotSatisfied = true)
 // fields related to soft delete must be null when isSoftDelete is hard
 // ("softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue" are
@@ -37,7 +37,7 @@ import org.apache.commons.lang3.StringUtils;
 @ConditionalEmpty(
     propertyPath = {"softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn"},
     conditionPropertyPath = "isSoftDeleteInternalValue",
-    conditionPattern = stringValueOfConditionPropertyPathIsEqualTo,
+    conditionPattern = string,
     conditionValueString = HousekeepInfoBean.DELETE_KIND_HARD)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty
@@ -45,7 +45,7 @@ import org.apache.commons.lang3.StringUtils;
     propertyPath = {"softDeleteUpdateUserIdColumnNeedsQuotationMark",
         "softDeleteUpdateUserIdColumnValue"},
     conditionPropertyPath = "softDeleteUpdateUserIdColumn",
-    conditionPattern = valueOfConditionPropertyPathIsEmpty,
+    conditionPattern = empty,
     notEmptyWhenConditionNotSatisfied = true)
 public class HousekeepInfoBean extends StringExcelTableBean {
 
