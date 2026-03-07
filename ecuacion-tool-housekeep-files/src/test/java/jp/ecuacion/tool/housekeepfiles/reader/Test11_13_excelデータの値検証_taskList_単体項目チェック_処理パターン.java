@@ -15,11 +15,10 @@
  */
 package jp.ecuacion.tool.housekeepfiles.reader;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import jakarta.validation.ConstraintViolationException;
 import java.io.IOException;
+import java.util.ArrayList;
 import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
 import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
 import jp.ecuacion.lib.core.util.ValidationUtil;
@@ -40,11 +39,12 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
       ValidationUtil.validateThenThrow(rec);
       fail();
 
-    } catch (MultipleAppException ex) {
-      ValidationAppException bv = (ValidationAppException) ex.getList().get(0);
-      ConstraintViolationBean bean = bv.getConstraintViolationBean();
-      assertEquals("jakarta.validation.constraints.NotEmpty", bean.getAnnotation());
-      assertEquals("taskPtnEnumName", bean.getPropertyPath());
+    } catch (ConstraintViolationException ex) {
+      ValidationAppException bv =
+          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
+      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+      assertEquals("jakarta.validation.constraints.NotEmpty", bean.getValidatorClass());
+      assertEquals("taskPtnEnumName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
     }
   }
 
@@ -58,11 +58,13 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
       ValidationUtil.validateThenThrow(rec);
       fail();
 
-    } catch (MultipleAppException ex) {
-      ValidationAppException bv = (ValidationAppException) ex.getList().get(0);
-      ConstraintViolationBean bean = bv.getConstraintViolationBean();
-      assertEquals("jp.ecuacion.lib.core.jakartavalidation.validator.EnumElement", bean.getAnnotation());
-      assertEquals("taskPtnEnumName", bean.getPropertyPath());
+    } catch (ConstraintViolationException ex) {
+      ValidationAppException bv =
+          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
+      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+      assertEquals("jp.ecuacion.lib.validation.constraints.EnumElement",
+          bean.getValidatorClass());
+      assertEquals("taskPtnEnumName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
     }
   }
 }
