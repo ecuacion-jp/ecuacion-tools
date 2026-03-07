@@ -33,7 +33,7 @@ import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.exception.checked.SingleAppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
-import jp.ecuacion.lib.core.util.EmbeddedParameterUtil;
+import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.ExceptionUtil;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.util.MailUtil;
@@ -148,7 +148,7 @@ public class HousekeepFilesBl {
 
     // To check the existence of keys, create map by set value the same value as key.
     Map<String, String> paramMap = keySet.stream().collect(Collectors.toMap(s -> s, s -> s));
-    EmbeddedParameterUtil.getParameterReplacedString(path, "${", "}", paramMap);
+    EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", paramMap);
   }
 
   public void createTaskAndTaskDependentCheck(HousekeepFilesForm form,
@@ -437,6 +437,6 @@ public class HousekeepFilesBl {
       mailTo.add(to);
     }
 
-    MailUtil.sendMail(mailTo, null, title, msg.toString());
+    MailUtil.sendTextMail(mailTo, null, title, msg.toString());
   }
 }
