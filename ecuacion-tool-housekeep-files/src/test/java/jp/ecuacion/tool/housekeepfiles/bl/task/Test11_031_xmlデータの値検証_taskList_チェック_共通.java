@@ -15,12 +15,12 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
+import jakarta.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
 import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
-import jp.ecuacion.lib.core.util.ExceptionUtil;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.DoNothingInConstructorForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
@@ -59,12 +59,13 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
       new HousekeepFilesBlf().execute(form);
       fail();
     } catch (Exception e) {
-      List<Throwable> thList = ExceptionUtil.getExceptionListWithMessages(e);
+      List<? extends Throwable> thList = ((ConstraintViolationException) e)
+          .getConstraintViolations().stream().map(cv -> new ValidationAppException(cv)).toList();
       assertEquals(1, thList.size());
       ValidationAppException ace = (ValidationAppException) thList.get(0);
-      ConstraintViolationBean bean = ace.getConstraintViolationBean();
-      Assertions.assertEquals("sysName", bean.getPropertyPath());
-      Assertions.assertTrue(bean.getMessage().contains("空要素は許可されていません"));
+      ConstraintViolationBean<?> bean = ace.getConstraintViolationBean();
+      Assertions.assertEquals("sysName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      Assertions.assertTrue(bean.getOriginalMessage().contains("空要素は許可されていません"));
     }
   }
 
@@ -79,17 +80,20 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
       new HousekeepFilesBlf().execute(form);
       fail();
     } catch (Exception e) {
-      List<Throwable> thList = ExceptionUtil.getExceptionListWithMessages(e);
+      List<? extends Throwable> thList = ((ConstraintViolationException) e)
+          .getConstraintViolations().stream().map(cv -> new ValidationAppException(cv)).toList();
       assertEquals(2, thList.size());
-      assertEquals("sysName", ((ValidationAppException) thList.get(0)).getConstraintViolationBean().getPropertyPath());
-      assertEquals("sysName", ((ValidationAppException) thList.get(1)).getConstraintViolationBean().getPropertyPath());
+      assertEquals("sysName", ((ValidationAppException) thList.get(0)).getConstraintViolationBean()
+          .getFieldInfoBeanList().get(0).fullPropertyPath);
+      assertEquals("sysName", ((ValidationAppException) thList.get(1)).getConstraintViolationBean()
+          .getFieldInfoBeanList().get(0).fullPropertyPath);
     }
   }
 
   @Test
   public void test03_System名が正常値() {
-    HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE", null,
-        "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
+    HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
+        null, "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
     form.getTaskInfoHdRec().recList.add(rec);
     form.getTaskInfoHdRec().setSysName("test-system");
 

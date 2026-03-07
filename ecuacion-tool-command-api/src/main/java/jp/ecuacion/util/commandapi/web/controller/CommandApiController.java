@@ -12,7 +12,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
-import jp.ecuacion.lib.core.util.EmbeddedParameterUtil;
+import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -126,7 +126,7 @@ public class CommandApiController {
     Function<String, String> func = (key) -> {
       return System.getenv(key);
     };
-    return EmbeddedParameterUtil.getParameterReplacedString(string, "${", "}", func);
+    return EmbeddedVariableUtil.getVariableReplacedString(string, "${", "}", func);
   }
 
   private void throwException(String message) {

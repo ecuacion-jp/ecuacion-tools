@@ -29,11 +29,11 @@ import java.util.Map;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
-import jp.ecuacion.lib.core.jakartavalidation.validator.BooleanString;
-import jp.ecuacion.lib.core.jakartavalidation.validator.EnumElement;
-import jp.ecuacion.lib.core.jakartavalidation.validator.IntegerString;
-import jp.ecuacion.lib.core.util.EmbeddedParameterUtil;
+import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.PropertyFileUtil;
+import jp.ecuacion.lib.validation.constraints.BooleanString;
+import jp.ecuacion.lib.validation.constraints.EnumElement;
+import jp.ecuacion.lib.validation.constraints.IntegerString;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
@@ -274,7 +274,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
   private String substituteEnvVars(String path) throws BizLogicAppException, MultipleAppException {
     String envVarExpandedPath =
-        EmbeddedParameterUtil.getParameterReplacedString(path, "${", "}", envVarInfoMap);
+        EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", envVarInfoMap);
 
     // "//"を取り除く
     while (envVarExpandedPath.contains("//")) {
