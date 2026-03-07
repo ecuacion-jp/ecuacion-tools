@@ -3,6 +3,7 @@ package jp.ecuacion.tool.housekeepdb.tasklet;
 import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.deleteRelatedTableRecord;
 import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.skipTargetTableRecordDeletion;
 
+import jakarta.validation.ConstraintViolationException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -21,8 +22,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
-import jp.ecuacion.lib.core.exception.unchecked.UncheckedAppException;
+import jp.ecuacion.lib.core.exception.checked.ConstraintViolationRuntimeException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.ValidationUtil;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
@@ -401,8 +401,8 @@ public class HousekeepDbTasklet implements Tasklet {
       try {
         ValidationUtil.validateThenThrow(info);
 
-      } catch (MultipleAppException e) {
-        throw new UncheckedAppException(e);
+      } catch (ConstraintViolationException e) {
+        throw new ConstraintViolationRuntimeException(e.getConstraintViolations());
       }
     });
 
