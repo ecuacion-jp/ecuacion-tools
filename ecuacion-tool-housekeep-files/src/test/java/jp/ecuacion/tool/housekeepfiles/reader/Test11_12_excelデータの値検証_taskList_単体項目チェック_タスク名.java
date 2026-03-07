@@ -15,15 +15,13 @@
  */
 package jp.ecuacion.tool.housekeepfiles.reader;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
 import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
 import jp.ecuacion.lib.core.util.ValidationUtil;
@@ -43,11 +41,12 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
       ValidationUtil.validateThenThrow(rec);
       fail();
 
-    } catch (MultipleAppException ex) {
-      ValidationAppException bv = (ValidationAppException) ex.getList().get(0);
-      ConstraintViolationBean bean = bv.getConstraintViolationBean();
-      assertEquals("jakarta.validation.constraints.NotEmpty", bean.getAnnotation());
-      assertEquals("taskName", bean.getPropertyPath());
+    } catch (ConstraintViolationException ex) {
+      ValidationAppException bv =
+          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
+      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+      assertEquals("jakarta.validation.constraints.NotEmpty", bean.getValidatorClass());
+      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
     }
   }
 
@@ -60,16 +59,16 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
       ValidationUtil.validateThenThrow(rec);
       fail();
 
-    } catch (MultipleAppException ex) {
+    } catch (ConstraintViolationException ex) {
       // NotEmptyとSize
-      assertEquals(2, ex.getList().size());
+      assertEquals(2, ex.getConstraintViolations().size());
       // 両方ともtaskNameでエラーになっていることを確認
       Set<String> set = new HashSet<>();
-      for (AppException ae : ex.getList()) {
-        ValidationAppException bv = (ValidationAppException) ae;
-        ConstraintViolationBean bean = bv.getConstraintViolationBean();
-        assertEquals("taskName", bean.getPropertyPath());
-        set.add(bean.getAnnotation());
+      for (ConstraintViolation<?> cv : ex.getConstraintViolations()) {
+        ValidationAppException bv = new ValidationAppException(cv);
+        ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+        assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+        set.add(bean.getValidatorClass());
       }
 
       assertTrue(set.contains("jakarta.validation.constraints.NotEmpty"));
@@ -87,11 +86,12 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
       ValidationUtil.validateThenThrow(rec);
       fail();
 
-    } catch (MultipleAppException ex) {
-      ValidationAppException bv = (ValidationAppException) ex.getList().get(0);
-      ConstraintViolationBean bean = bv.getConstraintViolationBean();
-      assertEquals("jakarta.validation.constraints.Size", bean.getAnnotation());
-      assertEquals("taskName", bean.getPropertyPath());
+    } catch (ConstraintViolationException ex) {
+      ValidationAppException bv =
+          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
+      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+      assertEquals("jakarta.validation.constraints.Size", bean.getValidatorClass());
+      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
     }
   }
 
@@ -105,11 +105,12 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
       ValidationUtil.validateThenThrow(rec);
       fail();
 
-    } catch (MultipleAppException ex) {
-      ValidationAppException bv = (ValidationAppException) ex.getList().get(0);
-      ConstraintViolationBean bean = bv.getConstraintViolationBean();
-      assertEquals("jakarta.validation.constraints.Pattern", bean.getAnnotation());
-      assertEquals("taskName", bean.getPropertyPath());
+    } catch (ConstraintViolationException ex) {
+      ValidationAppException bv =
+          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
+      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+      assertEquals("jakarta.validation.constraints.Pattern", bean.getValidatorClass());
+      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
     }
   }
 }
