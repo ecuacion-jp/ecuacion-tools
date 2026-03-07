@@ -15,9 +15,10 @@
  */
 package jp.ecuacion.tool.housekeepfiles.reader;
 
+import jakarta.validation.ConstraintViolationException;
 import java.io.IOException;
+import java.util.ArrayList;
 import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
 import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
 import jp.ecuacion.lib.core.util.ValidationUtil;
@@ -28,8 +29,8 @@ import org.junit.jupiter.api.Test;
 
 public class Test11_14_excelデータの値検証_taskList_単体項目チェック_その他項目 extends TestTool {
 
-//  test01_接続先サーバ_異常系_長さ上限超過
-//  test11_元パス_異常系_長さ上限超過
+  // test01_接続先サーバ_異常系_長さ上限超過
+  // test11_元パス_異常系_長さ上限超過
 
   @Test
   public void test21_元パスがディレクトリ_異常系_指定外文字列()
@@ -41,26 +42,27 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
       ValidationUtil.validateThenThrow(rec);
       fail();
 
-    } catch (MultipleAppException ex) {
-      ValidationAppException bv = (ValidationAppException) ex.getList().get(0);
-      ConstraintViolationBean bean = bv.getConstraintViolationBean();
-      assertEquals("jp.ecuacion.lib.core.jakartavalidation.validator.BooleanString",
-          bean.getAnnotation());
-      assertEquals("isSrcPathDirEnumName", bean.getPropertyPath());
+    } catch (ConstraintViolationException ex) {
+      ValidationAppException bv =
+          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
+      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+      assertEquals("jp.ecuacion.lib.validation.constraints.BooleanString",
+          bean.getValidatorClass());
+      assertEquals("isSrcPathDirEnumName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
     }
   }
-  
-//test31_元パス処理実施対象経過期間単位＿想定外文字列
-//test41_元パス処理実施対象経過期間値_異常系_小数値
-//test42_元パス処理実施対象経過期間値_異常系_カンマ入り数値
-//test43_元パス処理実施対象経過期間値_異常系_数値でない
 
-//test61_先パス_異常系_長さ上限超過
-//test62_先パス_異常系_ワイルドカード_asterisk
-//test63_先パス_異常系_ワイルドカード_question_mark
-//test71_先パスがディレクトリ_異常系_指定外文字列
-//test81_先パス存在時上書き_異常系_指定外文字列
-//test91_先パス存在時処理_異常系_指定外文字列
+  // test31_元パス処理実施対象経過期間単位＿想定外文字列
+  // test41_元パス処理実施対象経過期間値_異常系_小数値
+  // test42_元パス処理実施対象経過期間値_異常系_カンマ入り数値
+  // test43_元パス処理実施対象経過期間値_異常系_数値でない
+
+  // test61_先パス_異常系_長さ上限超過
+  // test62_先パス_異常系_ワイルドカード_asterisk
+  // test63_先パス_異常系_ワイルドカード_question_mark
+  // test71_先パスがディレクトリ_異常系_指定外文字列
+  // test81_先パス存在時上書き_異常系_指定外文字列
+  // test91_先パス存在時処理_異常系_指定外文字列
 
   @Test
   public void test51_元パス存在なし時処理_異常系_指定外文字列()
@@ -72,12 +74,13 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
       ValidationUtil.validateThenThrow(rec);
       fail();
 
-    } catch (MultipleAppException ex) {
-      ValidationAppException bv = (ValidationAppException) ex.getList().get(0);
-      ConstraintViolationBean bean = bv.getConstraintViolationBean();
-      assertEquals("jp.ecuacion.lib.core.jakartavalidation.validator.EnumElement",
-          bean.getAnnotation());
-      assertEquals("actionForNoSrcPathEnumName", bean.getPropertyPath());
+    } catch (ConstraintViolationException ex) {
+      ValidationAppException bv =
+          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
+      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+      assertEquals("jp.ecuacion.lib.validation.constraints.EnumElement",
+          bean.getValidatorClass());
+      assertEquals("actionForNoSrcPathEnumName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
     }
   }
 
