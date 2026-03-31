@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
@@ -327,7 +328,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
         sb.append(", ");
       }
 
-      sb.append(PropertyFileUtil.getItemName("HousekeepFilesTask." + itemId));
+      sb.append(PropertyFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemId));
     }
 
     return sb.toString();

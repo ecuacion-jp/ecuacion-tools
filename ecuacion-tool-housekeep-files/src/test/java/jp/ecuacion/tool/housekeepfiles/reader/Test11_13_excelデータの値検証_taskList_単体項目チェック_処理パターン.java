@@ -44,7 +44,7 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
           new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
       ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
       assertEquals("jakarta.validation.constraints.NotEmpty", bean.getValidatorClass());
-      assertEquals("taskPtnEnumName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      assertEquals("taskPtnEnumName", bean.getFieldInfoBeanList().get(0).propertyPath());
     }
   }
 
@@ -64,7 +64,7 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
       ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
       assertEquals("jp.ecuacion.lib.validation.constraints.EnumElement",
           bean.getValidatorClass());
-      assertEquals("taskPtnEnumName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      assertEquals("taskPtnEnumName", bean.getFieldInfoBeanList().get(0).propertyPath());
     }
   }
 }
