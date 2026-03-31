@@ -415,7 +415,7 @@ public class HousekeepFilesBl {
     // エラーメッセージの一覧を取得
     List<String> msgList = new ArrayList<>();
     for (AppException ae : warnList) {
-      msgList.addAll(ExceptionUtil.getAppExceptionMessageList(ae, Locale.JAPANESE));
+      msgList.addAll(ExceptionUtil.getMessageList(ae, Locale.JAPANESE));
     }
 
     // メッセージを作成

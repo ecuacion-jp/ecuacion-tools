@@ -46,7 +46,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
           new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
       ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
       assertEquals("jakarta.validation.constraints.NotEmpty", bean.getValidatorClass());
-      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).propertyPath());
     }
   }
 
@@ -67,7 +67,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
       for (ConstraintViolation<?> cv : ex.getConstraintViolations()) {
         ValidationAppException bv = new ValidationAppException(cv);
         ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
-        assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+        assertEquals("taskName", bean.getFieldInfoBeanList().get(0).propertyPath());
         set.add(bean.getValidatorClass());
       }
 
@@ -91,7 +91,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
           new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
       ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
       assertEquals("jakarta.validation.constraints.Size", bean.getValidatorClass());
-      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).propertyPath());
     }
   }
 
@@ -110,7 +110,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
           new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
       ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
       assertEquals("jakarta.validation.constraints.Pattern", bean.getValidatorClass());
-      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).propertyPath());
     }
   }
 }

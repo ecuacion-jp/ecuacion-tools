@@ -36,11 +36,11 @@ public class HousekeepInfoBeanTest {
       Assertions.assertTrue(ex instanceof ValidationAppException);
       ValidationAppException valEx = ((ValidationAppException) ex);
 
-      Assertions.assertEquals("jakarta.validation.constraints.NotEmpty.message",
-          valEx.getConstraintViolationBean().getMessageId());
+      Assertions.assertEquals("jakarta.validation.constraints.NotEmpty",
+          valEx.getConstraintViolationBean().getValidatorClass());
 
       String field =
-          valEx.getConstraintViolationBean().getFieldInfoBeanList().get(0).fullPropertyPath;
+          valEx.getConstraintViolationBean().getFieldInfoBeanList().get(0).propertyPath();
 
       // field must be one of the one in A-F column
       boolean bl = Arrays
@@ -62,8 +62,8 @@ public class HousekeepInfoBeanTest {
       ValidationAppException ex = new ValidationAppException(cv);
       Assertions.assertTrue(ex instanceof ValidationAppException);
       ValidationAppException valEx = ((ValidationAppException) ex);
-      Assertions.assertEquals("jakarta.validation.constraints.Pattern.message",
-          valEx.getConstraintViolationBean().getMessageId());
+      Assertions.assertEquals("jakarta.validation.constraints.Pattern",
+          valEx.getConstraintViolationBean().getValidatorClass());
     }
 
     // J (softDeleteColumn) column is required only when isSoftDelete == true

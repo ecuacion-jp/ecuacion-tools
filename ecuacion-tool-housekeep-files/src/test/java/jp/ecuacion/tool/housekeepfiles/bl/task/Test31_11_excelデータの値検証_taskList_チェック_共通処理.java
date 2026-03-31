@@ -16,10 +16,7 @@
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.IOException;
-import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.util.ExceptionUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.form.DoNothingInConstructorForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
@@ -51,9 +48,7 @@ public class Test31_11_excelデータの値検証_taskList_チェック_共通�
           null);
       fail();
     } catch (Exception e) {
-      List<Throwable> thList = ExceptionUtil.getExceptionListWithMessages((AppException) e);
-      assertEquals(1, thList.size());
-      BizLogicAppException ace = (BizLogicAppException) thList.get(0);
+      BizLogicAppException ace = (BizLogicAppException) e;
       assertEquals("MSG_ERR_TASK_REQUIRED_CHECK", ace.getMessageId());
       assertEquals(3, ace.getMessageArgs().length);
       assertEquals("aTaskId", ace.getMessageArgs()[0].getArgString());
@@ -69,9 +64,7 @@ public class Test31_11_excelデータの値検証_taskList_チェック_共通�
           "");
       fail();
     } catch (Exception e) {
-      List<Throwable> thList = ExceptionUtil.getExceptionListWithMessages((AppException) e);
-      assertEquals(1, thList.size());
-      BizLogicAppException ace = (BizLogicAppException) thList.get(0);
+      BizLogicAppException ace = (BizLogicAppException) e;
       assertEquals("MSG_ERR_TASK_REQUIRED_CHECK", ace.getMessageId());
       assertEquals(3, ace.getMessageArgs().length);
       assertEquals("aTaskId", ace.getMessageArgs()[0].getArgString());
@@ -117,9 +110,7 @@ public class Test31_11_excelデータの値検証_taskList_チェック_共通�
           "aValue");
       fail();
     } catch (Exception e) {
-      List<Throwable> thList = ExceptionUtil.getExceptionListWithMessages((AppException) e);
-      assertEquals(1, thList.size());
-      BizLogicAppException ace = (BizLogicAppException) thList.get(0);
+      BizLogicAppException ace = (BizLogicAppException) e;
       assertEquals("MSG_ERR_TASK_PROHIBITED_CHECK", ace.getMessageId());
       assertEquals(3, ace.getMessageArgs().length);
       assertEquals("aTaskId", ace.getMessageArgs()[0].getArgString());

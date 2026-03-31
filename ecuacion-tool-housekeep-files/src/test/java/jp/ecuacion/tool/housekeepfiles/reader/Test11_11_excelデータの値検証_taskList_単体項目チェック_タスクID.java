@@ -47,7 +47,7 @@ public class Test11_11_excelデータの値検証_taskList_単体項目チェッ
           new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
       ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
       assertEquals("jakarta.validation.constraints.NotEmpty", bean.getValidatorClass());
-      assertEquals("taskId", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      assertEquals("taskId", bean.getFieldInfoBeanList().get(0).propertyPath());
     }
   }
 
@@ -68,7 +68,7 @@ public class Test11_11_excelデータの値検証_taskList_単体項目チェッ
       for (ConstraintViolation<?> ae : ex.getConstraintViolations()) {
         ValidationAppException bv = new ValidationAppException(ae);
         ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
-        assertEquals("taskId", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+        assertEquals("taskId", bean.getFieldInfoBeanList().get(0).propertyPath());
         set.add(bean.getValidatorClass());
       }
 
@@ -91,7 +91,7 @@ public class Test11_11_excelデータの値検証_taskList_単体項目チェッ
           new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
       ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
       assertEquals("jakarta.validation.constraints.Size", bean.getValidatorClass());
-      assertEquals("taskId", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      assertEquals("taskId", bean.getFieldInfoBeanList().get(0).propertyPath());
     }
   }
 
@@ -110,7 +110,7 @@ public class Test11_11_excelデータの値検証_taskList_単体項目チェッ
           new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
       ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
       assertEquals("jakarta.validation.constraints.Pattern", bean.getValidatorClass());
-      assertEquals("taskId", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      assertEquals("taskId", bean.getFieldInfoBeanList().get(0).propertyPath());
     }
   }
 }

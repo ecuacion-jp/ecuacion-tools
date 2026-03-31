@@ -44,7 +44,7 @@ public class Test11_01_excelデータの値検証_taskList_チェック_共通_s
       ValidationAppException ae = (ValidationAppException) arr.get(0);
       ConstraintViolationBean<?> bean = ae.getConstraintViolationBean();
       Assertions.assertEquals("jakarta.validation.constraints.NotEmpty", bean.getValidatorClass());
-      Assertions.assertEquals("sysName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      Assertions.assertEquals("sysName", bean.getFieldInfoBeanList().get(0).propertyPath());
     }
   }
 }
