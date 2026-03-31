@@ -18,7 +18,6 @@ package jp.ecuacion.tool.housekeepfiles.tasklet;
 import java.io.IOException;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.util.ExceptionUtil;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +60,7 @@ public class Test01_01_起動パラメータ関連_パラメータチェック e
       assertTrue(e instanceof BizLogicAppException);
 
       if (e instanceof BizLogicAppException) {
-        BizLogicAppException cfe = (BizLogicAppException) ExceptionUtil.getExceptionListWithMessages(e).get(0);
+        BizLogicAppException cfe = (BizLogicAppException) e;
         assertEquals("MSG_ERR_PARAM_NULL_OR_EMPTY", cfe.getMessageId());
         assertEquals(1, cfe.getMessageArgs().length);
         assertEquals("1st argument(excelFilePath)", cfe.getMessageArgs()[0].getArgString());
@@ -78,7 +77,7 @@ public class Test01_01_起動パラメータ関連_パラメータチェック e
     } catch (Exception e) {
       assertTrue(e instanceof BizLogicAppException);
       if (e instanceof BizLogicAppException) {
-        BizLogicAppException cfe = (BizLogicAppException) ExceptionUtil.getExceptionListWithMessages(e).get(0);
+        BizLogicAppException cfe = (BizLogicAppException) e;
         assertEquals("MSG_ERR_PARAM_NULL_OR_EMPTY", cfe.getMessageId());
         assertEquals(1, cfe.getMessageArgs().length);
         assertEquals("1st argument(excelFilePath)", cfe.getMessageArgs()[0].getArgString());
