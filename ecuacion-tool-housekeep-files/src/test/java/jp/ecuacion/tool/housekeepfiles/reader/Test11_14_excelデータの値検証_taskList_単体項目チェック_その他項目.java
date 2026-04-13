@@ -48,7 +48,7 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
       ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
       assertEquals("jp.ecuacion.lib.validation.constraints.BooleanString",
           bean.getValidatorClass());
-      assertEquals("isSrcPathDirEnumName", bean.getFieldInfoBeanList().get(0).propertyPath());
+      assertEquals("isSrcPathDirEnumName", bean.getItemList().get(0).getPropertyPath());
     }
   }
 
@@ -80,7 +80,7 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
       ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
       assertEquals("jp.ecuacion.lib.validation.constraints.EnumElement",
           bean.getValidatorClass());
-      assertEquals("actionForNoSrcPathEnumName", bean.getFieldInfoBeanList().get(0).propertyPath());
+      assertEquals("actionForNoSrcPathEnumName", bean.getItemList().get(0).getPropertyPath());
     }
   }
 
