@@ -31,7 +31,7 @@ import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
-import jp.ecuacion.lib.core.util.PropertyFileUtil;
+import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.validation.constraints.BooleanString;
 import jp.ecuacion.lib.validation.constraints.EnumElement;
 import jp.ecuacion.lib.validation.constraints.IntegerString;
@@ -328,7 +328,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
         sb.append(", ");
       }
 
-      sb.append(PropertyFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemId));
+      sb.append(PropertiesFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemId));
     }
 
     return sb.toString();

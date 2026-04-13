@@ -64,7 +64,7 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
       assertEquals(1, thList.size());
       ValidationAppException ace = (ValidationAppException) thList.get(0);
       ConstraintViolationBean<?> bean = ace.getConstraintViolationBean();
-      Assertions.assertEquals("sysName", bean.getFieldInfoBeanList().get(0).propertyPath());
+      Assertions.assertEquals("sysName", bean.getItemList().get(0).getPropertyPath());
       Assertions.assertTrue(bean.getMessage().contains("must not be empty"));
     }
   }
@@ -84,9 +84,9 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
           .getConstraintViolations().stream().map(cv -> new ValidationAppException(cv)).toList();
       assertEquals(2, thList.size());
       assertEquals("sysName", ((ValidationAppException) thList.get(0)).getConstraintViolationBean()
-          .getFieldInfoBeanList().get(0).propertyPath());
+          .getItemList().get(0).getPropertyPath());
       assertEquals("sysName", ((ValidationAppException) thList.get(1)).getConstraintViolationBean()
-          .getFieldInfoBeanList().get(0).propertyPath());
+          .getItemList().get(0).getPropertyPath());
     }
   }
 

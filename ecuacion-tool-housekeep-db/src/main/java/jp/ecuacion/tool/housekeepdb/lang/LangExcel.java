@@ -3,7 +3,7 @@ package jp.ecuacion.tool.housekeepdb.lang;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import jp.ecuacion.lib.core.util.PropertyFileUtil;
+import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 
 /**
  * Provides message IDs to internationalize excel settings file.
@@ -32,7 +32,7 @@ public class LangExcel {
    * @return message
    */
   public String get(String key) {
-    return PropertyFileUtil.getMessage(locale, key);
+    return PropertiesFileUtil.getMessage(locale, key);
   }
 
   /**

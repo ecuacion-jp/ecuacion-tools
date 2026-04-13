@@ -22,6 +22,7 @@ import static jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum.change;
 import static jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum.create;
 import static jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum.createFromOriginal;
 import static jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum.delete;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +34,7 @@ import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.exception.checked.SingleAppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.FileUtil;
-import jp.ecuacion.lib.core.util.PropertyFileUtil;
+import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
@@ -173,12 +174,12 @@ public abstract class AbstractTask {
     boolean isEmpty = itemValue == null || (itemValue instanceof String && itemValue.equals(""));
     if (checkPtn == REQUIRED && isEmpty) {
       throw new BizLogicAppException("MSG_ERR_TASK_REQUIRED_CHECK", taskId, taskPtnName,
-          PropertyFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemTitle));
+          PropertiesFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemTitle));
     }
 
     if (checkPtn == PROHIBITED && !isEmpty) {
       throw new BizLogicAppException("MSG_ERR_TASK_PROHIBITED_CHECK", taskId, taskPtnName,
-          PropertyFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemTitle));
+          PropertiesFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemTitle));
     }
   }
 

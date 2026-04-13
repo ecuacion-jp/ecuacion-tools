@@ -37,7 +37,7 @@ import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.ExceptionUtil;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.util.MailUtil;
-import jp.ecuacion.lib.core.util.PropertyFileUtil;
+import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.core.util.StringUtil;
 import jp.ecuacion.lib.core.util.ValidationUtil;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
@@ -419,7 +419,7 @@ public class HousekeepFilesBl {
     }
 
     // メッセージを作成
-    final String title = PropertyFileUtil.getApplication("jp.ecuacion.lib.core.mail.title-prefix")
+    final String title = PropertiesFileUtil.getApplication("jp.ecuacion.lib.core.mail.title-prefix")
         + "[WARN] HousekeepFiles:" + hdE.getSysName();
     String hostname = InetAddress.getLocalHost().getHostName();
     StringBuilder msg = new StringBuilder();
@@ -432,7 +432,7 @@ public class HousekeepFilesBl {
     dlog.debug(msg.toString());
     // メール送信
     List<String> mailTo = new ArrayList<String>();
-    for (String to : PropertyFileUtil
+    for (String to : PropertiesFileUtil
         .getApplication("jp.ecuacion.lib.core.mail.address-csv-on-system-error").split(",")) {
       mailTo.add(to);
     }
