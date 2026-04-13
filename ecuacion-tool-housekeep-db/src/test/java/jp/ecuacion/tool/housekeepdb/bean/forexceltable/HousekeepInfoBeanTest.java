@@ -40,7 +40,7 @@ public class HousekeepInfoBeanTest {
           valEx.getConstraintViolationBean().getValidatorClass());
 
       String field =
-          valEx.getConstraintViolationBean().getFieldInfoBeanList().get(0).propertyPath();
+          valEx.getConstraintViolationBean().getItemList().get(0).getPropertyPath();
 
       // field must be one of the one in A-F column
       boolean bl = Arrays
