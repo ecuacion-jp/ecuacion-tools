@@ -19,7 +19,7 @@ import java.util.List;
 import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.core.exception.checked.SingleAppException;
-import jp.ecuacion.lib.core.exception.unchecked.UncheckedAppException;
+import jp.ecuacion.lib.core.exception.unchecked.AppRuntimeException;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
@@ -51,7 +51,7 @@ public class UnzipRemainOrig extends AbstractTaskLocal {
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
       String fromPath, String toPath, List<AppException> warnList) {
-    throw new UncheckedAppException(new BizLogicAppException("MSG_ERR_NOT_IMPLEMENTED"));
+    throw new AppRuntimeException(new BizLogicAppException("MSG_ERR_NOT_IMPLEMENTED"));
   }
 
 }
