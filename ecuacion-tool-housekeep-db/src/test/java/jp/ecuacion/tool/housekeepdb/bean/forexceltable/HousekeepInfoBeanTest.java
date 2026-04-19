@@ -3,12 +3,11 @@ package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,21 +25,16 @@ public class HousekeepInfoBeanTest {
     List<String> list = Arrays.asList(new String[] {null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null});
 
-    Set<ConstraintViolation<HousekeepInfoBean>> set =
+    Set<ConstraintViolation<@NonNull HousekeepInfoBean>> set =
         validator.validate(new HousekeepInfoBean(list));
 
     Assertions.assertEquals(7, set.size());
 
     for (ConstraintViolation<?> cv : set) {
-      ValidationAppException ex = new ValidationAppException(cv);
-      Assertions.assertTrue(ex instanceof ValidationAppException);
-      ValidationAppException valEx = ((ValidationAppException) ex);
-
       Assertions.assertEquals("jakarta.validation.constraints.NotEmpty",
-          valEx.getConstraintViolationBean().getValidatorClass());
+          cv.getConstraintDescriptor().getAnnotation().getClass().getCanonicalName());
 
-      String field =
-          valEx.getConstraintViolationBean().getItemList().get(0).getPropertyPath();
+      String field = cv.getPropertyPath().toString();
 
       // field must be one of the one in A-F column
       boolean bl = Arrays
@@ -59,11 +53,8 @@ public class HousekeepInfoBeanTest {
     set = validator.validate(new HousekeepInfoBean(list));
     Assertions.assertEquals(2, set.size());
     for (ConstraintViolation<?> cv : set) {
-      ValidationAppException ex = new ValidationAppException(cv);
-      Assertions.assertTrue(ex instanceof ValidationAppException);
-      ValidationAppException valEx = ((ValidationAppException) ex);
       Assertions.assertEquals("jakarta.validation.constraints.Pattern",
-          valEx.getConstraintViolationBean().getValidatorClass());
+          cv.getConstraintDescriptor().getAnnotation().getClass().getCanonicalName());
     }
 
     // J (softDeleteColumn) column is required only when isSoftDelete == true
@@ -72,15 +63,14 @@ public class HousekeepInfoBeanTest {
         "table", "idColumn", "(none)", null, null, null, null, null, null, null, null});
     set = validator.validate(new HousekeepInfoBean(list));
     Assertions.assertEquals(1, set.size());
-    ValidationAppException valEx = new ValidationAppException(new ArrayList<>(set).get(0));
-    Assertions.assertEquals("jp.ecuacion.lib.validation.constraints.NotEmptyWhen",
-        valEx.getConstraintViolationBean().getValidatorClass());
+    Assertions.assertEquals("jp.ecuacion.lib.validation.constraints.NotEmptyWhen", set.iterator()
+        .next().getConstraintDescriptor().getAnnotation().getClass().getCanonicalName());
 
     // no error with "HARD_DELETE" and "quotes(')".
 
     list = Arrays.asList(new String[] {"taskId", "dbConnectionInfoId", "削除", "HARD_DELETE", "table",
         "idColumn", "quotes(')", null, null, null, null, null, null, null, null});
-    Set<ConstraintViolation<HousekeepInfoBean>> opt =
+    Set<ConstraintViolation<@NonNull HousekeepInfoBean>> opt =
         validator.validate(new HousekeepInfoBean(list));
     Assertions.assertTrue(opt.isEmpty());
 
