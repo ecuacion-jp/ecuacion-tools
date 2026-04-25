@@ -15,10 +15,10 @@
  */
 package jp.ecuacion.tool.housekeepfiles.blf;
 
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import java.util.ArrayList;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
-import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -37,14 +37,11 @@ public class Test11_01_excelデータの値検証_taskList_チェック_共通_s
       blf.execute(form);
       fail();
     } catch (Exception e) {
-      List<? extends Throwable> arr = ((ConstraintViolationException) e).getConstraintViolations()
-          .stream().map(cv -> new ValidationAppException(cv)).toList();
-      Assertions.assertEquals(arr.size(), 1);
-      Assertions.assertTrue(arr.get(0) instanceof ValidationAppException);
-      ValidationAppException ae = (ValidationAppException) arr.get(0);
-      ConstraintViolationBean<?> bean = ae.getConstraintViolationBean();
-      Assertions.assertEquals("jakarta.validation.constraints.NotEmpty", bean.getValidatorClass());
-      Assertions.assertEquals("sysName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      List<ConstraintViolation<?>> arr = new ArrayList<>(((ConstraintViolationException) e).getConstraintViolations());
+      Assertions.assertEquals(1, arr.size());
+      ConstraintViolation<?> cv = arr.get(0);
+      Assertions.assertEquals("jakarta.validation.constraints.NotEmpty", cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+      Assertions.assertEquals("sysName", cv.getPropertyPath().toString());
     }
   }
 }

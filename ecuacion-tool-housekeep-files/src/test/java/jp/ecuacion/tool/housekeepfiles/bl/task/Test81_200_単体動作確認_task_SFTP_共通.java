@@ -21,8 +21,8 @@ import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
@@ -39,11 +39,10 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
     @Override
     protected void doSpecificTask(ConnectionToRemoteServer connection,
         HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
-        List<AppException> warnList) throws Exception {}
+        List<BusinessViolation> warnList) throws Exception {}
 
     @Override
-    public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-        List<SingleAppException> exList) {}
+    public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {}
 
     @Override
     public TaskActionKindEnum getTaskActionKind() {

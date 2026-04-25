@@ -16,10 +16,9 @@
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.IOException;
-import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.util.ExceptionUtil;
+import java.util.ArrayList;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.dto.form.DoNothingInConstructorForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
@@ -46,115 +45,82 @@ public class Test31_11_excelデータの値検証_taskList_チェック_共通�
 
   @Test
   public void test01_checkTaskItem_required_null() {
-    try {
-      new Move().checkTaskItem("aTaskId", TaskPtnEnum.MOVE, TaskAttrCheckPtnEnum.REQUIRED, "unit",
-          null);
-      fail();
-    } catch (Exception e) {
-      List<Throwable> thList = ExceptionUtil.getExceptionListWithMessages((AppException) e);
-      assertEquals(1, thList.size());
-      BizLogicAppException ace = (BizLogicAppException) thList.get(0);
-      assertEquals("MSG_ERR_TASK_REQUIRED_CHECK", ace.getMessageId());
-      assertEquals(3, ace.getMessageArgs().length);
-      assertEquals("aTaskId", ace.getMessageArgs()[0].getArgString());
-      assertEquals("MOVE", ace.getMessageArgs()[1].getArgString());
-      assertEquals("処理対象（単位）", ace.getMessageArgs()[2].getArgString());
-    }
+    Violations violations = new Violations();
+    new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
+        TaskAttrCheckPtnEnum.REQUIRED, "unit", null);
+    ArrayList<BusinessViolation> bvList =
+        new ArrayList<>(violations.getBusinessViolations());
+    assertEquals(1, bvList.size());
+    assertEquals("MSG_ERR_TASK_REQUIRED_CHECK", bvList.get(0).getMessageId());
   }
 
   @Test
   public void test02_checkTaskItem_required_空文字() {
-    try {
-      new Move().checkTaskItem("aTaskId", TaskPtnEnum.MOVE, TaskAttrCheckPtnEnum.REQUIRED, "unit",
-          "");
-      fail();
-    } catch (Exception e) {
-      List<Throwable> thList = ExceptionUtil.getExceptionListWithMessages((AppException) e);
-      assertEquals(1, thList.size());
-      BizLogicAppException ace = (BizLogicAppException) thList.get(0);
-      assertEquals("MSG_ERR_TASK_REQUIRED_CHECK", ace.getMessageId());
-      assertEquals(3, ace.getMessageArgs().length);
-      assertEquals("aTaskId", ace.getMessageArgs()[0].getArgString());
-      assertEquals("MOVE", ace.getMessageArgs()[1].getArgString());
-      assertEquals("処理対象（単位）", ace.getMessageArgs()[2].getArgString());
-    }
+    Violations violations = new Violations();
+    new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
+        TaskAttrCheckPtnEnum.REQUIRED, "unit", "");
+    ArrayList<BusinessViolation> bvList =
+        new ArrayList<>(violations.getBusinessViolations());
+    assertEquals(1, bvList.size());
+    assertEquals("MSG_ERR_TASK_REQUIRED_CHECK", bvList.get(0).getMessageId());
   }
 
   @Test
   public void test03_checkTaskItem_required_通常文字列() {
-    try {
-      new Move().checkTaskItem("aTaskId", TaskPtnEnum.MOVE, TaskAttrCheckPtnEnum.REQUIRED, "anItem",
-          "aValue");
-    } catch (Exception e) {
-      fail();
-    }
+    Violations violations = new Violations();
+    new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
+        TaskAttrCheckPtnEnum.REQUIRED, "anItem", "aValue");
+    assertTrue(violations.getBusinessViolations().isEmpty());
   }
 
   @Test
   public void test11_checkTaskItem_prohibited_null() {
-    try {
-      new Move().checkTaskItem("aTaskId", TaskPtnEnum.MOVE, TaskAttrCheckPtnEnum.PROHIBITED, "anItem",
-          null);
-    } catch (Exception e) {
-      fail();
-    }
+    Violations violations = new Violations();
+    new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
+        TaskAttrCheckPtnEnum.PROHIBITED, "anItem", null);
+    assertTrue(violations.getBusinessViolations().isEmpty());
   }
 
   @Test
   public void test12_checkTaskItem_prohibited_空文字() {
-    try {
-      new Move().checkTaskItem("aTaskId", TaskPtnEnum.MOVE, TaskAttrCheckPtnEnum.PROHIBITED, "anItem",
-          "");
-    } catch (Exception e) {
-      fail();
-    }
+    Violations violations = new Violations();
+    new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
+        TaskAttrCheckPtnEnum.PROHIBITED, "anItem", "");
+    assertTrue(violations.getBusinessViolations().isEmpty());
   }
 
   @Test
   public void test13_checkTaskItem_prohibited_通常文字列() {
-    try {
-      new Move().checkTaskItem("aTaskId", TaskPtnEnum.MOVE, TaskAttrCheckPtnEnum.PROHIBITED, "unit",
-          "aValue");
-      fail();
-    } catch (Exception e) {
-      List<Throwable> thList = ExceptionUtil.getExceptionListWithMessages((AppException) e);
-      assertEquals(1, thList.size());
-      BizLogicAppException ace = (BizLogicAppException) thList.get(0);
-      assertEquals("MSG_ERR_TASK_PROHIBITED_CHECK", ace.getMessageId());
-      assertEquals(3, ace.getMessageArgs().length);
-      assertEquals("aTaskId", ace.getMessageArgs()[0].getArgString());
-      assertEquals("MOVE", ace.getMessageArgs()[1].getArgString());
-      assertEquals("処理対象（単位）", ace.getMessageArgs()[2].getArgString());
-    }
+    Violations violations = new Violations();
+    new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
+        TaskAttrCheckPtnEnum.PROHIBITED, "unit", "aValue");
+    ArrayList<BusinessViolation> bvList =
+        new ArrayList<>(violations.getBusinessViolations());
+    assertEquals(1, bvList.size());
+    assertEquals("MSG_ERR_TASK_PROHIBITED_CHECK", bvList.get(0).getMessageId());
   }
 
   @Test
   public void test21_checkTaskItem_arbitrary_null() {
-    try {
-      new Move().checkTaskItem("aTaskId", TaskPtnEnum.MOVE, TaskAttrCheckPtnEnum.ARBITRARY, "anItem",
-          null);
-    } catch (Exception e) {
-      fail();
-    }
+    Violations violations = new Violations();
+    new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
+        TaskAttrCheckPtnEnum.ARBITRARY, "anItem", null);
+    assertTrue(violations.getBusinessViolations().isEmpty());
   }
 
   @Test
   public void test22_checkTaskItem_arbitrary_空文字() {
-    try {
-      new Move().checkTaskItem("aTaskId", TaskPtnEnum.MOVE, TaskAttrCheckPtnEnum.ARBITRARY, "anItem",
-          "");
-    } catch (Exception e) {
-      fail();
-    }
+    Violations violations = new Violations();
+    new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
+        TaskAttrCheckPtnEnum.ARBITRARY, "anItem", "");
+    assertTrue(violations.getBusinessViolations().isEmpty());
   }
 
   @Test
   public void test23_checkTaskItem_arbitrary_通常文字列() {
-    try {
-      new Move().checkTaskItem("aTaskId", TaskPtnEnum.MOVE, TaskAttrCheckPtnEnum.ARBITRARY, "anItem",
-          "aValue");
-    } catch (Exception e) {
-      fail();
-    }
+    Violations violations = new Violations();
+    new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
+        TaskAttrCheckPtnEnum.ARBITRARY, "anItem", "aValue");
+    assertTrue(violations.getBusinessViolations().isEmpty());
   }
 }
