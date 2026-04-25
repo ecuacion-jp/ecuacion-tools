@@ -6,7 +6,6 @@ import jakarta.validation.Validator;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -18,7 +17,7 @@ public class HousekeepInfoBeanTest {
 
   @DisplayName("requiredTest")
   @Test
-  public void inputValidationCheckTest() throws BizLogicAppException {
+  public void inputValidationCheckTest() {
 
     // A-G columns are required
 

@@ -17,9 +17,8 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.File;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
+import jp.ecuacion.lib.core.exception.ViolationException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
@@ -52,11 +51,10 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (MultipleAppException ex) {
-      assertEquals(1, ex.getList().size());
-      BizLogicAppException ae = (BizLogicAppException) ex.getList().get(0);
+    } catch (ViolationException ex) {
+      assertEquals(1, ex.getViolations().getBusinessViolations().size());
+      BusinessViolation ae = ex.getViolations().getBusinessViolations().iterator().next();
       assertEquals("MSG_ERR_TASK_PROHIBITED_CHECK", ae.getMessageId());
-      assertEquals("リモートサーバ", ae.getMessageArgs()[2].getArgString());
     }
   }
 
@@ -71,11 +69,10 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (MultipleAppException ex) {
-      assertEquals(1, ex.getList().size());
-      BizLogicAppException ae = (BizLogicAppException) ex.getList().get(0);
+    } catch (ViolationException ex) {
+      assertEquals(1, ex.getViolations().getBusinessViolations().size());
+      BusinessViolation ae = ex.getViolations().getBusinessViolations().iterator().next();
       assertEquals("MSG_ERR_TASK_PROHIBITED_CHECK", ae.getMessageId());
-      assertEquals("元パス", ae.getMessageArgs()[2].getArgString());
     }
   }
 
@@ -89,11 +86,10 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (MultipleAppException ex) {
-      assertEquals(1, ex.getList().size());
-      BizLogicAppException ae = (BizLogicAppException) ex.getList().get(0);
+    } catch (ViolationException ex) {
+      assertEquals(1, ex.getViolations().getBusinessViolations().size());
+      BusinessViolation ae = ex.getViolations().getBusinessViolations().iterator().next();
       assertEquals("MSG_ERR_TASK_REQUIRED_CHECK", ae.getMessageId());
-      assertEquals("先パス", ae.getMessageArgs()[2].getArgString());
     }
   }
 
@@ -108,11 +104,10 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (MultipleAppException ex) {
-      assertEquals(1, ex.getList().size());
-      BizLogicAppException ae = (BizLogicAppException) ex.getList().get(0);
+    } catch (ViolationException ex) {
+      assertEquals(1, ex.getViolations().getBusinessViolations().size());
+      BusinessViolation ae = ex.getViolations().getBusinessViolations().iterator().next();
       assertEquals("MSG_ERR_TASK_CANNOT_SET_IS_DEST_PATH_DIR_TO_VALUE", ae.getMessageId());
-      assertEquals("FALSE", ae.getMessageArgs()[2].getArgString());
     }
   }
 
@@ -127,9 +122,9 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (MultipleAppException ex) {
-      assertEquals(1, ex.getList().size());
-      BizLogicAppException ae = (BizLogicAppException) ex.getList().get(0);
+    } catch (ViolationException ex) {
+      assertEquals(1, ex.getViolations().getBusinessViolations().size());
+      BusinessViolation ae = ex.getViolations().getBusinessViolations().iterator().next();
       assertEquals("MSG_ERR_TASK_CANNOT_SET_OVERWRITE_TO_VALUE", ae.getMessageId());
     }
   }
@@ -158,7 +153,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
     // HousekeepFilesBl#sendWarnMail を呼ばれたことがわかるよう置き換え
     HousekeepFilesBl bl = new HousekeepFilesBl() {
       @Override
-      public void sendWarnMail(List<AppException> warnList, HousekeepFilesHdRecord hdE)
+      public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
           throws Exception {
         procCalledOnWarnListIsNotEmpty = true;
       }
@@ -182,8 +177,9 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (BizLogicAppException ex) {
-      assertEquals("MSG_ERR_DEST_PATH_EXISTS", ex.getMessageId());
+    } catch (ViolationException ex) {
+      assertEquals("MSG_ERR_DEST_PATH_EXISTS",
+          ex.getViolations().getBusinessViolations().iterator().next().getMessageId());
     }
   }
 
@@ -201,8 +197,9 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (BizLogicAppException ex) {
-      assertEquals("MSG_ERR_DEST_PATH_IS_FILE", ex.getMessageId());
+    } catch (ViolationException ex) {
+      assertEquals("MSG_ERR_DEST_PATH_IS_FILE",
+          ex.getViolations().getBusinessViolations().iterator().next().getMessageId());
     }
   }
 
@@ -220,8 +217,9 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (BizLogicAppException ex) {
-      assertEquals("MSG_ERR_DEST_PATH_IS_FILE", ex.getMessageId());
+    } catch (ViolationException ex) {
+      assertEquals("MSG_ERR_DEST_PATH_IS_FILE",
+          ex.getViolations().getBusinessViolations().iterator().next().getMessageId());
     }
   }
 
@@ -239,8 +237,9 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (BizLogicAppException ex) {
-      assertEquals("MSG_ERR_DEST_PATH_IS_FILE", ex.getMessageId());
+    } catch (ViolationException ex) {
+      assertEquals("MSG_ERR_DEST_PATH_IS_FILE",
+          ex.getViolations().getBusinessViolations().iterator().next().getMessageId());
     }
   }
 
@@ -281,4 +280,3 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
 
 
 }
-

@@ -1,13 +1,11 @@
 package jp.ecuacion.tool.housekeepdb.bean;
 
 import jakarta.validation.constraints.NotEmpty;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 
 /**
  * Stores database column and its value information to create condition clause.
  */
-public class ColumnAndValueInfoBean extends ColumnInfoBean
-    implements SqlConditionInterface {
+public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditionInterface {
 
   @NotEmpty
   private String value;
@@ -31,8 +29,7 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean
    * @param needsQuationMark needsQuationMark
    * @param value value
    */
-  public ColumnAndValueInfoBean(String column, String needsQuationMark, Object value)
-      throws BizLogicAppException {
+  public ColumnAndValueInfoBean(String column, String needsQuationMark, Object value) {
     super(column, needsQuationMark);
     this.value = getStringFromObject(value);
   }

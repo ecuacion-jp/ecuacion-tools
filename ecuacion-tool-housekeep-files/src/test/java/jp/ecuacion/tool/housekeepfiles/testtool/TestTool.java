@@ -31,9 +31,9 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
 import jp.ecuacion.lib.core.util.FileUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.TestTools;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTaskSftp;
@@ -143,11 +143,10 @@ public class TestTool extends TestTools {
     @Override
     protected void doSpecificTask(ConnectionToRemoteServer connection,
         HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
-        List<AppException> warnList) throws Exception {}
+        List<BusinessViolation> warnList) throws Exception {}
 
     @Override
-    public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-        List<SingleAppException> exList) {}
+    public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {}
 
     @Override
     public TaskActionKindEnum getTaskActionKind() {

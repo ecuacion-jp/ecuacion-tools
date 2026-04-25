@@ -17,8 +17,8 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
+import jp.ecuacion.lib.core.exception.ViolationException;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.dto.form.DoNothingInConstructorForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
@@ -59,9 +59,8 @@ public class Test31_12_excelデータの値検証_taskList_チェック_各項�
     // checkerを変更
     Move move = new Move() {
       @Override
-      public void checkTaskItem(String taskId, TaskPtnEnum taskPtn,
-          TaskAttrCheckPtnEnum checkPtn, String itemTitle, Object itemValue)
-          throws BizLogicAppException {
+      public void checkTaskItem(Violations violations, String taskId, TaskPtnEnum taskPtn,
+          TaskAttrCheckPtnEnum checkPtn, String itemTitle, Object itemValue) {
         counterObj.counter++;
       }
     };
@@ -70,7 +69,7 @@ public class Test31_12_excelデータの値検証_taskList_チェック_各項�
       move.check(rec);
       assertEquals(3, counterObj.counter);
 
-    } catch (MultipleAppException ex) {
+    } catch (ViolationException ex) {
       fail();
     }
   }

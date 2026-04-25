@@ -4,7 +4,6 @@ import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.Arrays;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 
@@ -126,7 +125,7 @@ public class DbConnectionInfoBean extends StringExcelTableBean {
   }
 
   @Override
-  public void afterReading() throws AppException {
+  public void afterReading() {
 
   }
 }
