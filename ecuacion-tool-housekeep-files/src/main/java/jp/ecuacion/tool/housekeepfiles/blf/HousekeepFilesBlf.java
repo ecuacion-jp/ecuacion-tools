@@ -21,10 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
@@ -61,7 +60,7 @@ public class HousekeepFilesBlf {
     logJobStartMsg(form);
 
     // WARN情報を保持するリスト
-    List<AppException> warnList = new ArrayList<AppException>();
+    List<BusinessViolation> warnList = new ArrayList<>();
 
     // 複数レコード・複数データ種別間のチェック
     bl.consistencyCheckBetweenMultipleData(form);
@@ -81,11 +80,9 @@ public class HousekeepFilesBlf {
     // 本来は以降は一つのループで回したいのだが、taskごとのexcel記載に対する詳細チェックがタスク別にエラー表示されると面倒、
     // 全タスク分まとめて先にチェック・エラーメッセージ表示したいことから先にタスク生成とチェックのみ実施。
     // ここでは実際のファイル・フォルダの有無などはチェックしていない。あくまで指定taskとそれに対するexcel記述の整合性をチェック。
-    List<SingleAppException> exList = new ArrayList<>();
-    bl.createTaskAndTaskDependentCheck(form, exList);
-    if (exList.size() > 0) {
-      throw new MultipleAppException(exList);
-    }
+    Violations violations = new Violations();
+    bl.createTaskAndTaskDependentCheck(form, violations);
+    violations.throwIfAny();
 
     // 複数のconnectionを格納するためのMap
     Map<String, ConnectionToRemoteServer> connectionMap = new HashMap<>();
@@ -126,7 +123,7 @@ public class HousekeepFilesBlf {
   protected void execEachTask(AbstractTask task,
       Map<String, ConnectionToRemoteServer> connectionMap, HousekeepFilesTaskRecord taskInfo,
       Map<String, String> envVarInfoMap, Map<String, HousekeepFilesAuthRecord> authMap,
-      List<AppException> warnList) throws Exception {
+      List<BusinessViolation> warnList) throws Exception {
 
     // 保持してなければconnection取得
     final String connectionKey = taskInfo.getRemoteServer() + "." + task.getConnectionProtocol();

@@ -4,8 +4,6 @@ import jakarta.annotation.Nonnull;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
@@ -35,11 +33,10 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
 
   /**
    * Constructs a new instance.
-   * 
+   *
    * @param colList colList
-   * @throws BizLogicAppException BizLogicAppException
    */
-  public WhereConditionInfoBean(List<String> colList) throws BizLogicAppException {
+  public WhereConditionInfoBean(List<String> colList) {
     super(colList);
 
     conditionColumnInfo = new ColumnAndValueInfoBean(conditionColumn,
@@ -67,7 +64,7 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
   }
 
   @Override
-  public void afterReading() throws AppException {
+  public void afterReading() {
 
   }
 }

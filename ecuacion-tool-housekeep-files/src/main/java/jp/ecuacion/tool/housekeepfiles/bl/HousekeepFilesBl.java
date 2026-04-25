@@ -28,10 +28,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jakarta.validation.Validation;
+import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.ExceptionUtil;
@@ -39,7 +37,8 @@ import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.util.MailUtil;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.core.util.StringUtil;
-import jp.ecuacion.lib.core.util.ValidationUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum;
@@ -68,14 +67,17 @@ public class HousekeepFilesBl {
   private HkFileManipulateUtil fmu = new HkFileManipulateUtil();
 
 
-  public void consistencyCheckBetweenMultipleData(HousekeepFilesForm form) throws AppException {
+  public void consistencyCheckBetweenMultipleData(HousekeepFilesForm form) {
     // taskInfoHdRecはreaderで読み込んでいない＝validation checkが動いていないので実施。
     // 実質sysNameの存在チェック。
-    ValidationUtil.validateThenThrow(form.getTaskInfoHdRec());
+    new Violations()
+        .addAll(Validation.buildDefaultValidatorFactory().getValidator()
+            .validate(form.getTaskInfoHdRec()))
+        .throwIfAny();
 
     // taskがゼロの場合はエラー
     if (form.getTaskInfoHdRec().recList == null || form.getTaskInfoHdRec().recList.size() == 0) {
-      throw new BizLogicAppException("MSG_ERR_AT_LEAST_ONE_TASK_NEEDED");
+      new Violations().add(new BusinessViolation("MSG_ERR_AT_LEAST_ONE_TASK_NEEDED")).throwIfAny();
     }
 
     // taskId, taskNameが重複していないことを確認
@@ -84,7 +86,8 @@ public class HousekeepFilesBl {
     for (HousekeepFilesTaskRecord rec : form.getTaskInfoHdRec().recList) {
       // taskId
       if (taskIdSet.contains(rec.getTaskId())) {
-        throw new BizLogicAppException("MSG_ERR_TASK_ID_DUPLICATED", rec.getTaskId());
+        new Violations().add(new BusinessViolation("MSG_ERR_TASK_ID_DUPLICATED",
+            rec.getTaskId())).throwIfAny();
 
       } else {
         taskIdSet.add(rec.getTaskId());
@@ -92,7 +95,8 @@ public class HousekeepFilesBl {
 
       // taskName
       if (taskNameSet.contains(rec.getTaskName())) {
-        throw new BizLogicAppException("MSG_ERR_TASK_NAME_DUPLICATED", rec.getTaskName());
+        new Violations().add(new BusinessViolation("MSG_ERR_TASK_NAME_DUPLICATED",
+            rec.getTaskName())).throwIfAny();
 
       } else {
         taskNameSet.add(rec.getTaskName());
@@ -117,19 +121,16 @@ public class HousekeepFilesBl {
   }
 
   public void envVarExistenceCheckAndSetEnvBarExpandedPaths(
-      List<HousekeepFilesTaskRecord> taskRecList, Map<String, String> envVarInfoMap)
-      throws AppException {
-    List<SingleAppException> exArr = new ArrayList<>();
-
+      List<HousekeepFilesTaskRecord> taskRecList, Map<String, String> envVarInfoMap) {
     // pathFrom, pathToのチェック
     for (HousekeepFilesTaskRecord rec : taskRecList) {
       // パスに含まれる${xxx}のxxx値がパスリストに存在するかを確認
       if (rec.getSrcPath() != null) {
-        analyzePathVarAndCheckIfExistsInSet(rec, envVarInfoMap.keySet(), exArr, rec.getSrcPath());
+        analyzePathVarAndCheckIfExistsInSet(rec, envVarInfoMap.keySet(), rec.getSrcPath());
       }
 
       if (rec.getDestPath() != null) {
-        analyzePathVarAndCheckIfExistsInSet(rec, envVarInfoMap.keySet(), exArr, rec.getDestPath());
+        analyzePathVarAndCheckIfExistsInSet(rec, envVarInfoMap.keySet(), rec.getDestPath());
       }
 
       // 問題なければ、envVarInfoMapをtaskRecに設定することで環境変数展開済みパスを生成
@@ -138,8 +139,7 @@ public class HousekeepFilesBl {
   }
 
   private void analyzePathVarAndCheckIfExistsInSet(HousekeepFilesTaskRecord taskRec,
-      Set<String> pathKeySet, List<SingleAppException> exArr, String path)
-      throws BizLogicAppException, MultipleAppException {
+      Set<String> pathKeySet, String path) {
 
     // Create new keySet to add reserved keys.
     Set<String> keySet = new HashSet<>(pathKeySet);
@@ -148,29 +148,30 @@ public class HousekeepFilesBl {
 
     // To check the existence of keys, create map by set value the same value as key.
     Map<String, String> paramMap = keySet.stream().collect(Collectors.toMap(s -> s, s -> s));
-    EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", paramMap);
+    try {
+      EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", paramMap);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public void createTaskAndTaskDependentCheck(HousekeepFilesForm form,
-      List<SingleAppException> exList) throws Exception {
+      Violations violations) throws Exception {
     for (HousekeepFilesTaskRecord dtRec : form.getTaskInfoHdRec().recList) {
-      createTaskInstance(exList, dtRec, dtRec.getTaskPtn());
+      createTaskInstance(dtRec, dtRec.getTaskPtn());
       // task別の入力必須・禁止のチェック処理
       try {
         dtRec.task.check(dtRec);
-      } catch (AppException ex) {
-        if (ex instanceof MultipleAppException) {
-          exList.addAll(((MultipleAppException) ex).getList());
-
-        } else {
-          exList.add(((SingleAppException) ex));
+      } catch (ViolationException ex) {
+        for (BusinessViolation bv : ex.getViolations().getBusinessViolations()) {
+          violations.add(bv);
         }
       }
     }
   }
 
-  public void createTaskInstance(List<SingleAppException> exList, HousekeepFilesTaskRecord dtRec,
-      TaskPtnEnum taskPtn) throws Exception {
+  public void createTaskInstance(HousekeepFilesTaskRecord dtRec, TaskPtnEnum taskPtn)
+      throws Exception {
     @SuppressWarnings("unchecked")
     Class<AbstractTask> cls = (Class<AbstractTask>) Class.forName(
         Constants.PACKAGE_HK_TASK + "." + StringUtil.getUpperCamelFromSnake(taskPtn.toString()));
@@ -200,7 +201,7 @@ public class HousekeepFilesBl {
 
   private void expandFromPath(Map<String, String> envVarInfoMap,
       ConnectionToRemoteServer connection, HousekeepFilesTaskRecord taskRec, AbstractTask task,
-      List<String> fromPathList) throws AppException {
+      List<String> fromPathList) {
 
     List<FileInfo> tmpFromFileAndDirMixedList = task.getFromDirFileInfoList(task, connection,
         taskRec.getIsSrcPathDir(), taskRec.getEnvVarExpandedSrcPath());
@@ -277,29 +278,29 @@ public class HousekeepFilesBl {
     }
   }
 
-  public List<AppException> logicalCheckTaskListAfterEnvVarExpansion(AbstractTask task,
-      HousekeepFilesTaskRecord rec, HousekeepFilesExpandedPathsInfo pathInfo)
-      throws BizLogicAppException {
-    List<AppException> warnList = new ArrayList<AppException>();
+  public List<BusinessViolation> logicalCheckTaskListAfterEnvVarExpansion(AbstractTask task,
+      HousekeepFilesTaskRecord rec, HousekeepFilesExpandedPathsInfo pathInfo) {
+    List<BusinessViolation> warnList = new ArrayList<>();
 
     // toがファイルの場合は、fromもひとつでなければならない
     if (rec.getIsDestPathDir() != null && rec.getIsDestPathDir() == false
         && pathInfo.fromFileList.size() > 1) {
-      throw new BizLogicAppException("MSG_ERR_FROM_PATH_MUST_BE_ONLY_ONE_WHEN_TO_PATH_IS_FILE",
-          rec.getTaskId(), rec.getTaskName());
+      new Violations().add(new BusinessViolation(
+          "MSG_ERR_FROM_PATH_MUST_BE_ONLY_ONE_WHEN_TO_PATH_IS_FILE",
+          rec.getTaskId(), rec.getTaskName())).throwIfAny();
     }
 
     // fromの存在チェックを行う
     if (rec.getSrcPath() != null && task.isSrcPathLocal() != null && task.isSrcPathLocal()
         && pathInfo.fromFileList.size() == 0) {
       if (rec.getActionForNoSrcPath() == IncidentTreatedAsEnum.ERROR) {
-        throw new BizLogicAppException("MSG_ERR_FROM_PATH_NOT_EXIST", rec.getTaskId(),
-            rec.getTaskName(), rec.getSrcPath());
+        new Violations().add(new BusinessViolation("MSG_ERR_FROM_PATH_NOT_EXIST",
+            rec.getTaskId(), rec.getTaskName(), rec.getSrcPath())).throwIfAny();
       }
 
       if (rec.getActionForNoSrcPath() == IncidentTreatedAsEnum.WARN) {
-        warnList.add(new BizLogicAppException("MSG_ERR_FROM_PATH_NOT_EXIST", rec.getTaskId(),
-            rec.getTaskName(), rec.getSrcPath()));
+        warnList.add(new BusinessViolation("MSG_ERR_FROM_PATH_NOT_EXIST",
+            rec.getTaskId(), rec.getTaskName(), rec.getSrcPath()));
       }
     }
 
@@ -308,12 +309,12 @@ public class HousekeepFilesBl {
       if (task.isDestPathLocal()) {
         // toの存在チェックを行う。toは、一つでなければならない
         if (pathInfo.tmpToFileList.size() == 0) {
-          throw new BizLogicAppException("MSG_ERR_TO_PATH_DOESNT_EXIST", rec.getTaskId(),
-              rec.getTaskName());
+          new Violations().add(new BusinessViolation("MSG_ERR_TO_PATH_DOESNT_EXIST",
+              rec.getTaskId(), rec.getTaskName())).throwIfAny();
 
         } else if (pathInfo.tmpToFileList.size() > 1) {
-          throw new BizLogicAppException("MSG_ERR_TO_PATH_NOT_ONE", rec.getTaskId(),
-              rec.getTaskName());
+          new Violations().add(new BusinessViolation("MSG_ERR_TO_PATH_NOT_ONE",
+              rec.getTaskId(), rec.getTaskName())).throwIfAny();
         }
       }
 
@@ -327,17 +328,18 @@ public class HousekeepFilesBl {
           // それら下の階層を含めすべてのコピーをするのはそもそも処理として非常に乱暴なので、有無を言わさずエラーとする
           // 尚、fromがディレクトリでcompress指定がある場合は、結局ファイルとしての扱いになるのでその場合は除外
           if (rec.getIsSrcPathDir() == true && rec.getIsDestPathDir() == true) {
-            throw new BizLogicAppException("MSG_ERR_TO_DIR_EXISTS_AND_COPY_SETTING_VAGUE",
-                rec.getTaskId(), rec.getTaskName());
+            new Violations().add(new BusinessViolation(
+                "MSG_ERR_TO_DIR_EXISTS_AND_COPY_SETTING_VAGUE",
+                rec.getTaskId(), rec.getTaskName())).throwIfAny();
           } else {
-            BizLogicAppException blEx = new BizLogicAppException("MSG_ERR_DEST_PATH_EXISTSS",
+            BusinessViolation blV = new BusinessViolation("MSG_ERR_DEST_PATH_EXISTSS",
                 rec.getTaskId(), rec.getTaskName(), toPath);
             if (rec.getActionForDestFileExists() == IncidentTreatedAsEnum.ERROR) {
-              throw blEx;
+              new Violations().add(blV).throwIfAny();
             }
 
             if (rec.getActionForDestFileExists() == IncidentTreatedAsEnum.WARN) {
-              warnList.add(blEx);
+              warnList.add(blV);
             }
           }
         }
@@ -349,7 +351,7 @@ public class HousekeepFilesBl {
 
   public void doTaskForMultipleFiles(HousekeepFilesTaskRecord taskRec,
       HousekeepFilesExpandedPathsInfo pathInfo, ConnectionToRemoteServer conn,
-      List<AppException> warnList) throws Exception {
+      List<BusinessViolation> warnList) throws Exception {
     // ログ
     logTaskStartMsg(taskRec);
 
@@ -369,7 +371,7 @@ public class HousekeepFilesBl {
     logTaskFinishMsg(taskRec, pathInfo);
   }
 
-  private void logTaskStartMsg(HousekeepFilesTaskRecord rec) throws BizLogicAppException {
+  private void logTaskStartMsg(HousekeepFilesTaskRecord rec) {
     String taskId = rec.getTaskId();
     dlog.debug("### startTask  :" + taskId);
     logWithTaskId(taskId, "taskName              = " + rec.getTaskName());
@@ -410,12 +412,16 @@ public class HousekeepFilesBl {
     return task;
   }
 
-  public void sendWarnMail(List<AppException> warnList, HousekeepFilesHdRecord hdE)
+  public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
       throws Exception {
     // エラーメッセージの一覧を取得
     List<String> msgList = new ArrayList<>();
-    for (AppException ae : warnList) {
-      msgList.addAll(ExceptionUtil.getMessageList(ae, Locale.JAPANESE));
+    Violations warnViolations = new Violations();
+    warnList.forEach(warnViolations::add);
+    try {
+      warnViolations.throwIfAny();
+    } catch (ViolationException ex) {
+      msgList.addAll(ExceptionUtil.getMessageList(ex, Locale.JAPANESE));
     }
 
     // メッセージを作成

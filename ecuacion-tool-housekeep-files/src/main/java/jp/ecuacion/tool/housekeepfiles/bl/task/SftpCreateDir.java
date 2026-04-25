@@ -19,9 +19,8 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.SftpException;
 import java.io.File;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToSftpServer;
 import jp.ecuacion.tool.housekeepfiles.bl.task.internal.CreateDirInterface;
@@ -57,15 +56,14 @@ public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterfac
   }
 
   @Override
-  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList) {
-    taskDependentCheckCreateDir(exList, taskRec);
+  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
+    taskDependentCheckCreateDir(violations, taskRec);
   }
 
   @Override
   protected void doSpecificTask(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String srcPath, String destPath,
-      List<AppException> warnList) throws Exception {
+      List<BusinessViolation> warnList) throws Exception {
 
     ChannelSftp channel = ((ConnectionToSftpServer) connection).getSftpChannel();
 
@@ -79,8 +77,8 @@ public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterfac
 
     // toPathがディレクトリでなくファイルとして存在する場合
     if (remoteFileExists(channel, destPath)) {
-      throw new BizLogicAppException("MSG_ERR_DEST_PATH_IS_FILE", taskRec.getTaskId(),
-          taskRec.getTaskName(), destPath);
+      new Violations().add(new BusinessViolation("MSG_ERR_DEST_PATH_IS_FILE",
+          taskRec.getTaskId(), taskRec.getTaskName(), destPath)).throwIfAny();
     }
 
     // ファイル・ディレクトリとも存在しない場合。作成する
@@ -88,7 +86,7 @@ public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterfac
   }
 
   private void createDirRecursively(ChannelSftp channel, HousekeepFilesTaskRecord taskRec,
-      String destPath) throws SftpException, BizLogicAppException {
+      String destPath) throws SftpException {
 
     String parentPath = new File(destPath).getParent();
 
@@ -103,8 +101,8 @@ public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterfac
 
     } else {
       // 親パスがファイルの場合。エラー終了。
-      throw new BizLogicAppException("MSG_ERR_DEST_PATH_IS_FILE", taskRec.getTaskId(),
-          taskRec.getTaskName(), destPath);
+      new Violations().add(new BusinessViolation("MSG_ERR_DEST_PATH_IS_FILE",
+          taskRec.getTaskId(), taskRec.getTaskName(), destPath)).throwIfAny();
     }
   }
 }

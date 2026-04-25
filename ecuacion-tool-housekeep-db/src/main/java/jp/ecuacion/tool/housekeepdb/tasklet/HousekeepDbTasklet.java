@@ -3,10 +3,8 @@ package jp.ecuacion.tool.housekeepdb.tasklet;
 import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.deleteRelatedTableRecord;
 import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.skipTargetTableRecordDeletion;
 
-import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validation;
 import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -18,12 +16,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
-import jp.ecuacion.lib.core.util.ValidationUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueStringBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
@@ -36,7 +34,6 @@ import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
 import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
 import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.poi.EncryptedDocumentException;
 import org.slf4j.event.Level;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
@@ -140,18 +137,18 @@ public class HousekeepDbTasklet implements Tasklet {
     return RepeatStatus.FINISHED;
   }
 
-  private String getExcelPathFromParameter(ChunkContext chunkContext) throws BizLogicAppException {
+  private String getExcelPathFromParameter(ChunkContext chunkContext) {
     Map<String, Object> paramMap = chunkContext.getStepContext().getJobParameters();
 
     String excelPath = (String) paramMap.get("excelPath");
 
     if (excelPath == null) {
-      throw new BizLogicAppException("MSG_ERR_EXCEL_PATH_NOT_SPECIFIED");
+      new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_NOT_SPECIFIED")).throwIfAny();
     }
 
     File excelFile = new File(excelPath);
     if (!excelFile.exists() || !excelFile.isFile()) {
-      throw new BizLogicAppException("MSG_ERR_EXCEL_PATH_NOT_FOUND");
+      new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_NOT_FOUND")).throwIfAny();
     }
 
     return excelPath;
@@ -188,12 +185,14 @@ public class HousekeepDbTasklet implements Tasklet {
   }
 
   private Connection connectionSettings(Map<String, DbConnectionInfoBean> dbConnectionInfoMap,
-      HousekeepInfoBean info) throws BizLogicAppException, ClassNotFoundException, SQLException {
+      HousekeepInfoBean info) throws ClassNotFoundException, SQLException {
     DbConnectionInfoBean dbInfo = dbConnectionInfoMap.get(info.getDbConnectionInfoId());
     if (dbInfo == null) {
-      throw new BizLogicAppException("MSG_ERR_DB_CONNECITON_INFO_ID_NOT_EXIST",
-          info.getDbConnectionInfoId());
+      new Violations().add(new BusinessViolation("MSG_ERR_DB_CONNECITON_INFO_ID_NOT_EXIST",
+          info.getDbConnectionInfoId())).throwIfAny();
     }
+
+    Objects.requireNonNull(dbInfo);
 
     Class.forName(dbInfo.getDriverName());
     Connection conn = DriverManager.getConnection(getDbConnectionUrl(dbInfo), dbInfo.getUsername(),
@@ -379,38 +378,42 @@ public class HousekeepDbTasklet implements Tasklet {
         + "/" + dbInfo.getDatabase() + param;
   }
 
-  private Map<String, String> getInfoMap(String filePath)
-      throws EncryptedDocumentException, AppException, IOException {
-    List<List<String>> list = new StringOneLineHeaderExcelTableReader("Info",
-        new String[] {"item", "value"}, null, 1, null).read(filePath);
+  private Map<String, String> getInfoMap(String filePath) throws Exception {
+    List<List<String>> list;
+    try {
+      list = new StringOneLineHeaderExcelTableReader("Info", new String[] {"item", "value"}, null,
+          1, null).read(filePath);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
 
     return list.stream().collect(Collectors.toMap(l -> l.get(0), l -> l.get(1)));
   }
 
   private Map<String, DbConnectionInfoBean> getDbConnectionInfoMap(String filePath)
-      throws EncryptedDocumentException, URISyntaxException, IOException, AppException {
+      throws Exception {
 
-    Map<String, DbConnectionInfoBean> dbConnectionInfoMap =
-        new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
-            DbConnectionInfoBean.class, lang.get(LangExcel.DB_CONNECTION_SETTINGS),
-            lang.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS), null, 1, null)
-                .readToBean(filePath).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
+    Map<String, DbConnectionInfoBean> dbConnectionInfoMap;
+    try {
+      dbConnectionInfoMap = new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
+          DbConnectionInfoBean.class, lang.get(LangExcel.DB_CONNECTION_SETTINGS),
+          lang.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+              .readToBean(filePath).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
 
     dbConnectionInfoMap.values().stream().forEach(info -> {
-      try {
-        ValidationUtil.validateThenThrow(info);
-
-      } catch (ConstraintViolationException e) {
-        throw new ConstraintViolationException(e.getConstraintViolations());
-      }
+      new Violations()
+          .addAll(Validation.buildDefaultValidatorFactory().getValidator().validate(info))
+          .throwIfAny();
     });
 
     return dbConnectionInfoMap;
   }
 
   private List<HousekeepInfoBean> getHousekeepInfoList(String filePath,
-      Map<String, DbConnectionInfoBean> dbConnectionMap)
-      throws EncryptedDocumentException, URISyntaxException, IOException, AppException {
+      Map<String, DbConnectionInfoBean> dbConnectionMap) throws Exception {
     List<HousekeepInfoBean> housekeepList =
         new StringOneLineHeaderExcelTableToBeanReader<HousekeepInfoBean>(HousekeepInfoBean.class,
             lang.get(LangExcel.HOUSEKEEP_DB_SETTINGS),
@@ -432,15 +435,17 @@ public class HousekeepDbTasklet implements Tasklet {
     for (HousekeepInfoBean hpBean : housekeepList) {
       // task ID重複チェック
       if (housekeepInfoTaskIdSet.contains(hpBean.getTaskId())) {
-        throw new BizLogicAppException("MSG_ERR_TASK_ID_DUPLICATED", hpBean.getTaskId());
+        new Violations()
+            .add(new BusinessViolation("MSG_ERR_TASK_ID_DUPLICATED", hpBean.getTaskId()))
+            .throwIfAny();
       }
 
       housekeepInfoTaskIdSet.add(hpBean.getTaskId());
 
       // DB Connectionは必須なのでない場合はエラー
       if (!dbConnectionMap.containsKey(hpBean.getDbConnectionInfoId())) {
-        throw new BizLogicAppException("MSG_ERR_DB_CONN_ID_NOT_FOUND", hpBean.getTaskId(),
-            hpBean.getDbConnectionInfoId());
+        new Violations().add(new BusinessViolation("MSG_ERR_DB_CONN_ID_NOT_FOUND",
+            hpBean.getTaskId(), hpBean.getDbConnectionInfoId())).throwIfAny();
       }
 
       hpBean.setDbConnectionInfo(dbConnectionMap.get(hpBean.getDbConnectionInfoId()));
@@ -460,9 +465,9 @@ public class HousekeepDbTasklet implements Tasklet {
     for (RelatedTableInfoBean relBean : relatedTableList) {
       // 一致するか否かを判断するkeyがないので、objectとしての同一性で比較
       if (!relSet.contains(relBean)) {
-        throw new BizLogicAppException("MSG_ERR_DATA_NOT_USED_REL", relBean.getTaskId(),
+        new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_REL", relBean.getTaskId(),
             lang.get(relBean.getRelatedTableProcessPatternStringKey()),
-            relBean.getTargetTableColumn(), relBean.getRelatedTable());
+            relBean.getTargetTableColumn(), relBean.getRelatedTable())).throwIfAny();
       }
     }
 
@@ -471,8 +476,8 @@ public class HousekeepDbTasklet implements Tasklet {
     for (WhereConditionInfoBean condBean : whereConditionList) {
       // 一致するか否かを判断するkeyがないので、objectとしての同一性で比較
       if (!condSet.contains(condBean)) {
-        throw new BizLogicAppException("MSG_ERR_DATA_NOT_USED_COND", condBean.getTaskId(),
-            condBean.getConditionColumn());
+        new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_COND",
+            condBean.getTaskId(), condBean.getConditionColumn())).throwIfAny();
       }
     }
 

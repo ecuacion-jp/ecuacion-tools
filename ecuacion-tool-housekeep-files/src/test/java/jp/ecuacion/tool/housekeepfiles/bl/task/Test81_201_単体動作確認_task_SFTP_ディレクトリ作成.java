@@ -18,10 +18,9 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.JSchException;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
+import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.util.FileUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
@@ -82,11 +81,10 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (MultipleAppException ex) {
-      assertEquals(1, ex.getList().size());
-      BizLogicAppException bl = (BizLogicAppException) ex.getList().get(0);
+    } catch (ViolationException ex) {
+      assertEquals(1, ex.getViolations().getBusinessViolations().size());
+      BusinessViolation bl = ex.getViolations().getBusinessViolations().iterator().next();
       assertEquals("MSG_ERR_TASK_REQUIRED_CHECK", bl.getMessageId());
-      assertEquals("リモートサーバ", bl.getMessageArgs()[2].getArgString());
     }
   }
 
@@ -101,11 +99,10 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (MultipleAppException ex) {
-      assertEquals(1, ex.getList().size());
-      BizLogicAppException bl = (BizLogicAppException) ex.getList().get(0);
+    } catch (ViolationException ex) {
+      assertEquals(1, ex.getViolations().getBusinessViolations().size());
+      BusinessViolation bl = ex.getViolations().getBusinessViolations().iterator().next();
       assertEquals("MSG_ERR_TASK_PROHIBITED_CHECK", bl.getMessageId());
-      assertEquals("元パス", bl.getMessageArgs()[2].getArgString());
     }
   }
 
@@ -120,11 +117,10 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (MultipleAppException ex) {
-      assertEquals(1, ex.getList().size());
-      BizLogicAppException bl = (BizLogicAppException) ex.getList().get(0);
+    } catch (ViolationException ex) {
+      assertEquals(1, ex.getViolations().getBusinessViolations().size());
+      BusinessViolation bl = ex.getViolations().getBusinessViolations().iterator().next();
       assertEquals("MSG_ERR_TASK_REQUIRED_CHECK", bl.getMessageId());
-      assertEquals("先パス", bl.getMessageArgs()[2].getArgString());
     }
   }
 
@@ -139,11 +135,10 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (MultipleAppException ex) {
-      assertEquals(1, ex.getList().size());
-      BizLogicAppException bl = (BizLogicAppException) ex.getList().get(0);
+    } catch (ViolationException ex) {
+      assertEquals(1, ex.getViolations().getBusinessViolations().size());
+      BusinessViolation bl = ex.getViolations().getBusinessViolations().iterator().next();
       assertEquals("MSG_ERR_TASK_CANNOT_SET_IS_DEST_PATH_DIR_TO_VALUE", bl.getMessageId());
-      assertEquals("FALSE", bl.getMessageArgs()[2].getArgString());
     }
   }
 
@@ -159,11 +154,10 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
       new HousekeepFilesBlf().execute(form);
       fail();
 
-    } catch (MultipleAppException ex) {
-      assertEquals(1, ex.getList().size());
-      BizLogicAppException bl = (BizLogicAppException) ex.getList().get(0);
+    } catch (ViolationException ex) {
+      assertEquals(1, ex.getViolations().getBusinessViolations().size());
+      BusinessViolation bl = ex.getViolations().getBusinessViolations().iterator().next();
       assertEquals("MSG_ERR_TASK_CANNOT_SET_OVERWRITE_TO_VALUE", bl.getMessageId());
-      assertEquals("TRUE", bl.getMessageArgs()[2].getArgString());
     }
   }
 
@@ -179,7 +173,7 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
     // HousekeepFilesBl#sendWarnMail を呼ばれたことがわかるよう置き換え
     HousekeepFilesBl bl = new HousekeepFilesBl() {
       @Override
-      public void sendWarnMail(List<AppException> warnList, HousekeepFilesHdRecord hdE)
+      public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
           throws Exception {
         procCalledOnWarnListIsNotEmpty = true;
       }
@@ -213,7 +207,7 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
     // HousekeepFilesBl#sendWarnMail を呼ばれたことがわかるよう置き換え
     HousekeepFilesBl bl = new HousekeepFilesBl() {
       @Override
-      public void sendWarnMail(List<AppException> warnList, HousekeepFilesHdRecord hdE)
+      public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
           throws Exception {
         procCalledOnWarnListIsNotEmpty = true;
       }
@@ -251,8 +245,9 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
       fail();
 
     } catch (RuntimeException ex) {
-      BizLogicAppException blEx = (BizLogicAppException) ex.getCause();
-      assertEquals("MSG_ERR_DEST_PATH_EXISTS", blEx.getMessageId());
+      ViolationException blEx = (ViolationException) ex.getCause();
+      assertEquals("MSG_ERR_DEST_PATH_EXISTS",
+          blEx.getViolations().getBusinessViolations().iterator().next().getMessageId());
     }
   }
 
@@ -271,10 +266,11 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
     try {
       new HousekeepFilesBlf().execute(form);
       fail();
-    
+
     } catch (RuntimeException ex) {
-      BizLogicAppException blEx = (BizLogicAppException) ex.getCause();
-      assertEquals("MSG_ERR_DEST_PATH_IS_FILE", blEx.getMessageId());
+      ViolationException blEx = (ViolationException) ex.getCause();
+      assertEquals("MSG_ERR_DEST_PATH_IS_FILE",
+          blEx.getViolations().getBusinessViolations().iterator().next().getMessageId());
     }
   }
 
@@ -295,8 +291,9 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
       fail();
 
     } catch (RuntimeException ex) {
-      BizLogicAppException blEx = (BizLogicAppException) ex.getCause();
-      assertEquals("MSG_ERR_DEST_PATH_IS_FILE", blEx.getMessageId());
+      ViolationException blEx = (ViolationException) ex.getCause();
+      assertEquals("MSG_ERR_DEST_PATH_IS_FILE",
+          blEx.getViolations().getBusinessViolations().iterator().next().getMessageId());
     }
   }
 
@@ -317,8 +314,9 @@ public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 ex
       fail();
 
     } catch (RuntimeException ex) {
-      BizLogicAppException blEx = (BizLogicAppException) ex.getCause();
-      assertEquals("MSG_ERR_DEST_PATH_IS_FILE", blEx.getMessageId());
+      ViolationException blEx = (ViolationException) ex.getCause();
+      assertEquals("MSG_ERR_DEST_PATH_IS_FILE",
+          blEx.getViolations().getBusinessViolations().iterator().next().getMessageId());
     }
   }
 

@@ -27,10 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.validation.constraints.BooleanString;
 import jp.ecuacion.lib.validation.constraints.EnumElement;
@@ -197,7 +196,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   /**
    * Gets isSrcPathDir.
    */
-  public Boolean getIsSrcPathDir() throws BizLogicAppException {
+  public Boolean getIsSrcPathDir() {
     return (StringUtils.isEmpty(isSrcPathDirEnumName)) ? null
         : Boolean.valueOf(isSrcPathDirEnumName.toLowerCase());
   }
@@ -258,10 +257,8 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
   /**
    * Sets EnvVarInfoMap.
-   *
-   * @throws MultipleAppException MultipleAppException
    */
-  public void setEnvVarInfoMap(Map<String, String> envVarInfoMap) throws AppException {
+  public void setEnvVarInfoMap(Map<String, String> envVarInfoMap) {
     if (envVarInfoMap == null) {
       envVarInfoMap = new HashMap<>();
     }
@@ -273,9 +270,14 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
     envVarExpandedDestPath = destPath == null ? null : substituteEnvVars(destPath);
   }
 
-  private String substituteEnvVars(String path) throws BizLogicAppException, MultipleAppException {
-    String envVarExpandedPath =
-        EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", envVarInfoMap);
+  private String substituteEnvVars(String path) {
+    String envVarExpandedPath;
+    try {
+      envVarExpandedPath =
+          EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", envVarInfoMap);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
 
     // "//"を取り除く
     while (envVarExpandedPath.contains("//")) {
@@ -286,7 +288,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   }
 
   @Override
-  public void afterReading() throws AppException {
+  public void afterReading() {
 
     // 元パス関連情報は、全て入力か全て未入力のいずれか
     boolean isAllEmpty = StringUtils.isEmpty(srcPath) && StringUtils.isEmpty(isSrcPathDirEnumName)
@@ -298,8 +300,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
     String[] lbls = new String[] {"srcPath", "isSrcPathDir", "unit", "value", "actionForNoSrcPath"};
 
     if (!isAllEmpty && !isAllNotEmpty) {
-      throw new BizLogicAppException("MSG_ERR_FIELDS_ARE_EITHER_ALL_EMPTY_OR_ALL_NOT_EMPTY",
-          getLabelNameCsv(lbls));
+      new Violations().add(new BusinessViolation(
+          "MSG_ERR_FIELDS_ARE_EITHER_ALL_EMPTY_OR_ALL_NOT_EMPTY",
+          getLabelNameCsv(lbls))).throwIfAny();
     }
 
     // 先パス関連情報は、全て入力か全て未入力のいずれか
@@ -313,8 +316,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
         "actionForToFileExists"};
 
     if (!isAllEmpty && !isAllNotEmpty) {
-      throw new BizLogicAppException("MSG_ERR_FIELDS_ARE_EITHER_ALL_EMPTY_OR_ALL_NOT_EMPTY",
-          getLabelNameCsv(lbls));
+      new Violations().add(new BusinessViolation(
+          "MSG_ERR_FIELDS_ARE_EITHER_ALL_EMPTY_OR_ALL_NOT_EMPTY",
+          getLabelNameCsv(lbls))).throwIfAny();
     }
   }
 

@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import org.springframework.http.HttpStatus;
@@ -117,16 +116,19 @@ public class CommandApiController {
 
   /**
    * Searches ${XXX} format (not $XXX) and replaces it to the environment valuable value.
-   * 
+   *
    * @param string any string
    * @return string with environment variables resolved
-   * @throws AppException AppException
    */
-  private String resolveEnvironmentVariables(String string) throws AppException {
+  private String resolveEnvironmentVariables(String string) {
     Function<String, String> func = (key) -> {
       return System.getenv(key);
     };
-    return EmbeddedVariableUtil.getVariableReplacedString(string, "${", "}", func);
+    try {
+      return EmbeddedVariableUtil.getVariableReplacedString(string, "${", "}", func);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private void throwException(String message) {

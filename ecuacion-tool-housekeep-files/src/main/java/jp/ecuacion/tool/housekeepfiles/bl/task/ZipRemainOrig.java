@@ -15,8 +15,7 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
-import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
@@ -39,8 +38,7 @@ public class ZipRemainOrig extends AbstractTaskZip {
   }
 
   @Override
-  public void taskDependentCheck(
-      HousekeepFilesTaskRecord taskRec, List<SingleAppException> exList) {
+  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
 
   }
 
