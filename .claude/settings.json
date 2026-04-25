@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn test *)",
+      "Bash(mvn dependency:tree -pl ecuacion-tool-housekeep-files -Dincludes=commons-io,org.apache.poi)",
+      "Bash(mvn dependency:tree -pl ecuacion-tool-housekeep-files)",
+      "Bash(mvn help:effective-pom -pl ecuacion-tool-housekeep-files)",
+      "Bash(grep -v \"^\\\\[ERROR\\\\] $\\\\|After\\\\|To see\\\\|Re-run\\\\|For more\\\\|Help\\\\|resume\")",
+      "Bash(grep -v \"^\\\\[ERROR\\\\] $\\\\|After\\\\|To see\\\\|Re-run\\\\|For more\\\\|Help\\\\|resume\\\\|lastnpe\")",
+      "Bash(grep -v \"^\\\\[ERROR\\\\] $\\\\|After\\\\|To see\\\\|Re-run\\\\|For more\\\\|Help\\\\|resume\\\\|lastnpe\\\\|checkstyle\\\\|Violations\")"
+    ]
+  }
+}
