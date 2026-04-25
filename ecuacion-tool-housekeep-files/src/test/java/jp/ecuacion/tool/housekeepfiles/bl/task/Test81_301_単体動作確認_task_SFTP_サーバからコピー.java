@@ -16,7 +16,6 @@
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.IOException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +25,7 @@ public class Test81_301_単体動作確認_task_SFTP_サーバからコピー ex
   HousekeepFilesTaskRecord taskRec = null;
 
   @BeforeEach
-  public void before() throws MultipleAppException, IOException {
+  public void before() throws IOException {
     initTestDir();
 
     task = new SftpCopyFromServer();

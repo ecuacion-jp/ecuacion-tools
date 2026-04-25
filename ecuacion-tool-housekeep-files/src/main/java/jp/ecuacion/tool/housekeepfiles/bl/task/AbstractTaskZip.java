@@ -17,8 +17,8 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.File;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.util.FileUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.util.CompressUtil;
@@ -31,8 +31,8 @@ public abstract class AbstractTaskZip extends AbstractTaskLocal {
 
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer connection,
-      HousekeepFilesTaskRecord taskRec, String fromPath, String toPath, List<AppException> warnList)
-      throws AppException {
+      HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
+      List<BusinessViolation> warnList) {
     CompressUtil cu = new CompressUtil();
 
     File from = new File(fromPath);

@@ -28,13 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
@@ -98,88 +96,63 @@ public abstract class AbstractTask {
   }
 
   /** taskに対するHousekeepFilesTaskRecordのinput情報の内容チェック。task実行の前にcheckをする関係でdoTaskとは分けている。 */
-  public void check(HousekeepFilesTaskRecord dtRec) throws AppException {
-    List<SingleAppException> exList = new ArrayList<>();
-    checkNeedRemoteServer(dtRec, exList);
-    checkRequiredOrProhibited(exList, dtRec);
+  public void check(HousekeepFilesTaskRecord dtRec) {
+    Violations violations = new Violations();
+    checkNeedRemoteServer(dtRec, violations);
+    checkRequiredOrProhibited(violations, dtRec);
 
     // ここまででnull値項目の正当性含めinput validation済み。
     // この後の処理でnullであるべきでない値がnullなのを気にしてnull条件を書くのは煩雑なので、一旦エラーがあれば返しておく。
-    if (exList.size() > 0) {
-      throw new MultipleAppException(exList);
-    }
+    violations.throwIfAny();
 
-    taskDependentCheck(dtRec, exList);
+    taskDependentCheck(dtRec, violations);
 
-    if (exList.size() > 0) {
-      throw new MultipleAppException(exList);
-    }
+    violations.throwIfAny();
   }
 
   /** checkから呼び出される。各taskにてチェック実装。 */
   public abstract void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList);
+      Violations violations);
 
   protected void checkNeedRemoteServer(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList) {
+      Violations violations) {
     boolean containsRemoteAction = isSrcPathLocal() != null && !isSrcPathLocal()
         || isDestPathLocal() != null && !isDestPathLocal();
 
-    checkTaskItemNoThrow(exList, taskRec.getTaskId(), taskPtn,
+    checkTaskItemNoThrow(violations, taskRec.getTaskId(), taskPtn,
         containsRemoteAction ? TaskAttrCheckPtnEnum.REQUIRED : TaskAttrCheckPtnEnum.PROHIBITED,
         "remoteServer", taskRec.getRemoteServer());
   }
 
-  private void checkRequiredOrProhibited(List<SingleAppException> exList,
+  private void checkRequiredOrProhibited(Violations violations,
       HousekeepFilesTaskRecord taskRec) {
 
     // 元パス関連。元パスが全入力または全空欄なのは事前に確認済みなので、ここでは代表でsrcPathのみをチェック
-    checkTaskItemNoThrow(exList, taskRec.getTaskId(), taskPtn, getInputRuleForSrcPath(), "srcPath",
-        taskRec.getSrcPath());
-    // checkTaskItemNoThrow(exList, dtRec.getTaskId(), taskPtn, getInputRuleForSrcPath(),
-    // "isSrcPathDir", dtRec.isSrcPathDirEnumName);
-    // checkTaskItemNoThrow(exList, dtRec.getTaskId(), taskPtn, getInputRuleForSrcPath(), "unit",
-    // dtRec.unitName);
-    // checkTaskItemNoThrow(exList, dtRec.getTaskId(), taskPtn, getInputRuleForSrcPath(), "value",
-    // dtRec.getValue());
-    // checkTaskItemNoThrow(exList, dtRec.getTaskId(), taskPtn, getInputRuleForActionForNoSrcPath(),
-    // "actionForNoSrcPath", dtRec.actionForNoSrcPathEnumName);
+    checkTaskItemNoThrow(violations, taskRec.getTaskId(), taskPtn, getInputRuleForSrcPath(),
+        "srcPath", taskRec.getSrcPath());
 
     // 先パス関連。先パスが全入力または全空欄なのは事前に確認済みなので、ここでは代表でdestPathのみをチェック
-    checkTaskItemNoThrow(exList, taskRec.getTaskId(), taskPtn, getInputRuleForDestPath(),
+    checkTaskItemNoThrow(violations, taskRec.getTaskId(), taskPtn, getInputRuleForDestPath(),
         "destPath", taskRec.getDestPath());
-    // checkTaskItemNoThrow(exList, dtRec.getTaskId(), taskPtn, getInputRuleForDestPath(),
-    // "isDestPathDir", dtRec.isDestPathDirEnumName);
-    // checkTaskItemNoThrow(exList, dtRec.getTaskId(), taskPtn,
-    // getInputRuleForDoesOverwriteDestPath(),
-    // "doesOverwriteDestPath", dtRec.doesOverwriteDestPathEnumName);
-    // checkTaskItemNoThrow(exList, dtRec.getTaskId(), taskPtn,
-    // getInputRuleForActionForToFileExists(),
-    // "actionForToFileExists", dtRec.actionForToFileExistsEnumName);
   }
 
-  void checkTaskItemNoThrow(List<SingleAppException> exList, String taskId, TaskPtnEnum taskPtn,
+  void checkTaskItemNoThrow(Violations violations, String taskId, TaskPtnEnum taskPtn,
       TaskAttrCheckPtnEnum checkPtn, String itemTitle, Object itemValue) {
-    try {
-      checkTaskItem(taskId, taskPtn, checkPtn, itemTitle, itemValue);
-
-    } catch (BizLogicAppException ex) {
-      exList.add(ex);
-    }
+    checkTaskItem(violations, taskId, taskPtn, checkPtn, itemTitle, itemValue);
   }
 
-  void checkTaskItem(String taskId, TaskPtnEnum taskPtn, TaskAttrCheckPtnEnum checkPtn,
-      String itemTitle, Object itemValue) throws BizLogicAppException {
+  void checkTaskItem(Violations violations, String taskId, TaskPtnEnum taskPtn,
+      TaskAttrCheckPtnEnum checkPtn, String itemTitle, Object itemValue) {
     String taskPtnName = (taskPtn == null) ? "" : taskPtn.toString();
     boolean isEmpty = itemValue == null || (itemValue instanceof String && itemValue.equals(""));
     if (checkPtn == REQUIRED && isEmpty) {
-      throw new BizLogicAppException("MSG_ERR_TASK_REQUIRED_CHECK", taskId, taskPtnName,
-          PropertiesFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemTitle));
+      violations.add(new BusinessViolation("MSG_ERR_TASK_REQUIRED_CHECK", taskId, taskPtnName,
+          PropertiesFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemTitle)));
     }
 
     if (checkPtn == PROHIBITED && !isEmpty) {
-      throw new BizLogicAppException("MSG_ERR_TASK_PROHIBITED_CHECK", taskId, taskPtnName,
-          PropertiesFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemTitle));
+      violations.add(new BusinessViolation("MSG_ERR_TASK_PROHIBITED_CHECK", taskId, taskPtnName,
+          PropertiesFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemTitle)));
     }
   }
 
@@ -208,16 +181,14 @@ public abstract class AbstractTask {
 
   /** task実行。外部からtaskを実行する際はこれを呼ぶ。 */
   public void doTask(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
-      String srcPath, String destPath, List<AppException> warnList) throws Exception {
-
-
+      String srcPath, String destPath, List<BusinessViolation> warnList) throws Exception {
     doTaskInternal(conn, taskRec, srcPath, destPath, warnList);
   }
 
   /** doTaskから呼び出される。各taskにて処理実装。 */
   protected abstract void doTaskInternal(ConnectionToRemoteServer conn,
       HousekeepFilesTaskRecord taskRec, String srcPath, String destPath,
-      List<AppException> warnList) throws Exception;
+      List<BusinessViolation> warnList) throws Exception;
 
   /** taskが元パス情報を保持しているかをbooleanで返す。 */
   public boolean hasSrcPathInfo() {
@@ -250,7 +221,7 @@ public abstract class AbstractTask {
   }
 
   public List<FileInfo> getFromDirFileInfoList(AbstractTask task,
-      ConnectionToRemoteServer connection, boolean isPathDir, String path) throws AppException {
+      ConnectionToRemoteServer connection, boolean isPathDir, String path) {
     if (isSrcPathLocal()) {
       return getLocalFileInfoList(path);
 
@@ -266,7 +237,7 @@ public abstract class AbstractTask {
   }
 
   /** ローカルディスク上の一覧取得。 */
-  protected FileInfo getLocalFileInfo(String path) throws BizLogicAppException {
+  protected FileInfo getLocalFileInfo(String path) {
     File file = new File(path);
 
     // 存在しない場合はnullを返す
@@ -289,7 +260,7 @@ public abstract class AbstractTask {
   }
 
   /** ローカルディスク上の一覧取得。 */
-  protected List<FileInfo> getLocalFileInfoList(String path) throws BizLogicAppException {
+  protected List<FileInfo> getLocalFileInfoList(String path) {
     List<FileInfo> rtnList = new ArrayList<FileInfo>();
     List<String> pathStrList = FileUtil.getPathListFromPathWithWildcard(path);
     for (String strPath : pathStrList) {
@@ -310,20 +281,20 @@ public abstract class AbstractTask {
   }
 
   /** 設定がwarnかerrorかで処理を分ける。 */
-  protected void treatIncident(IncidentTreatedAsEnum pattern, AppException ex,
-      List<AppException> warnList) throws AppException {
+  protected void treatIncident(IncidentTreatedAsEnum pattern, BusinessViolation violation,
+      List<BusinessViolation> warnList) {
     if (pattern == IncidentTreatedAsEnum.WARN) {
-      warnList.add(ex);
+      warnList.add(violation);
 
     } else if (pattern == IncidentTreatedAsEnum.ERROR) {
-      throw ex;
+      new Violations().add(violation).throwIfAny();
     }
   }
 
   protected void treatDestPathExists(HousekeepFilesTaskRecord taskRec, String destPath,
-      List<AppException> warnList) throws AppException {
+      List<BusinessViolation> warnList) {
     treatIncident(taskRec.getActionForDestFileExists(),
-        new BizLogicAppException("MSG_ERR_DEST_PATH_EXISTS", taskRec.getTaskId(),
+        new BusinessViolation("MSG_ERR_DEST_PATH_EXISTS", taskRec.getTaskId(),
             taskRec.getTaskName(), destPath),
         warnList);
   }

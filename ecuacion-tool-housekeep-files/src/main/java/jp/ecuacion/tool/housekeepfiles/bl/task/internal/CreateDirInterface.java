@@ -15,24 +15,23 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl.task.internal;
 
-import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 
 public interface CreateDirInterface {
-  public default void taskDependentCheckCreateDir(List<SingleAppException> exList,
+  public default void taskDependentCheckCreateDir(Violations violations,
       HousekeepFilesTaskRecord taskRec) {
 
     // 先パスがディレクトリ がFALSEは指定不可
     if (!taskRec.getIsDestPathDir()) {
-      exList.add(new BizLogicAppException("MSG_ERR_TASK_CANNOT_SET_IS_DEST_PATH_DIR_TO_VALUE",
+      violations.add(new BusinessViolation("MSG_ERR_TASK_CANNOT_SET_IS_DEST_PATH_DIR_TO_VALUE",
           taskRec.getTaskId(), taskRec.taskPtnEnumName, "FALSE"));
     }
 
     // 先パス存在時上書き がTRUEは指定不可
     if (taskRec.getDoesOverwriteDestPath() == true) {
-      exList.add(new BizLogicAppException("MSG_ERR_TASK_CANNOT_SET_OVERWRITE_TO_VALUE",
+      violations.add(new BusinessViolation("MSG_ERR_TASK_CANNOT_SET_OVERWRITE_TO_VALUE",
           taskRec.getTaskId(), taskRec.taskPtnEnumName, "TRUE"));
     }
   }

@@ -32,8 +32,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.stream.Collectors;
-import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.util.FileUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToSftpServer;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
@@ -55,15 +55,15 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
    * Executes task.
    */
   protected abstract void doSpecificTask(ConnectionToRemoteServer connection,
-      HousekeepFilesTaskRecord taskRec, String fromPath, String toPath, List<AppException> warnList)
-      throws Exception;
+      HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
+      List<BusinessViolation> warnList) throws Exception;
 
   // private int depth = 0;
 
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
-      List<AppException> warnList) {
+      List<BusinessViolation> warnList) {
     try {
       doSpecificTask(connection, taskRec, fromPath, toPath, warnList);
 

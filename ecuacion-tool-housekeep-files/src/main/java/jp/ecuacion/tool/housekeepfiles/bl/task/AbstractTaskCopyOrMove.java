@@ -17,10 +17,9 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.File;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
 import jp.ecuacion.lib.core.util.FileUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
@@ -46,14 +45,14 @@ public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
 
   @Override
   public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList) {
+      Violations violations) {
 
   }
 
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String srcPath, String destPath,
-      List<AppException> warnList) throws BizLogicAppException {
+      List<BusinessViolation> warnList) {
     TaskPtnEnum taskPtn = taskRec.getTaskPtn();
     boolean doesOverwrittenFileOrDirExist = true;
 
