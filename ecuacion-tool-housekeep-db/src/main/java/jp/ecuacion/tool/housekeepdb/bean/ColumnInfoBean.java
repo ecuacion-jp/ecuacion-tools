@@ -1,8 +1,6 @@
 package jp.ecuacion.tool.housekeepdb.bean;
 
 import jakarta.validation.constraints.NotEmpty;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.unchecked.EclibRuntimeException;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
 
 /**
@@ -34,18 +32,16 @@ public class ColumnInfoBean {
    * @param column column
    * @param needsQuotationMarkExcelString String that represents needsQuationMark
    */
-  public ColumnInfoBean(String column, String needsQuotationMarkExcelString)
-      throws BizLogicAppException {
+  public ColumnInfoBean(String column, String needsQuotationMarkExcelString) {
     this.column = column;
     this.needsQuotationMark =
         getNeedsQuotationMarkBooleanFromExcelString(needsQuotationMarkExcelString);
   }
 
-  private Boolean getNeedsQuotationMarkBooleanFromExcelString(String value)
-      throws BizLogicAppException {
-    if (value == null) { 
+  private Boolean getNeedsQuotationMarkBooleanFromExcelString(String value) {
+    if (value == null) {
       return null;
-      
+
     } else if (value.equals(NO_MARK)) {
       return false;
 
@@ -53,7 +49,7 @@ public class ColumnInfoBean {
       return true;
 
     } else {
-      throw new EclibRuntimeException(
+      throw new RuntimeException(
           "The value must be either '" + NO_MARK + "' or '" + QUOTES + "'.");
     }
   }

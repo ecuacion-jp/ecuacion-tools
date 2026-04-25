@@ -15,12 +15,11 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
-import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
+import java.util.Set;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.DoNothingInConstructorForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
@@ -59,13 +58,11 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
       new HousekeepFilesBlf().execute(form);
       fail();
     } catch (Exception e) {
-      List<? extends Throwable> thList = ((ConstraintViolationException) e)
-          .getConstraintViolations().stream().map(cv -> new ValidationAppException(cv)).toList();
-      assertEquals(1, thList.size());
-      ValidationAppException ace = (ValidationAppException) thList.get(0);
-      ConstraintViolationBean<?> bean = ace.getConstraintViolationBean();
-      Assertions.assertEquals("sysName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
-      Assertions.assertTrue(bean.getOriginalMessage().contains("空要素は許可されていません"));
+      var cvSet = ((ConstraintViolationException) e).getConstraintViolations();
+      assertEquals(1, cvSet.size());
+      var cv = (ConstraintViolation<?>) cvSet.iterator().next();
+      Assertions.assertEquals("sysName", cv.getPropertyPath().toString());
+      Assertions.assertTrue(cv.getMessage().contains("must not be empty"));
     }
   }
 
@@ -80,13 +77,13 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
       new HousekeepFilesBlf().execute(form);
       fail();
     } catch (Exception e) {
-      List<? extends Throwable> thList = ((ConstraintViolationException) e)
-          .getConstraintViolations().stream().map(cv -> new ValidationAppException(cv)).toList();
-      assertEquals(2, thList.size());
-      assertEquals("sysName", ((ValidationAppException) thList.get(0)).getConstraintViolationBean()
-          .getFieldInfoBeanList().get(0).fullPropertyPath);
-      assertEquals("sysName", ((ValidationAppException) thList.get(1)).getConstraintViolationBean()
-          .getFieldInfoBeanList().get(0).fullPropertyPath);
+      Set<ConstraintViolation<?>> set =
+          ((ConstraintViolationException) e).getConstraintViolations();
+      assertEquals(2, set.size());
+      var cv1 = set.iterator().next();
+      var cv2 = set.iterator().next();
+      assertEquals("sysName", cv1.getPropertyPath().toString());
+      assertEquals("sysName", cv2.getPropertyPath().toString());
     }
   }
 

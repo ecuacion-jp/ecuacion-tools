@@ -18,8 +18,8 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 import static jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum.REQUIRED;
 import java.util.List;
 import java.util.Map;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
@@ -48,7 +48,7 @@ public class AllRequiredTask extends AbstractTaskLocal {
 
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
-      String srcPath, String destPath, List<AppException> warnList) throws Exception {
+      String srcPath, String destPath, List<BusinessViolation> warnList) throws Exception {
     
   }
 
@@ -71,8 +71,7 @@ public class AllRequiredTask extends AbstractTaskLocal {
   }
 
   @Override
-  public void taskDependentCheck(
-      HousekeepFilesTaskRecord taskRec, List<SingleAppException> exList) {
+  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
 
   }
 }

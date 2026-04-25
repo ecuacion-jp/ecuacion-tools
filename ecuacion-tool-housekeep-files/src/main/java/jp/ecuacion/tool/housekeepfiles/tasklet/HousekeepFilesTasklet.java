@@ -16,8 +16,9 @@
 package jp.ecuacion.tool.housekeepfiles.tasklet;
 
 import java.util.Map;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
+import java.util.Objects;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.springframework.batch.core.StepContribution;
@@ -51,16 +52,21 @@ public class HousekeepFilesTasklet implements Tasklet {
   /**
    * Housekeeps files.
    */
-  public void execute(String excelFilePath) throws AppException, Exception {
+  public void execute(String excelFilePath) throws Exception {
 
     // 第一引数をチェック
     if (excelFilePath == null || excelFilePath.equals("")) {
-      throw new BizLogicAppException("MSG_ERR_PARAM_NULL_OR_EMPTY", "1st argument(excelFilePath)");
+      new Violations()
+          .add(new BusinessViolation("MSG_ERR_PARAM_NULL_OR_EMPTY", "1st argument(excelFilePath)"))
+          .throwIfAny();
 
     } else if (!excelFilePath.contains(".")) {
       // 拡張子が存在しない
-      throw new BizLogicAppException("MSG_ERR_1ST_ARG_HAS_NO_EXTENSION", excelFilePath);
+      new Violations().add(new BusinessViolation("MSG_ERR_1ST_ARG_HAS_NO_EXTENSION", excelFilePath))
+          .throwIfAny();
     }
+
+    Objects.requireNonNull(excelFilePath);
 
     // 第一引数のパスに含まれるファイル名の拡張子によりパラメータの数を判断
     String extension = excelFilePath.substring(excelFilePath.lastIndexOf("."));
@@ -69,7 +75,8 @@ public class HousekeepFilesTasklet implements Tasklet {
       form = getFormFromExcel(excelFilePath);
 
     } else {
-      throw new BizLogicAppException("MSG_ERR_EXTENSION_NOT_EXPECTED", extension);
+      new Violations().add(new BusinessViolation("MSG_ERR_EXTENSION_NOT_EXPECTED", extension))
+          .throwIfAny();
     }
 
     blf.execute(form);
@@ -78,7 +85,7 @@ public class HousekeepFilesTasklet implements Tasklet {
   /**
    * It's package scope for unit-test.
    */
-  HousekeepFilesForm getFormFromExcel(String excelPath) throws AppException {
+  HousekeepFilesForm getFormFromExcel(String excelPath) {
     return new HousekeepFilesForm(excelPath);
   }
 }

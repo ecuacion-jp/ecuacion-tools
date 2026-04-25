@@ -17,9 +17,8 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.File;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
@@ -43,24 +42,23 @@ public class CreateFile extends AbstractTaskLocal {
   }
 
   @Override
-  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList) {
+  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
     // 先パスがディレクトリ がTRUEは指定不可
     if (taskRec.getIsDestPathDir()) {
-      exList.add(new BizLogicAppException("MSG_ERR_TASK_CANNOT_SET_IS_DEST_PATH_DIR_TO_VALUE",
+      violations.add(new BusinessViolation("MSG_ERR_TASK_CANNOT_SET_IS_DEST_PATH_DIR_TO_VALUE",
           taskRec.getTaskId(), taskRec.taskPtnEnumName, "TRUE"));
     }
 
     // 先パス存在時上書き がTRUEは指定不可
     if (taskRec.getDoesOverwriteDestPath() == true) {
-      exList.add(new BizLogicAppException("MSG_ERR_TASK_CANNOT_SET_OVERWRITE_TO_VALUE",
+      violations.add(new BusinessViolation("MSG_ERR_TASK_CANNOT_SET_OVERWRITE_TO_VALUE",
           taskRec.getTaskId(), taskRec.taskPtnEnumName, "TRUE"));
     }
   }
 
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
-      String fromPath, String destPath, List<AppException> warnList) throws Exception {
+      String fromPath, String destPath, List<BusinessViolation> warnList) throws Exception {
 
     File dest = new File(destPath);
 
@@ -73,15 +71,15 @@ public class CreateFile extends AbstractTaskLocal {
 
     // toPathがファイルでなくディレクトリとして存在する場合
     if (dest.exists() && dest.isDirectory()) {
-      throw new BizLogicAppException("MSG_ERR_DEST_PATH_IS_DIR", taskRec.getTaskId(),
-          taskRec.getTaskName(), destPath);
+      new Violations().add(new BusinessViolation("MSG_ERR_DEST_PATH_IS_DIR",
+          taskRec.getTaskId(), taskRec.getTaskName(), destPath)).throwIfAny();
     }
 
     // ファイル・ディレクトリとも存在しない場合。親ディレクトリがあれば作成する。
     File parent = new File(dest.getParent());
     if (!parent.exists() || !parent.isDirectory()) {
-      throw new BizLogicAppException("MSG_ERR_PARENT_DIR_NOT_EXIST", taskRec.getTaskId(),
-          taskRec.getTaskName(), parent.getAbsolutePath());
+      new Violations().add(new BusinessViolation("MSG_ERR_PARENT_DIR_NOT_EXIST",
+          taskRec.getTaskId(), taskRec.getTaskName(), parent.getAbsolutePath())).throwIfAny();
     }
 
     dest.createNewFile();

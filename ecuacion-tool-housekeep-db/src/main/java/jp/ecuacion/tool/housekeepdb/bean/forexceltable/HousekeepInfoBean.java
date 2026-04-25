@@ -4,8 +4,6 @@ import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.validation.constraints.EmptyWhen;
 import jp.ecuacion.lib.validation.constraints.NotEmptyWhen;
 import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
@@ -99,11 +97,10 @@ public class HousekeepInfoBean extends StringExcelTableBean {
 
   /**
    * Constructs a new instance.
-   * 
+   *
    * @param colList colList
-   * @throws BizLogicAppException BizLogicAppException
    */
-  public HousekeepInfoBean(List<String> colList) throws BizLogicAppException {
+  public HousekeepInfoBean(List<String> colList) {
     super(colList);
   }
 
@@ -230,11 +227,11 @@ public class HousekeepInfoBean extends StringExcelTableBean {
   }
 
   @Override
-  public void afterReading() throws AppException {
+  public void afterReading() {
     constructColumnInfo();
   }
 
-  private void constructColumnInfo() throws BizLogicAppException {
+  private void constructColumnInfo() {
 
     idColumnInfo = new ColumnInfoBean(idColumn, idColumnNeedsQuotationMark);
 

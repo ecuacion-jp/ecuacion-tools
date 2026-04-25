@@ -18,9 +18,7 @@ package jp.ecuacion.tool.housekeepfiles.reader;
 import jakarta.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.util.ArrayList;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
-import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
+import jakarta.validation.ConstraintViolation;
 import jp.ecuacion.lib.core.util.ValidationUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
@@ -34,7 +32,7 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
 
   @Test
   public void test21_元パスがディレクトリ_異常系_指定外文字列()
-      throws EncryptedDocumentException, IOException, AppException {
+      throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
         null, "aPath", "はい", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
@@ -43,12 +41,10 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
       fail();
 
     } catch (ConstraintViolationException ex) {
-      ValidationAppException bv =
-          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
-      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
       assertEquals("jp.ecuacion.lib.validation.constraints.BooleanString",
-          bean.getValidatorClass());
-      assertEquals("isSrcPathDirEnumName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+          cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+      assertEquals("isSrcPathDirEnumName", cv.getPropertyPath().toString());
     }
   }
 
@@ -66,7 +62,7 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
 
   @Test
   public void test51_元パス存在なし時処理_異常系_指定外文字列()
-      throws EncryptedDocumentException, IOException, AppException {
+      throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
         null, "aPath", "TRUE", "DAY", "7", "無視", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
@@ -75,12 +71,10 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
       fail();
 
     } catch (ConstraintViolationException ex) {
-      ValidationAppException bv =
-          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
-      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
       assertEquals("jp.ecuacion.lib.validation.constraints.EnumElement",
-          bean.getValidatorClass());
-      assertEquals("actionForNoSrcPathEnumName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+          cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+      assertEquals("actionForNoSrcPathEnumName", cv.getPropertyPath().toString());
     }
   }
 

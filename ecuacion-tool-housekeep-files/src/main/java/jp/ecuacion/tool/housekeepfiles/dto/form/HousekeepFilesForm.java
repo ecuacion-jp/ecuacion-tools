@@ -15,18 +15,15 @@
  */
 package jp.ecuacion.tool.housekeepfiles.dto.form;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesPathRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.reader.ExcelInfoListReader;
 import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
-import org.apache.poi.EncryptedDocumentException;
 
 /**
  * Stores multiple records.
@@ -62,21 +59,19 @@ public class HousekeepFilesForm {
 
   /**
    * Constructs a new instance.
-   * 
+   *
    * @param excelPath excelPath
-   * @throws AppException AppException
    */
-  public HousekeepFilesForm(String excelPath) throws AppException {
+  public HousekeepFilesForm(String excelPath) {
     readExcel(excelPath);
   }
 
   /**
    * Constructs a new instance.
-   * 
+   *
    * @param excelPath excelPath
-   * @throws AppException AppException
    */
-  protected void readExcel(String excelPath) throws AppException {
+  protected void readExcel(String excelPath) {
     try {
       infoMap = new ExcelInfoListReader().readToMap(excelPath);
       taskInfoHdRec = new HousekeepFilesHdRecord();
@@ -92,7 +87,7 @@ public class HousekeepFilesForm {
           HousekeepFilesAuthRecord.class, "サーバ認証設定", HEADER_LABELS_AUTH, null, 1, null)
               .readToBean(excelPath);
 
-    } catch (EncryptedDocumentException | IOException ex) {
+    } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
   }
