@@ -21,9 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
-import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
 import jp.ecuacion.lib.core.util.ValidationUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
@@ -33,7 +30,7 @@ import org.junit.jupiter.api.Test;
 public class Test11_12_excelデータの値検証_taskList_単体項目チェック_タスク名 extends TestTool {
 
   @Test
-  public void test01_タスク名_異常系_null() throws EncryptedDocumentException, IOException, AppException {
+  public void test01_タスク名_異常系_null() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", null, "CREATE_DIR", null,
         null, null, null, null, null, null, null, null, null, null);
 
@@ -42,16 +39,14 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
       fail();
 
     } catch (ConstraintViolationException ex) {
-      ValidationAppException bv =
-          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
-      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
-      assertEquals("jakarta.validation.constraints.NotEmpty", bean.getValidatorClass());
-      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
+      assertEquals("jakarta.validation.constraints.NotEmpty", cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+      assertEquals("taskName", cv.getPropertyPath().toString());
     }
   }
 
   @Test
-  public void test02_タスク名_異常系_空文字() throws EncryptedDocumentException, IOException, AppException {
+  public void test02_タスク名_異常系_空文字() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "", "CREATE_DIR", null,
         null, null, null, null, null, null, null, null, null, null);
 
@@ -65,10 +60,8 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
       // 両方ともtaskNameでエラーになっていることを確認
       Set<String> set = new HashSet<>();
       for (ConstraintViolation<?> cv : ex.getConstraintViolations()) {
-        ValidationAppException bv = new ValidationAppException(cv);
-        ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
-        assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
-        set.add(bean.getValidatorClass());
+        assertEquals("taskName", cv.getPropertyPath().toString());
+        set.add(cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
       }
 
       assertTrue(set.contains("jakarta.validation.constraints.NotEmpty"));
@@ -77,7 +70,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
   }
 
   @Test
-  public void test03_タスク名_異常系_長さ超過() throws EncryptedDocumentException, IOException, AppException {
+  public void test03_タスク名_異常系_長さ超過() throws Exception {
     HousekeepFilesTaskRecord rec =
         new HousekeepFilesTaskRecord("aTaskId", "12345678901234567890123456789012345678901",
             "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
@@ -87,17 +80,15 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
       fail();
 
     } catch (ConstraintViolationException ex) {
-      ValidationAppException bv =
-          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
-      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
-      assertEquals("jakarta.validation.constraints.Size", bean.getValidatorClass());
-      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
+      assertEquals("jakarta.validation.constraints.Size", cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+      assertEquals("taskName", cv.getPropertyPath().toString());
     }
   }
 
   @Test
   public void test04_タスク名_異常系_不正文字使用_hash()
-      throws EncryptedDocumentException, IOException, AppException {
+      throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName#",
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
@@ -106,11 +97,9 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
       fail();
 
     } catch (ConstraintViolationException ex) {
-      ValidationAppException bv =
-          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
-      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
-      assertEquals("jakarta.validation.constraints.Pattern", bean.getValidatorClass());
-      assertEquals("taskName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
+      assertEquals("jakarta.validation.constraints.Pattern", cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+      assertEquals("taskName", cv.getPropertyPath().toString());
     }
   }
 }

@@ -16,7 +16,6 @@
 package jp.ecuacion.tool.housekeepfiles.util;
 
 import java.io.File;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 
@@ -29,7 +28,7 @@ public class HkFileManipulateUtil {
    * Checks if overwritten files or directories exist.
    */
   public boolean checkIfToOverwrittenFileOrDirExists(HousekeepFilesTaskRecord taskRec,
-      String fromPath, String toPath) throws BizLogicAppException {
+      String fromPath, String toPath) {
 
     if (taskRec.getIsDestPathDir() == false) {
       // toがファイルの場合
@@ -40,7 +39,13 @@ public class HkFileManipulateUtil {
     } else {
       // toがディレクトリの場合、そのディレクトリの中まで確認してチェックを行う
       // fromがディレクトリかどうかでも処理を分ける。しかも、fromがディレクトリでも、zip指定があれば結局ファイルの扱いになるのでそれも分岐条件に入れる。
-      if (taskRec.getIsSrcPathDir() == true) {
+      boolean isSrcPathDir;
+      try {
+        isSrcPathDir = taskRec.getIsSrcPathDir() == true;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+      if (isSrcPathDir) {
         // 結局、ここはfrom=ディレクトリ、to=ディレクトリ
         // toの下のフォルダにfrom側のディレクトリ名があるかを確認。
         return (new File(FileUtil.concatFilePaths(toPath, new File(fromPath).getName())).exists())

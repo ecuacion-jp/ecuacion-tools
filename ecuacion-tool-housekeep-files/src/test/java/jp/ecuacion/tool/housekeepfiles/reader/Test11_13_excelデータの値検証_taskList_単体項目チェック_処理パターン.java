@@ -18,9 +18,7 @@ package jp.ecuacion.tool.housekeepfiles.reader;
 import jakarta.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.util.ArrayList;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.ValidationAppException;
-import jp.ecuacion.lib.core.jakartavalidation.bean.ConstraintViolationBean;
+import jakarta.validation.ConstraintViolation;
 import jp.ecuacion.lib.core.util.ValidationUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
@@ -31,7 +29,7 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
 
   @Test
   public void test01_処理パターン_異常系_null()
-      throws EncryptedDocumentException, IOException, AppException {
+      throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", null, null,
         null, null, null, null, null, null, null, null, null, null);
 
@@ -40,17 +38,15 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
       fail();
 
     } catch (ConstraintViolationException ex) {
-      ValidationAppException bv =
-          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
-      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
-      assertEquals("jakarta.validation.constraints.NotEmpty", bean.getValidatorClass());
-      assertEquals("taskPtnEnumName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
+      assertEquals("jakarta.validation.constraints.NotEmpty", cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+      assertEquals("taskPtnEnumName", cv.getPropertyPath().toString());
     }
   }
 
   @Test
   public void test02_処理パターン_異常系_想定外文字列()
-      throws EncryptedDocumentException, IOException, AppException {
+      throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,
         null, null, null, null, null, null, null, null, null, null);
 
@@ -59,12 +55,10 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
       fail();
 
     } catch (ConstraintViolationException ex) {
-      ValidationAppException bv =
-          new ValidationAppException(new ArrayList<>(ex.getConstraintViolations()).get(0));
-      ConstraintViolationBean<?> bean = bv.getConstraintViolationBean();
+      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
       assertEquals("jp.ecuacion.lib.validation.constraints.EnumElement",
-          bean.getValidatorClass());
-      assertEquals("taskPtnEnumName", bean.getFieldInfoBeanList().get(0).fullPropertyPath);
+          cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+      assertEquals("taskPtnEnumName", cv.getPropertyPath().toString());
     }
   }
 }
