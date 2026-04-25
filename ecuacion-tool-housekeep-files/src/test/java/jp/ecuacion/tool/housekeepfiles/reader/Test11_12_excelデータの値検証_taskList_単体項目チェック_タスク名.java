@@ -16,15 +16,13 @@
 package jp.ecuacion.tool.housekeepfiles.reader;
 
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
-import jp.ecuacion.lib.core.util.ValidationUtil;
+import jp.ecuacion.lib.core.exception.ViolationException;
+import jp.ecuacion.lib.core.util.ViolationUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
-import org.apache.poi.EncryptedDocumentException;
 import org.junit.jupiter.api.Test;
 
 public class Test11_12_excelデータの値検証_taskList_単体項目チェック_タスク名 extends TestTool {
@@ -35,12 +33,14 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
         null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.validateThenThrow(rec);
+      ViolationUtil.validate(rec).throwIfAny();
       fail();
 
-    } catch (ConstraintViolationException ex) {
-      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
-      assertEquals("jakarta.validation.constraints.NotEmpty", cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+    } catch (ViolationException ex) {
+      ConstraintViolation<?> cv =
+          new ArrayList<>(ex.getViolations().getConstraintViolations()).get(0);
+      assertEquals("jakarta.validation.constraints.NotEmpty",
+          cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
       assertEquals("taskName", cv.getPropertyPath().toString());
     }
   }
@@ -51,15 +51,15 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
         null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.validateThenThrow(rec);
+      ViolationUtil.validate(rec).throwIfAny();
       fail();
 
-    } catch (ConstraintViolationException ex) {
+    } catch (ViolationException ex) {
       // NotEmptyとSize
-      assertEquals(2, ex.getConstraintViolations().size());
+      assertEquals(2, ex.getViolations().getConstraintViolations().size());
       // 両方ともtaskNameでエラーになっていることを確認
       Set<String> set = new HashSet<>();
-      for (ConstraintViolation<?> cv : ex.getConstraintViolations()) {
+      for (ConstraintViolation<?> cv : ex.getViolations().getConstraintViolations()) {
         assertEquals("taskName", cv.getPropertyPath().toString());
         set.add(cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
       }
@@ -76,12 +76,14 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
             "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.validateThenThrow(rec);
+      ViolationUtil.validate(rec).throwIfAny();
       fail();
 
-    } catch (ConstraintViolationException ex) {
-      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
-      assertEquals("jakarta.validation.constraints.Size", cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+    } catch (ViolationException ex) {
+      ConstraintViolation<?> cv =
+          new ArrayList<>(ex.getViolations().getConstraintViolations()).get(0);
+      assertEquals("jakarta.validation.constraints.Size",
+          cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
       assertEquals("taskName", cv.getPropertyPath().toString());
     }
   }
@@ -93,12 +95,14 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ValidationUtil.validateThenThrow(rec);
+      ViolationUtil.validate(rec).throwIfAny();
       fail();
 
-    } catch (ConstraintViolationException ex) {
-      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
-      assertEquals("jakarta.validation.constraints.Pattern", cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
+    } catch (ViolationException ex) {
+      ConstraintViolation<?> cv =
+          new ArrayList<>(ex.getViolations().getConstraintViolations()).get(0);
+      assertEquals("jakarta.validation.constraints.Pattern",
+          cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
       assertEquals("taskName", cv.getPropertyPath().toString());
     }
   }

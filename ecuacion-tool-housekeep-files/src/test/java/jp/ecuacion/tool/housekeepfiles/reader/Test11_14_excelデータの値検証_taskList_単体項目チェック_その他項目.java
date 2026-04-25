@@ -15,14 +15,12 @@
  */
 package jp.ecuacion.tool.housekeepfiles.reader;
 
-import jakarta.validation.ConstraintViolationException;
-import java.io.IOException;
-import java.util.ArrayList;
 import jakarta.validation.ConstraintViolation;
-import jp.ecuacion.lib.core.util.ValidationUtil;
+import java.util.ArrayList;
+import jp.ecuacion.lib.core.exception.ViolationException;
+import jp.ecuacion.lib.core.util.ViolationUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
-import org.apache.poi.EncryptedDocumentException;
 import org.junit.jupiter.api.Test;
 
 public class Test11_14_excelデータの値検証_taskList_単体項目チェック_その他項目 extends TestTool {
@@ -37,11 +35,12 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
         null, "aPath", "はい", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
     try {
-      ValidationUtil.validateThenThrow(rec);
+      ViolationUtil.validate(rec).throwIfAny();
       fail();
 
-    } catch (ConstraintViolationException ex) {
-      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
+    } catch (ViolationException ex) {
+      ConstraintViolation<?> cv =
+          new ArrayList<>(ex.getViolations().getConstraintViolations()).get(0);
       assertEquals("jp.ecuacion.lib.validation.constraints.BooleanString",
           cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
       assertEquals("isSrcPathDirEnumName", cv.getPropertyPath().toString());
@@ -67,11 +66,12 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
         null, "aPath", "TRUE", "DAY", "7", "無視", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
     try {
-      ValidationUtil.validateThenThrow(rec);
+      ViolationUtil.validate(rec).throwIfAny();
       fail();
 
-    } catch (ConstraintViolationException ex) {
-      ConstraintViolation<?> cv = new ArrayList<>(ex.getConstraintViolations()).get(0);
+    } catch (ViolationException ex) {
+      ConstraintViolation<?> cv =
+          new ArrayList<>(ex.getViolations().getConstraintViolations()).get(0);
       assertEquals("jp.ecuacion.lib.validation.constraints.EnumElement",
           cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
       assertEquals("actionForNoSrcPathEnumName", cv.getPropertyPath().toString());
