@@ -22,6 +22,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 /**
  * Provides utilities.
  */
+@SuppressWarnings("NullAway")
 public class HkFileManipulateUtil {
 
   /**

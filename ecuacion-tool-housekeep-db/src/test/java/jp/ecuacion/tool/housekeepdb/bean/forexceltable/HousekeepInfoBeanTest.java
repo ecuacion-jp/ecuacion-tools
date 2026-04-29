@@ -31,7 +31,7 @@ public class HousekeepInfoBeanTest {
 
     for (ConstraintViolation<?> cv : set) {
       Assertions.assertEquals("jakarta.validation.constraints.NotEmpty",
-          cv.getConstraintDescriptor().getAnnotation().getClass().getCanonicalName());
+          cv.getConstraintDescriptor().getAnnotation().annotationType().getCanonicalName());
 
       String field = cv.getPropertyPath().toString();
 
@@ -53,7 +53,7 @@ public class HousekeepInfoBeanTest {
     Assertions.assertEquals(2, set.size());
     for (ConstraintViolation<?> cv : set) {
       Assertions.assertEquals("jakarta.validation.constraints.Pattern",
-          cv.getConstraintDescriptor().getAnnotation().getClass().getCanonicalName());
+          cv.getConstraintDescriptor().getAnnotation().annotationType().getCanonicalName());
     }
 
     // J (softDeleteColumn) column is required only when isSoftDelete == true
@@ -63,7 +63,7 @@ public class HousekeepInfoBeanTest {
     set = validator.validate(new HousekeepInfoBean(list));
     Assertions.assertEquals(1, set.size());
     Assertions.assertEquals("jp.ecuacion.lib.validation.constraints.NotEmptyWhen", set.iterator()
-        .next().getConstraintDescriptor().getAnnotation().getClass().getCanonicalName());
+        .next().getConstraintDescriptor().getAnnotation().annotationType().getCanonicalName());
 
     // no error with "HARD_DELETE" and "quotes(')".
 

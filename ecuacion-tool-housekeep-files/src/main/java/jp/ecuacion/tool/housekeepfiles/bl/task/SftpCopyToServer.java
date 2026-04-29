@@ -28,6 +28,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 /**
  * Provides sftp copy to server task.
  */
+@SuppressWarnings("NullAway")
 public class SftpCopyToServer extends AbstractTaskSftp {
 
   /**

@@ -27,10 +27,12 @@ import jp.ecuacion.tool.housekeepfiles.bl.task.internal.CreateDirInterface;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provides sftp create directory task.
  */
+@SuppressWarnings("NullAway")
 public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterface {
 
   /**
@@ -46,7 +48,7 @@ public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterfac
   }
 
   @Override
-  public Boolean isSrcPathLocal() {
+  public @Nullable Boolean isSrcPathLocal() {
     return null;
   }
 

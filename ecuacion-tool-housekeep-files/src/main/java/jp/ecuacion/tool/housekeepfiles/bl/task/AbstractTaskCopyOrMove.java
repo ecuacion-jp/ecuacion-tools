@@ -29,6 +29,7 @@ import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
 /**
  * Provides abstract task for copy and move.
  */
+@SuppressWarnings("NullAway")
 public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
   private HkFileManipulateUtil fmu = new HkFileManipulateUtil();
 

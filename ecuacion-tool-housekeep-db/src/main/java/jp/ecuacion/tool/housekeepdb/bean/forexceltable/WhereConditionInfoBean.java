@@ -1,6 +1,5 @@
 package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 
-import jakarta.annotation.Nonnull;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
@@ -11,6 +10,7 @@ import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 /**
  * Stores where clause settings.
  */
+@SuppressWarnings("NullAway.Init")
 public class WhereConditionInfoBean extends StringExcelTableBean {
   @NotEmpty
   private String taskId;
@@ -26,7 +26,7 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
   public static final String[] HEADER_LABEL_KEYS = LangExcel.SearchConditionSettings.HEADER_LABELS;
 
   @Override
-  protected @Nonnull String[] getFieldNameArray() {
+  protected String[] getFieldNameArray() {
     return new String[] {"taskId", "conditionColumn", "conditionColumnNeedsQuotationMark",
         "conditionColumnValue"};
   }

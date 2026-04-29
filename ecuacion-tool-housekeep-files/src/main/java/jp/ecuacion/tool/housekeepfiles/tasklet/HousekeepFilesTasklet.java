@@ -24,6 +24,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.jspecify.annotations.Nullable;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
@@ -33,10 +34,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class HousekeepFilesTasklet implements Tasklet {
   HousekeepFilesBlf blf = new HousekeepFilesBlf();
-  HousekeepFilesForm form = null;
+  @Nullable HousekeepFilesForm form;
 
   /**
-   * Executes housekeeping files. 
+   * Executes housekeeping files.
    */
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
@@ -44,7 +45,7 @@ public class HousekeepFilesTasklet implements Tasklet {
 
     String excelPath = (String) paramMap.get("excelPath");
 
-    execute(excelPath);
+    execute(Objects.requireNonNull(excelPath));
 
     return RepeatStatus.FINISHED;
   }
@@ -79,7 +80,7 @@ public class HousekeepFilesTasklet implements Tasklet {
           .throwIfAny();
     }
 
-    blf.execute(form);
+    blf.execute(Objects.requireNonNull(form));
   }
 
   /**
