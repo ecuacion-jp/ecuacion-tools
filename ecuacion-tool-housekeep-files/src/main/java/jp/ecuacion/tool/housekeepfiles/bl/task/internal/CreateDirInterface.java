@@ -21,7 +21,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 
 public interface CreateDirInterface {
   /** Performs task-dependent checks for create directory tasks. */
-  @SuppressWarnings("NullAway")
+  @SuppressWarnings({"NullAway", "null"})
   public default void taskDependentCheckCreateDir(Violations violations,
       HousekeepFilesTaskRecord taskRec) {
 

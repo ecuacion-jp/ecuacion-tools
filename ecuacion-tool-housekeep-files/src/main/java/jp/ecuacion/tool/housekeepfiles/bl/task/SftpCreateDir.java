@@ -62,6 +62,7 @@ public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterfac
     taskDependentCheckCreateDir(violations, taskRec);
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doSpecificTask(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String srcPath, String destPath,

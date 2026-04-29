@@ -20,6 +20,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.BeforeEach;
 
+@SuppressWarnings("null")
 public class BlfTestTool extends TestTool {
 
   protected HousekeepFilesBlf blf;

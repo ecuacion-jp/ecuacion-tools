@@ -22,6 +22,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("null")
 public class Test11_01_excelデータの値検証_taskList_チェック_共通_systemName extends BlfTestTool {
 
   /**

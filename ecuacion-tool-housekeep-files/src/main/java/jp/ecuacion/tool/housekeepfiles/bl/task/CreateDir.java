@@ -48,6 +48,7 @@ public class CreateDir extends AbstractTaskLocal implements CreateDirInterface {
     taskDependentCheckCreateDir(violations, taskRec);
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
       String srcPath, String destPath, List<BusinessViolation> warnList) throws Exception {

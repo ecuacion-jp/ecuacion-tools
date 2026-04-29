@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("null")
 public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
 
   private AbstractTaskSftp task = new AbstractTaskSftp() {

@@ -30,6 +30,7 @@ public class HousekeepFilesExpandedPathsInfo {
   /**
    * Constructs a new instance.
    */
+  @SuppressWarnings("null")
   public HousekeepFilesExpandedPathsInfo(List<String> fromFileList, List<String> tmpToFileList) {
     super();
     this.fromFileList = fromFileList;

@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
  * @author 庸介
  *
  */
+@SuppressWarnings("null")
 public class Test01_01_起動パラメータ関連_パラメータチェック extends TaskletTestTool {
 
   @BeforeEach

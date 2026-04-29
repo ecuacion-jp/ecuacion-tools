@@ -55,6 +55,7 @@ public class HousekeepDbTasklet implements Tasklet {
   /**
    * Executes the procedure.
    */
+  @SuppressWarnings("null")
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
 
@@ -381,6 +382,7 @@ public class HousekeepDbTasklet implements Tasklet {
         + "/" + dbInfo.getDatabase() + param;
   }
 
+  @SuppressWarnings("null")
   private Map<String, String> getInfoMap(String filePath) throws Exception {
     List<List<String>> list;
     try {
@@ -393,6 +395,7 @@ public class HousekeepDbTasklet implements Tasklet {
     return list.stream().collect(Collectors.toMap(l -> l.get(0), l -> l.get(1)));
   }
 
+  @SuppressWarnings("null")
   private Map<String, DbConnectionInfoBean> getDbConnectionInfoMap(String filePath)
       throws Exception {
 

@@ -66,6 +66,7 @@ public class HousekeepFilesPathRecord extends StringExcelTableBean {
    * 
    * @param colList colList
    */
+  @SuppressWarnings("null")
   public HousekeepFilesPathRecord(List<String> colList) {
     super(colList);
   }

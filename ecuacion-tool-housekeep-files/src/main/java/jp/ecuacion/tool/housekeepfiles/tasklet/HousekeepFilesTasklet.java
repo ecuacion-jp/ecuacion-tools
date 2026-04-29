@@ -21,10 +21,10 @@ import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
+import org.jspecify.annotations.Nullable;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
-import org.jspecify.annotations.Nullable;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
@@ -39,6 +39,7 @@ public class HousekeepFilesTasklet implements Tasklet {
   /**
    * Executes housekeeping files.
    */
+  @SuppressWarnings("null")
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
     Map<String, Object> paramMap = chunkContext.getStepContext().getJobParameters();
@@ -53,6 +54,7 @@ public class HousekeepFilesTasklet implements Tasklet {
   /**
    * Housekeeps files.
    */
+  @SuppressWarnings("unused")
   public void execute(String excelFilePath) throws Exception {
 
     // 第一引数をチェック

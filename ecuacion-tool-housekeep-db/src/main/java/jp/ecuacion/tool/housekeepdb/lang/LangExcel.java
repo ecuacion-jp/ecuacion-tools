@@ -41,6 +41,7 @@ public class LangExcel {
    * @param headerLabelKeys headerLabelKeys
    * @return localized header labels
    */
+  @SuppressWarnings("null")
   public String[] getHeaderLabels(String[] headerLabelKeys) {
     List<String> list = Arrays.asList(headerLabelKeys).stream().map(key -> get(key)).toList();
     return list.toArray(new String[list.size()]);

@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
+import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
-import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.validation.constraints.BooleanString;
 import jp.ecuacion.lib.validation.constraints.EnumElement;
 import jp.ecuacion.lib.validation.constraints.IntegerString;
@@ -119,6 +119,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   /**
    * only for unit test.
    */
+  @SuppressWarnings("null")
   public HousekeepFilesTaskRecord(@Nullable String taskId, @Nullable String taskName,
       @Nullable String taskPtnEnumName, @Nullable String remoteServer, @Nullable String pathFrom,
       @Nullable String isSrcPathDirEnumName, @Nullable String unitName, @Nullable String value,
@@ -136,6 +137,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
    * 
    * @param colList colList
    */
+  @SuppressWarnings("null")
   public HousekeepFilesTaskRecord(List<String> colList) {
     super(colList);
   }
@@ -143,6 +145,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   /**
    * Gets unit.
    */
+  @SuppressWarnings("unused")
   public @Nullable Integer getUnit() {
     int rtn = -1;
     if (unitName == null || unitName.equals("")) {
@@ -238,6 +241,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   /**
    * Gets EnvVarExpandedSrcPath.
    */
+  @SuppressWarnings("unused")
   public @Nullable String getEnvVarExpandedSrcPath() {
     if (envVarInfoMap == null) {
       throw new RuntimeException("envVarInfoMap must be set before call the method.");
@@ -249,6 +253,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   /**
    * Gets EnvVarExpandedDestPath.
    */
+  @SuppressWarnings("unused")
   public @Nullable String getEnvVarExpandedDestPath() {
     if (envVarInfoMap == null) {
       throw new RuntimeException("envVarInfoMap must be set before call the method.");
@@ -260,6 +265,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   /**
    * Sets EnvVarInfoMap.
    */
+  @SuppressWarnings("unused")
   public void setEnvVarInfoMap(Map<String, String> envVarInfoMap) {
     if (envVarInfoMap == null) {
       envVarInfoMap = new HashMap<>();
@@ -334,7 +340,8 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
         sb.append(", ");
       }
 
-      sb.append(PropertiesFileUtil.getItemName(Locale.getDefault(), "HousekeepFilesTask." + itemId));
+      sb.append(PropertiesFileUtil.getItemName(Locale.getDefault(),
+          "HousekeepFilesTask." + itemId));
     }
 
     return sb.toString();

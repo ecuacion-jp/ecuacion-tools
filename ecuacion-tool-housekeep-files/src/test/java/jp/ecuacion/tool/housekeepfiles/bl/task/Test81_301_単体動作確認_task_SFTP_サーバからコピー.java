@@ -20,6 +20,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.BeforeEach;
 
+@SuppressWarnings("null")
 public class Test81_301_単体動作確認_task_SFTP_サーバからコピー extends TestTool {
   SftpCopyFromServer task = null;
   HousekeepFilesTaskRecord taskRec = null;

@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
  */
 public class Test31_12_excelデータの値検証_taskList_チェック_各項目が共通処理を呼んでいるか確認 extends TestTool {
 
+  @SuppressWarnings("null")
   DoNothingInConstructorForm form = null;
 
   @BeforeAll

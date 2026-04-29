@@ -66,6 +66,7 @@ public class SqlUtil {
    * @param list a list of {@code SqlConditionInterface}
    * @return set clause
    */
+  @SuppressWarnings("null")
   public static String getUpdateSet(List<SqlConditionInterface> list) {
     StringBuilder sb = new StringBuilder();
 
