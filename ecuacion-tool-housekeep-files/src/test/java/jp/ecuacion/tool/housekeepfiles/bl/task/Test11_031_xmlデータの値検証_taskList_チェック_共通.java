@@ -16,10 +16,9 @@
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Set;
+import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.DoNothingInConstructorForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
@@ -49,7 +48,7 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
   }
 
   @Test
-  public void test01_System名がnull() {
+  public void test01_System名がnull() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,
         "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
     form.getTaskInfoHdRec().recList.add(rec);
@@ -57,17 +56,18 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
     try {
       new HousekeepFilesBlf().execute(form);
       fail();
-    } catch (Exception e) {
-      var cvSet = ((ConstraintViolationException) e).getConstraintViolations();
-      assertEquals(1, cvSet.size());
-      var cv = (ConstraintViolation<?>) cvSet.iterator().next();
+    } catch (ViolationException e) {
+      var cvList = e.getViolations().getConstraintViolations();
+      assertEquals(1, cvList.size());
+      ConstraintViolation<?> cv = cvList.get(0);
       Assertions.assertEquals("sysName", cv.getPropertyPath().toString());
-      Assertions.assertTrue(cv.getMessage().contains("must not be empty"));
+      Assertions.assertEquals("jakarta.validation.constraints.NotEmpty",
+          cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
     }
   }
 
   @Test
-  public void test02_System名が空欄() {
+  public void test02_System名が空欄() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,
         "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
     form.getTaskInfoHdRec().recList.add(rec);
@@ -76,12 +76,11 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
     try {
       new HousekeepFilesBlf().execute(form);
       fail();
-    } catch (Exception e) {
-      Set<ConstraintViolation<?>> set =
-          ((ConstraintViolationException) e).getConstraintViolations();
-      assertEquals(2, set.size());
-      var cv1 = set.iterator().next();
-      var cv2 = set.iterator().next();
+    } catch (ViolationException e) {
+      var cvList = e.getViolations().getConstraintViolations();
+      assertEquals(2, cvList.size());
+      ConstraintViolation<?> cv1 = cvList.get(0);
+      ConstraintViolation<?> cv2 = cvList.get(1);
       assertEquals("sysName", cv1.getPropertyPath().toString());
       assertEquals("sysName", cv2.getPropertyPath().toString());
     }

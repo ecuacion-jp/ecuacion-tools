@@ -16,9 +16,8 @@
 package jp.ecuacion.tool.housekeepfiles.blf;
 
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-import java.util.ArrayList;
 import java.util.List;
+import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -30,14 +29,14 @@ public class Test11_01_excelデータの値検証_taskList_チェック_共通_s
    * systemだけ、属性にくっついてるので念のため別扱いにしておく
    */
   @Test
-  public void test01_system名が空欄() {
+  public void test01_system名が空欄() throws Exception {
     HousekeepFilesForm form = new HousekeepFilesForm();
 
     try {
       blf.execute(form);
       fail();
-    } catch (Exception e) {
-      List<ConstraintViolation<?>> arr = new ArrayList<>(((ConstraintViolationException) e).getConstraintViolations());
+    } catch (ViolationException e) {
+      List<ConstraintViolation<?>> arr = e.getViolations().getConstraintViolations();
       Assertions.assertEquals(1, arr.size());
       ConstraintViolation<?> cv = arr.get(0);
       Assertions.assertEquals("jakarta.validation.constraints.NotEmpty", cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
