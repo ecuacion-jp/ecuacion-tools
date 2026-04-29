@@ -15,7 +15,6 @@
  */
 package jp.ecuacion.tool.housekeepfiles.dto.record;
 
-import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotEmpty;
@@ -29,6 +28,7 @@ import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 /**
  * Store Auth info.
  */
+@SuppressWarnings("NullAway.Init")
 public class HousekeepFilesAuthRecord extends StringExcelTableBean {
 
   @NotEmpty
@@ -58,7 +58,7 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
   private String keyPath;
 
   @Override
-  protected @Nonnull String[] getFieldNameArray() {
+  protected String[] getFieldNameArray() {
     return new String[] {"remoteServer", "protocol", "port", "authType", "userName", "password",
         "keyPath"};
   }

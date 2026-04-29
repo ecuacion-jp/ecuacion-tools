@@ -28,6 +28,7 @@ import org.apache.commons.io.FileUtils;
 /**
  * Provides delete task.
  */
+@SuppressWarnings("NullAway")
 public class Delete extends AbstractTaskLocal {
 
   /**

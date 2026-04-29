@@ -38,11 +38,8 @@ public class ColumnInfoBean {
         getNeedsQuotationMarkBooleanFromExcelString(needsQuotationMarkExcelString);
   }
 
-  private Boolean getNeedsQuotationMarkBooleanFromExcelString(String value) {
-    if (value == null) {
-      return null;
-
-    } else if (value.equals(NO_MARK)) {
+  private boolean getNeedsQuotationMarkBooleanFromExcelString(String value) {
+    if (value.equals(NO_MARK)) {
       return false;
 
     } else if (value.equals(QUOTES)) {
