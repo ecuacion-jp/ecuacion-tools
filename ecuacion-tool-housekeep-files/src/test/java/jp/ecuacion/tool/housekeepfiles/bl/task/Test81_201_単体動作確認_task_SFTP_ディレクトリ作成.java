@@ -34,6 +34,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("null")
 public class Test81_201_単体動作確認_task_SFTP_ディレクトリ作成 extends TestTool {
 
   public static boolean procCalledOnWarnListIsNotEmpty = false;

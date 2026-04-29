@@ -30,6 +30,7 @@ import org.apache.commons.io.FileUtils;
 @SuppressWarnings("NullAway")
 public abstract class AbstractTaskZip extends AbstractTaskLocal {
 
+  @SuppressWarnings("null")
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,

@@ -101,6 +101,7 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
    *
    * @param colList colList
    */
+  @SuppressWarnings("null")
   public RelatedTableInfoBean(List<String> colList) {
     super(colList);
   }

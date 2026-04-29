@@ -25,6 +25,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("null")
 public class Test11_12_excelデータの値検証_taskList_単体項目チェック_タスク名 extends TestTool {
 
   @Test
