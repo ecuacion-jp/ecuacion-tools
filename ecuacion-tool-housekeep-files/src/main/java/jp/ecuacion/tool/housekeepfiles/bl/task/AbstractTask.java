@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
@@ -40,11 +41,13 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
+import org.jspecify.annotations.Nullable;
 
 /**
  * @author yosuk_000
  *
  */
+@SuppressWarnings("NullAway.Init")
 public abstract class AbstractTask {
 
   protected TaskPtnEnum taskPtn;
@@ -162,32 +165,33 @@ public abstract class AbstractTask {
   public abstract TaskActionKindEnum getTaskActionKind();
 
   /** "SFTP"などのprotocolを設定。localの場合はnull。 */
-  public abstract String getConnectionProtocol();
+  public abstract @Nullable String getConnectionProtocol();
 
   /** それぞれのremote通信に対するconnection。 */
-  public abstract ConnectionToRemoteServer getConnection(String remoteServer,
+  public abstract @Nullable ConnectionToRemoteServer getConnection(String remoteServer,
       Map<String, HousekeepFilesAuthRecord> authMap) throws Exception;
 
 
-  public abstract Boolean isSrcPathLocal();
+  public abstract @Nullable Boolean isSrcPathLocal();
 
-  public abstract Boolean isDestPathLocal();
+  public abstract @Nullable Boolean isDestPathLocal();
 
-  protected abstract FileInfo getRemoteFileInfo(AbstractTask task,
-      ConnectionToRemoteServer connection, boolean isPathDir, String path);
+  protected abstract @Nullable FileInfo getRemoteFileInfo(AbstractTask task,
+      @Nullable ConnectionToRemoteServer connection, boolean isPathDir, String path);
 
-  protected abstract List<FileInfo> getRemoteFileInfoList(AbstractTask task,
-      ConnectionToRemoteServer connection, boolean isPathDir, String path);
+  protected abstract @Nullable List<FileInfo> getRemoteFileInfoList(AbstractTask task,
+      @Nullable ConnectionToRemoteServer connection, boolean isPathDir, String path);
 
   /** task実行。外部からtaskを実行する際はこれを呼ぶ。 */
-  public void doTask(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
-      String srcPath, String destPath, List<BusinessViolation> warnList) throws Exception {
+  public void doTask(@Nullable ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
+      @Nullable String srcPath, @Nullable String destPath, List<BusinessViolation> warnList)
+      throws Exception {
     doTaskInternal(conn, taskRec, srcPath, destPath, warnList);
   }
 
   /** doTaskから呼び出される。各taskにて処理実装。 */
-  protected abstract void doTaskInternal(ConnectionToRemoteServer conn,
-      HousekeepFilesTaskRecord taskRec, String srcPath, String destPath,
+  protected abstract void doTaskInternal(@Nullable ConnectionToRemoteServer conn,
+      HousekeepFilesTaskRecord taskRec, @Nullable String srcPath, @Nullable String destPath,
       List<BusinessViolation> warnList) throws Exception;
 
   /** taskが元パス情報を保持しているかをbooleanで返す。 */
@@ -210,9 +214,10 @@ public abstract class AbstractTask {
     }
   }
 
-  public FileInfo getToPathFileInfo(AbstractTask task, ConnectionToRemoteServer connection,
-      boolean isPathDir, String path) throws Exception {
-    if (isDestPathLocal()) {
+  public @Nullable FileInfo getToPathFileInfo(AbstractTask task,
+      @Nullable ConnectionToRemoteServer connection, boolean isPathDir, String path)
+      throws Exception {
+    if (Objects.requireNonNull(isDestPathLocal())) {
       return getLocalFileInfo(path);
 
     } else {
@@ -220,9 +225,9 @@ public abstract class AbstractTask {
     }
   }
 
-  public List<FileInfo> getFromDirFileInfoList(AbstractTask task,
-      ConnectionToRemoteServer connection, boolean isPathDir, String path) {
-    if (isSrcPathLocal()) {
+  public @Nullable List<FileInfo> getFromDirFileInfoList(AbstractTask task,
+      @Nullable ConnectionToRemoteServer connection, boolean isPathDir, String path) {
+    if (Objects.requireNonNull(isSrcPathLocal())) {
       return getLocalFileInfoList(path);
 
     } else {
@@ -237,7 +242,7 @@ public abstract class AbstractTask {
   }
 
   /** ローカルディスク上の一覧取得。 */
-  protected FileInfo getLocalFileInfo(String path) {
+  protected @Nullable FileInfo getLocalFileInfo(String path) {
     File file = new File(path);
 
     // 存在しない場合はnullを返す
@@ -281,7 +286,7 @@ public abstract class AbstractTask {
   }
 
   /** 設定がwarnかerrorかで処理を分ける。 */
-  protected void treatIncident(IncidentTreatedAsEnum pattern, BusinessViolation violation,
+  protected void treatIncident(@Nullable IncidentTreatedAsEnum pattern, BusinessViolation violation,
       List<BusinessViolation> warnList) {
     if (pattern == IncidentTreatedAsEnum.WARN) {
       warnList.add(violation);

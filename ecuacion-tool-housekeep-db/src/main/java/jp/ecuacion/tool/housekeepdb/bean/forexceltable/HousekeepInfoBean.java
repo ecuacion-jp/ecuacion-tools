@@ -1,6 +1,5 @@
 package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 
-import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import java.util.List;
@@ -43,6 +42,7 @@ import org.apache.commons.lang3.StringUtils;
     conditionPropertyPath = "softDeleteUpdateUserIdColumn",
         conditionValue = ConditionValue.EMPTY,
     notEmptyWhenConditionNotSatisfied = true)
+@SuppressWarnings("NullAway.Init")
 public class HousekeepInfoBean extends StringExcelTableBean {
 
   public static final String DELETE_KIND_SOFT = "SOFT_DELETE";
@@ -87,7 +87,7 @@ public class HousekeepInfoBean extends StringExcelTableBean {
   public static final String[] HEADER_LABEL_KEYS = LangExcel.HousekeepDbSettings.HEADER_LABELS;
 
   @Override
-  protected @Nonnull String[] getFieldNameArray() {
+  protected String[] getFieldNameArray() {
     return new String[] {"taskId", "dbConnectionInfoId", "isSoftDelete",
         "isSoftDeleteInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark",
         "timestampColumn", "timestampColumnKind", "deleteTargetInDays", "softDeleteColumn",
