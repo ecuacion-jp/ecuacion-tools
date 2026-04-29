@@ -34,6 +34,7 @@ import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
 import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
 import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.event.Level;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
@@ -49,7 +50,7 @@ public class HousekeepDbTasklet implements Tasklet {
 
   private static final int MAX_SELECT_LINES = 1000;
   private DetailLogger detailLogger = new DetailLogger(this);
-  private LangExcel lang = null;
+  private @Nullable LangExcel lang;
 
   /**
    * Executes the procedure.
@@ -145,6 +146,7 @@ public class HousekeepDbTasklet implements Tasklet {
     if (excelPath == null) {
       new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_NOT_SPECIFIED")).throwIfAny();
     }
+    Objects.requireNonNull(excelPath);
 
     File excelFile = new File(excelPath);
     if (!excelFile.exists() || !excelFile.isFile()) {
@@ -357,7 +359,8 @@ public class HousekeepDbTasklet implements Tasklet {
     if (count > 0 && !tableRecordDeleted.containsKey(info.getTable())) {
       tableRecordDeleted.put(info.getTable(), 0);
     }
-    tableRecordDeleted.put(info.getTable(), tableRecordDeleted.get(info.getTable()) + count);
+    tableRecordDeleted.put(info.getTable(),
+        Objects.requireNonNull(tableRecordDeleted.get(info.getTable())) + count);
 
     delStmt.close();
 
@@ -393,11 +396,12 @@ public class HousekeepDbTasklet implements Tasklet {
   private Map<String, DbConnectionInfoBean> getDbConnectionInfoMap(String filePath)
       throws Exception {
 
+    LangExcel langLocal = Objects.requireNonNull(lang);
     Map<String, DbConnectionInfoBean> dbConnectionInfoMap;
     try {
       dbConnectionInfoMap = new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
-          DbConnectionInfoBean.class, lang.get(LangExcel.DB_CONNECTION_SETTINGS),
-          lang.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+          DbConnectionInfoBean.class, langLocal.get(LangExcel.DB_CONNECTION_SETTINGS),
+          langLocal.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS), null, 1, null)
               .readToBean(filePath).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -414,20 +418,21 @@ public class HousekeepDbTasklet implements Tasklet {
 
   private List<HousekeepInfoBean> getHousekeepInfoList(String filePath,
       Map<String, DbConnectionInfoBean> dbConnectionMap) throws Exception {
+    LangExcel langLocal = Objects.requireNonNull(lang);
     List<HousekeepInfoBean> housekeepList =
         new StringOneLineHeaderExcelTableToBeanReader<HousekeepInfoBean>(HousekeepInfoBean.class,
-            lang.get(LangExcel.HOUSEKEEP_DB_SETTINGS),
-            lang.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+            langLocal.get(LangExcel.HOUSEKEEP_DB_SETTINGS),
+            langLocal.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS), null, 1, null)
                 .readToBean(filePath);
     List<WhereConditionInfoBean> whereConditionList =
         new StringOneLineHeaderExcelTableToBeanReader<WhereConditionInfoBean>(
-            WhereConditionInfoBean.class, lang.get(LangExcel.SEARCH_CONDITION_SETTINGS),
-            lang.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+            WhereConditionInfoBean.class, langLocal.get(LangExcel.SEARCH_CONDITION_SETTINGS),
+            langLocal.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS), null, 1, null)
                 .readToBean(filePath);
     List<RelatedTableInfoBean> relatedTableList =
         new StringOneLineHeaderExcelTableToBeanReader<RelatedTableInfoBean>(
-            RelatedTableInfoBean.class, lang.get(LangExcel.RELATED_TABLE_SETTINGS),
-            lang.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+            RelatedTableInfoBean.class, langLocal.get(LangExcel.RELATED_TABLE_SETTINGS),
+            langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS), null, 1, null)
                 .readToBean(filePath);
 
     // task IDの重複を検知するためのset
@@ -448,7 +453,8 @@ public class HousekeepDbTasklet implements Tasklet {
             hpBean.getTaskId(), hpBean.getDbConnectionInfoId())).throwIfAny();
       }
 
-      hpBean.setDbConnectionInfo(dbConnectionMap.get(hpBean.getDbConnectionInfoId()));
+      hpBean.setDbConnectionInfo(
+          Objects.requireNonNull(dbConnectionMap.get(hpBean.getDbConnectionInfoId())));
 
       hpBean.setWhereConditionInfoList(whereConditionList.stream()
           .filter(bean -> bean.getTaskId().equals(hpBean.getTaskId())).toList());
@@ -466,7 +472,7 @@ public class HousekeepDbTasklet implements Tasklet {
       // 一致するか否かを判断するkeyがないので、objectとしての同一性で比較
       if (!relSet.contains(relBean)) {
         new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_REL", relBean.getTaskId(),
-            lang.get(relBean.getRelatedTableProcessPatternStringKey()),
+            langLocal.get(relBean.getRelatedTableProcessPatternStringKey()),
             relBean.getTargetTableColumn(), relBean.getRelatedTable())).throwIfAny();
       }
     }
