@@ -27,6 +27,7 @@ import org.apache.commons.io.FileUtils;
 /**
  * Provides abstract zip tasks.
  */
+@SuppressWarnings("NullAway")
 public abstract class AbstractTaskZip extends AbstractTaskLocal {
 
   @Override

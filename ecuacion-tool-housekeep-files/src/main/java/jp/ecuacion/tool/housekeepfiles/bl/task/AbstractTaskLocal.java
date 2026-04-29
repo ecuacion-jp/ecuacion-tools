@@ -20,6 +20,7 @@ import java.util.Map;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provides abstract local tasks.
@@ -27,27 +28,27 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 public abstract class AbstractTaskLocal extends AbstractTask {
 
   @Override
-  public ConnectionToRemoteServer getConnection(String remoteServer,
+  public @Nullable ConnectionToRemoteServer getConnection(String remoteServer,
       Map<String, HousekeepFilesAuthRecord> authMap) throws Exception {
     return null;
   }
 
   @Override
-  public String getConnectionProtocol() {
+  public @Nullable String getConnectionProtocol() {
     return null;
   }
 
   /** Returns null since it's never called. */
   @Override
-  protected FileInfo getRemoteFileInfo(AbstractTask task, ConnectionToRemoteServer connection,
-      boolean isPathDir, String path) {
+  protected @Nullable FileInfo getRemoteFileInfo(AbstractTask task,
+      @Nullable ConnectionToRemoteServer connection, boolean isPathDir, String path) {
     return null;
   }
 
   /** Returns null since it's never called. */
   @Override
-  protected List<FileInfo> getRemoteFileInfoList(AbstractTask task,
-      ConnectionToRemoteServer connection, boolean isPathDir, String path) {
+  protected @Nullable List<FileInfo> getRemoteFileInfoList(AbstractTask task,
+      @Nullable ConnectionToRemoteServer connection, boolean isPathDir, String path) {
     return null;
   }
 

@@ -20,6 +20,8 @@ import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 
 public interface CreateDirInterface {
+  /** Performs task-dependent checks for create directory tasks. */
+  @SuppressWarnings("NullAway")
   public default void taskDependentCheckCreateDir(Violations violations,
       HousekeepFilesTaskRecord taskRec) {
 

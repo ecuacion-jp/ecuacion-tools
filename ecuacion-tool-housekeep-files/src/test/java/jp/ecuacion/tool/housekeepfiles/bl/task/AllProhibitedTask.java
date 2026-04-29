@@ -33,6 +33,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
  * @author yosuk_000
  *
  */
+@SuppressWarnings("NullAway")
 public class AllProhibitedTask extends AbstractTaskLocal {
 
   public AllProhibitedTask() {

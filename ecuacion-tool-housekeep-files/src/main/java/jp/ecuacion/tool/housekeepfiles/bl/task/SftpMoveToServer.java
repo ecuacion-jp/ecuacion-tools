@@ -31,6 +31,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 /**
  * Provides sftp move to server task.
  */
+@SuppressWarnings("NullAway")
 public class SftpMoveToServer extends AbstractTaskSftp {
 
   /**

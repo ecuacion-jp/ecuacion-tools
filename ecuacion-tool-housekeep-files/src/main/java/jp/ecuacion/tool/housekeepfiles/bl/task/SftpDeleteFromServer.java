@@ -24,10 +24,12 @@ import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToSftpServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provides sftp delete from server task.
  */
+@SuppressWarnings("NullAway")
 public class SftpDeleteFromServer extends AbstractTaskSftp {
 
   /**
@@ -48,7 +50,7 @@ public class SftpDeleteFromServer extends AbstractTaskSftp {
   }
 
   @Override
-  public Boolean isDestPathLocal() {
+  public @Nullable Boolean isDestPathLocal() {
     return null;
   }
 

@@ -24,6 +24,7 @@ import java.util.List;
 /**
  * Stores task header info.
  */
+@SuppressWarnings("NullAway.Init")
 public class HousekeepFilesHdRecord {
 
   @NotEmpty

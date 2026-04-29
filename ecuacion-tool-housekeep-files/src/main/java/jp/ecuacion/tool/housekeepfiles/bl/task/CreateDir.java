@@ -28,6 +28,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 /**
  * Provides create directory task.
  */
+@SuppressWarnings("NullAway")
 public class CreateDir extends AbstractTaskLocal implements CreateDirInterface {
 
   /**

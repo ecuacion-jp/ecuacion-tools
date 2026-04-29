@@ -54,10 +54,12 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.util.DateTimeUtil;
 import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provides business logics.
  */
+@SuppressWarnings("NullAway")
 public class HousekeepFilesBl {
   public static final String EXTENSION_NONE_WITH_DOT = "";
   public static final String EXTENSION_ZIP_WITH_DOT = ".zip";
@@ -180,7 +182,7 @@ public class HousekeepFilesBl {
 
   public HousekeepFilesExpandedPathsInfo expandAllPath(AbstractTask task,
       HousekeepFilesTaskRecord taskRec, Map<String, String> envVarInfoMap,
-      ConnectionToRemoteServer connection) throws Exception {
+      @Nullable ConnectionToRemoteServer connection) throws Exception {
 
     List<String> fromPathList = new ArrayList<String>();
     List<String> toPathList = new ArrayList<String>();
@@ -200,8 +202,8 @@ public class HousekeepFilesBl {
   }
 
   private void expandFromPath(Map<String, String> envVarInfoMap,
-      ConnectionToRemoteServer connection, HousekeepFilesTaskRecord taskRec, AbstractTask task,
-      List<String> fromPathList) {
+      @Nullable ConnectionToRemoteServer connection, HousekeepFilesTaskRecord taskRec,
+      AbstractTask task, List<String> fromPathList) {
 
     List<FileInfo> tmpFromFileAndDirMixedList = task.getFromDirFileInfoList(task, connection,
         taskRec.getIsSrcPathDir(), taskRec.getEnvVarExpandedSrcPath());
@@ -229,7 +231,8 @@ public class HousekeepFilesBl {
     }
   }
 
-  private void expandToPath(Map<String, String> envVarInfoMap, ConnectionToRemoteServer connection,
+  private void expandToPath(Map<String, String> envVarInfoMap,
+      @Nullable ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, AbstractTask task, List<String> toPathList)
       throws Exception {
     // to
@@ -350,7 +353,7 @@ public class HousekeepFilesBl {
   }
 
   public void doTaskForMultipleFiles(HousekeepFilesTaskRecord taskRec,
-      HousekeepFilesExpandedPathsInfo pathInfo, ConnectionToRemoteServer conn,
+      HousekeepFilesExpandedPathsInfo pathInfo, @Nullable ConnectionToRemoteServer conn,
       List<BusinessViolation> warnList) throws Exception {
     // ログ
     logTaskStartMsg(taskRec);

@@ -13,7 +13,43 @@
 	<properties>
 		<app.version>0.0.1-SNAPSHOT</app.version>
 	</properties>
-	
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<!-- Override parent's maven-compiler-plugin to disable non-NullAway ErrorProne checks. -->
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<executions>
+						<execution>
+							<id>default-compile</id>
+							<configuration>
+								<compilerArgs combine.self="override">
+									<arg>-XDcompilePolicy=simple</arg>
+									<arg>-XDshould-stop.ifError=FLOW</arg>
+									<arg>-Xplugin:ErrorProne -XepDisableAllChecks
+										-Xep:NullAway:ERROR
+										-XepOpt:NullAway:OnlyNullMarked=true</arg>
+								</compilerArgs>
+							</configuration>
+						</execution>
+						<execution>
+							<id>default-testCompile</id>
+							<configuration>
+								<compilerArgs combine.self="override">
+									<arg>-XDcompilePolicy=simple</arg>
+									<arg>-XDshould-stop.ifError=FLOW</arg>
+									<arg>-Xplugin:ErrorProne -XepDisableAllChecks</arg>
+								</compilerArgs>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
+
 	<modules>
 		<module>ecuacion-tool-command-api</module>
 		<module>ecuacion-tool-housekeep-db</module>
