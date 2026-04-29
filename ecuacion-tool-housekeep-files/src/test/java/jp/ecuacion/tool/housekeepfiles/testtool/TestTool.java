@@ -43,6 +43,7 @@ import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
+@SuppressWarnings("null")
 public class TestTool extends TestTools {
 
   private static String TEST_MSG = "abc";

@@ -53,6 +53,7 @@ public class HousekeepFilesForm {
       new String[] {"サーバ名", "protocol", "port", "認証方式", "ユーザ名", "password / passphrase", "秘密鍵パス"};
 
   /** only for unit-test. */
+  @SuppressWarnings("null")
   public HousekeepFilesForm() {
     taskInfoHdRec = new HousekeepFilesHdRecord();
     pathInfoRecList = new ArrayList<>();
@@ -64,6 +65,7 @@ public class HousekeepFilesForm {
    *
    * @param excelPath excelPath
    */
+  @SuppressWarnings("null")
   public HousekeepFilesForm(String excelPath) {
     readExcel(excelPath);
   }

@@ -60,6 +60,7 @@ public class SftpMoveFromServer extends AbstractTaskSftp {
 
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doSpecificTask(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,

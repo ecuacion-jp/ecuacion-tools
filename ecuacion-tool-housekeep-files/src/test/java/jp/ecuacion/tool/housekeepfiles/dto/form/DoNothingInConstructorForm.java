@@ -16,7 +16,8 @@
 package jp.ecuacion.tool.housekeepfiles.dto.form;
 
 /**
- * テスト用の、コンストラクタでxmlファイルの読み込みをしないクラス。 xmlを読み込んだ結果を自由にこちらで作成してテストする目的で使用
+ * テスト用の、コンストラクタでxmlファイルの読み込みをしないクラス.
+ * xmlを読み込んだ結果を自由にこちらで作成してテストする目的で使用.
  *
  * @author yosuk_000
  *
@@ -24,7 +25,7 @@ package jp.ecuacion.tool.housekeepfiles.dto.form;
 public class DoNothingInConstructorForm extends HousekeepFilesForm {
 
   /**
-   * 使いやすく、引数なしのコンストラクタを追加。
+   * 使いやすく、引数なしのコンストラクタを追加.
    */
   public DoNothingInConstructorForm() {
   }

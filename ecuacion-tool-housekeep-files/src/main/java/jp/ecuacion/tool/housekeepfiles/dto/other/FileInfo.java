@@ -28,6 +28,7 @@ public class FileInfo {
   /**
    * Constructs a new instance.
    */
+  @SuppressWarnings("null")
   public FileInfo() {
 
   }

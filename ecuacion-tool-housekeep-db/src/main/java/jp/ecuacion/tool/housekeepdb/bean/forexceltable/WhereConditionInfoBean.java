@@ -36,6 +36,7 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
    *
    * @param colList colList
    */
+  @SuppressWarnings("null")
   public WhereConditionInfoBean(List<String> colList) {
     super(colList);
 

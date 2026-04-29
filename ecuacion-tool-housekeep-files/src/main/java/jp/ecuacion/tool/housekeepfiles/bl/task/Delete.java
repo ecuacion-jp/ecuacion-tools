@@ -48,6 +48,7 @@ public class Delete extends AbstractTaskLocal {
 
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
       String fromPath, String toPath, List<BusinessViolation> warnList) {

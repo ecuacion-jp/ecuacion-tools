@@ -27,6 +27,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("null")
 public class Test81_101_単体動作確認_task_ディレクトリ作成 extends TestTool {
 
   public static boolean procCalledOnWarnListIsNotEmpty = false;

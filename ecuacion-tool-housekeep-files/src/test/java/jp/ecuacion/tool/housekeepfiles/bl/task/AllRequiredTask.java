@@ -16,6 +16,7 @@
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import static jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum.REQUIRED;
+
 import java.util.List;
 import java.util.Map;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
@@ -28,7 +29,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 
 /**
- * テスト用task。 taskPtnとしてはMOVEを使いながら、すべてをREQUIREDにしている。
+ * テスト用task. taskPtnとしてはMOVEを使いながら、すべてをREQUIREDにしている.
  *
  * @author yosuk_000
  *
@@ -36,6 +37,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 @SuppressWarnings("NullAway")
 public class AllRequiredTask extends AbstractTaskLocal {
 
+  /** Initializes with all attributes set to REQUIRED. */
   public AllRequiredTask() {
     taskPtn = TaskPtnEnum.MOVE;
     inputRuleForSrcPathInfo = REQUIRED;
@@ -47,24 +49,28 @@ public class AllRequiredTask extends AbstractTaskLocal {
     return TaskActionKindEnum.create;
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
       String srcPath, String destPath, List<BusinessViolation> warnList) throws Exception {
     
   }
 
+  @SuppressWarnings("null")
   @Override
   public ConnectionToRemoteServer getConnection(String remoteServer,
       Map<String, HousekeepFilesAuthRecord> authMap) throws Exception {
     return null;
   }
 
+  @SuppressWarnings("null")
   @Override
   protected FileInfo getRemoteFileInfo(AbstractTask task, ConnectionToRemoteServer connection,
       boolean isPathDir, String path) {
     return null;
   }
 
+  @SuppressWarnings("null")
   @Override
   protected List<FileInfo> getRemoteFileInfoList(AbstractTask task,
       ConnectionToRemoteServer connection, boolean isPathDir, String path) {

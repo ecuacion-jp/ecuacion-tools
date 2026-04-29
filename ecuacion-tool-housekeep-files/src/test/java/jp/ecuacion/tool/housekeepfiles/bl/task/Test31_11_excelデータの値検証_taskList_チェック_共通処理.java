@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 /**
  * HousekeepFilesXmlDataChecker#checkTaskItem のテスト。
  */
+@SuppressWarnings("null")
 public class Test31_11_excelデータの値検証_taskList_チェック_共通処理 extends TestTool {
 
   DoNothingInConstructorForm form = null;

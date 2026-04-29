@@ -50,6 +50,7 @@ public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
 
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String srcPath, String destPath,

@@ -37,6 +37,7 @@ public class Move extends AbstractTaskCopyOrMove {
     taskPtn = TaskPtnEnum.MOVE;
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doSpecificTask(HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
       TaskPtnEnum taskPtn, boolean isFromDir, boolean isToDir) {
