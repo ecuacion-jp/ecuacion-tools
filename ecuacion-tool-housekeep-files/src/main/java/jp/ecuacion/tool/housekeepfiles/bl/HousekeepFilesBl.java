@@ -15,6 +15,7 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl;
 
+import jakarta.validation.Validation;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
@@ -28,7 +29,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import jakarta.validation.Validation;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
@@ -69,6 +69,7 @@ public class HousekeepFilesBl {
   private HkFileManipulateUtil fmu = new HkFileManipulateUtil();
 
 
+  /** Validates cross-record consistency such as duplicate task IDs and task names. */
   public void consistencyCheckBetweenMultipleData(HousekeepFilesForm form) {
     // taskInfoHdRecはreaderで読み込んでいない＝validation checkが動いていないので実施。
     // 実質sysNameの存在チェック。
@@ -106,6 +107,7 @@ public class HousekeepFilesBl {
     }
   }
 
+  /** Creates a map of path variables from the form's path info records and built-in variables. */
   public HashMap<String, String> createPathInfoMap(HousekeepFilesForm form)
       throws UnknownHostException {
     HashMap<String, String> pathInfoMap = new HashMap<String, String>();
@@ -122,6 +124,7 @@ public class HousekeepFilesBl {
     return pathInfoMap;
   }
 
+  /** Validates env variable references in paths and stores the variable map in each task record. */
   public void envVarExistenceCheckAndSetEnvBarExpandedPaths(
       List<HousekeepFilesTaskRecord> taskRecList, Map<String, String> envVarInfoMap) {
     // pathFrom, pathToのチェック
@@ -157,6 +160,7 @@ public class HousekeepFilesBl {
     }
   }
 
+  /** Creates task instances for all task records and runs task-specific input validation. */
   public void createTaskAndTaskDependentCheck(HousekeepFilesForm form,
       Violations violations) throws Exception {
     for (HousekeepFilesTaskRecord dtRec : form.getTaskInfoHdRec().recList) {
@@ -172,6 +176,7 @@ public class HousekeepFilesBl {
     }
   }
 
+  /** Creates a task instance by reflection from the task pattern and sets it on the record. */
   public void createTaskInstance(HousekeepFilesTaskRecord dtRec, TaskPtnEnum taskPtn)
       throws Exception {
     @SuppressWarnings("unchecked")
@@ -180,6 +185,7 @@ public class HousekeepFilesBl {
     dtRec.task = cls.getDeclaredConstructor().newInstance();
   }
 
+  /** Expands all path patterns for the given task and returns source and destination path lists. */
   public HousekeepFilesExpandedPathsInfo expandAllPath(AbstractTask task,
       HousekeepFilesTaskRecord taskRec, Map<String, String> envVarInfoMap,
       @Nullable ConnectionToRemoteServer connection) throws Exception {
@@ -201,6 +207,7 @@ public class HousekeepFilesBl {
     return new HousekeepFilesExpandedPathsInfo(fromPathList, toPathList);
   }
 
+  @SuppressWarnings("null")
   private void expandFromPath(Map<String, String> envVarInfoMap,
       @Nullable ConnectionToRemoteServer connection, HousekeepFilesTaskRecord taskRec,
       AbstractTask task, List<String> fromPathList) {
@@ -231,6 +238,7 @@ public class HousekeepFilesBl {
     }
   }
 
+  @SuppressWarnings("null")
   private void expandToPath(Map<String, String> envVarInfoMap,
       @Nullable ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, AbstractTask task, List<String> toPathList)
@@ -281,6 +289,8 @@ public class HousekeepFilesBl {
     }
   }
 
+  /** Performs logical checks on path existence and overwrite conditions after path expansion. */
+  @SuppressWarnings("null")
   public List<BusinessViolation> logicalCheckTaskListAfterEnvVarExpansion(AbstractTask task,
       HousekeepFilesTaskRecord rec, HousekeepFilesExpandedPathsInfo pathInfo) {
     List<BusinessViolation> warnList = new ArrayList<>();
@@ -352,6 +362,7 @@ public class HousekeepFilesBl {
     return warnList;
   }
 
+  /** Executes the task for all matched source files using the expanded path info. */
   public void doTaskForMultipleFiles(HousekeepFilesTaskRecord taskRec,
       HousekeepFilesExpandedPathsInfo pathInfo, @Nullable ConnectionToRemoteServer conn,
       List<BusinessViolation> warnList) throws Exception {
@@ -402,6 +413,7 @@ public class HousekeepFilesBl {
     dlog.debug("[" + taskId + "] " + msg);
   }
 
+  /** Creates and returns a task instance by reflection based on the task pattern in the record. */
   protected AbstractTask getTaskInstance(HousekeepFilesTaskRecord taskRec)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException,
       IllegalArgumentException, InvocationTargetException, NoSuchMethodException,
@@ -415,6 +427,7 @@ public class HousekeepFilesBl {
     return task;
   }
 
+  /** Sends a warning email listing all accumulated violations to the configured recipients. */
   public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
       throws Exception {
     // エラーメッセージの一覧を取得

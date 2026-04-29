@@ -42,6 +42,7 @@ public class CreateFile extends AbstractTaskLocal {
     return TaskActionKindEnum.create;
   }
 
+  @SuppressWarnings("null")
   @Override
   public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
     // 先パスがディレクトリ がTRUEは指定不可
@@ -57,6 +58,7 @@ public class CreateFile extends AbstractTaskLocal {
     }
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
       String fromPath, String destPath, List<BusinessViolation> warnList) throws Exception {

@@ -19,6 +19,7 @@ import java.io.IOException;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.BeforeEach;
 
+@SuppressWarnings("null")
 public class TaskletTestTool extends TestTool {
 
   protected HousekeepFilesTasklet action = null;

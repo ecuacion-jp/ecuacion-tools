@@ -27,6 +27,7 @@ import java.util.List;
 @SuppressWarnings("NullAway.Init")
 public class HousekeepFilesHdRecord {
 
+  @SuppressWarnings("null")
   @NotEmpty
   @Size(min = 1, max = 40)
   @Pattern(regexp = "^[^!\"#\\$%&'\\(\\)=\\^~\\\\\\|`\\[\\{;\\+:\\\\*\\]\\},<>/\\?]*$")
