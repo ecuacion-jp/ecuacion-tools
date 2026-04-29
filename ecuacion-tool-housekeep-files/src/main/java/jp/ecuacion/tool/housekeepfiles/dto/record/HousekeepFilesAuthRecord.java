@@ -68,6 +68,7 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
    * 
    * @param colList colList
    */
+  @SuppressWarnings("null")
   public HousekeepFilesAuthRecord(List<String> colList) {
     super(colList);
   }
@@ -75,6 +76,7 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
   /**
    * only for unit test.
    */
+  @SuppressWarnings("null")
   public HousekeepFilesAuthRecord(String remoteServer, String protocol, String port,
       String authType, String userName, String password, String keyPath) {
 

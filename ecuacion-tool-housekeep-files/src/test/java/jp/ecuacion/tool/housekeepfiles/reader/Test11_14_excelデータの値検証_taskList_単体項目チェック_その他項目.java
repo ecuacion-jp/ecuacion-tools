@@ -23,6 +23,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("null")
 public class Test11_14_excelデータの値検証_taskList_単体項目チェック_その他項目 extends TestTool {
 
   // test01_接続先サーバ_異常系_長さ上限超過

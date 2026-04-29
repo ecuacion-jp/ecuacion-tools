@@ -15,7 +15,6 @@
  */
 package jp.ecuacion.tool.housekeepfiles.reader;
 
-import java.io.IOException;
 import jp.ecuacion.lib.core.util.ViolationUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
