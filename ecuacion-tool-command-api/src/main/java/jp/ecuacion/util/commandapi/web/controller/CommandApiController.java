@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -74,6 +75,8 @@ public class CommandApiController {
       throwException("scriptId '" + scriptId + "' not found.");
     }
 
+    Objects.requireNonNull(scriptFilePath);
+    
     // scriptFilePath input validation
     if (!Pattern.compile("^[a-zA-Z0-9/.\\-_\\$\\{\\}]*$").matcher(scriptFilePath).find()) {
       throwException("String script file path (" + scriptFilePath

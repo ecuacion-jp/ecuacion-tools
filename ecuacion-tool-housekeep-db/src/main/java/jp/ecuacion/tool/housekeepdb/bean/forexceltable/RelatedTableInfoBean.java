@@ -1,6 +1,5 @@
 package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 
-import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import java.util.List;
@@ -44,6 +43,7 @@ import org.apache.commons.lang3.StringUtils;
     conditionPropertyPath = "softDeleteUpdateUserIdColumn",
     conditionValue = ConditionValue.EMPTY,
     notEmptyWhenConditionNotSatisfied = true)
+@SuppressWarnings("NullAway.Init")
 public class RelatedTableInfoBean extends StringExcelTableBean {
 
   public static final String RELATED_TABLE_PROCESS_PATTERN_DELETE = "DELETE";
@@ -88,7 +88,7 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
   public static final String[] HEADER_LABEL_KEYS = LangExcel.RelatedTableSettings.HEADER_LABELS;
 
   @Override
-  protected @Nonnull String[] getFieldNameArray() {
+  protected String[] getFieldNameArray() {
     return new String[] {"taskId", "isSoftDeleteInternalValue", "relatedTableProcessPattern",
         "relatedTableProcessPatternInternalValue", "targetTableColumn", "relatedTable",
         "relatedTableIdColumn", "relatedTableIdColumnNeedsQuotationMark", "softDeleteColumn",

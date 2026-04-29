@@ -18,6 +18,7 @@ package jp.ecuacion.tool.housekeepfiles.dto.form;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesPathRecord;
@@ -28,6 +29,7 @@ import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcel
 /**
  * Stores multiple records.
  */
+@SuppressWarnings("NullAway.Init")
 public class HousekeepFilesForm {
 
   /** info records are stored as map format. */
@@ -35,13 +37,13 @@ public class HousekeepFilesForm {
 
   // taskListを保持
   // ヘッダ情報があるので他と少々形が異なる
-  private HousekeepFilesHdRecord taskInfoHdRec = null;
+  private HousekeepFilesHdRecord taskInfoHdRec;
 
   // pathListを保持
-  private List<HousekeepFilesPathRecord> pathInfoRecList = null;
+  private List<HousekeepFilesPathRecord> pathInfoRecList;
 
   // authListを保持
-  private List<HousekeepFilesAuthRecord> authInfoRecList = null;
+  private List<HousekeepFilesAuthRecord> authInfoRecList;
 
   private static final String[] HEADER_LABELS_TASK = new String[] {"タスクID", "タスク名", "処理パターン\n日本語名",
       "処理パターン", "接続先サーバ", "元パス", "元パスがディレクトリ", "元パス処理実施対象\n経過期間単位", "元パス処理実施対象\n経過期間値",
@@ -75,7 +77,7 @@ public class HousekeepFilesForm {
     try {
       infoMap = new ExcelInfoListReader().readToMap(excelPath);
       taskInfoHdRec = new HousekeepFilesHdRecord();
-      taskInfoHdRec.setSysName(infoMap.get("env-name"));
+      taskInfoHdRec.setSysName(Objects.requireNonNull(infoMap.get("env-name")));
       taskInfoHdRec.recList =
           (new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesTaskRecord>(
               HousekeepFilesTaskRecord.class, "タスク設定", HEADER_LABELS_TASK, null, 1, null)

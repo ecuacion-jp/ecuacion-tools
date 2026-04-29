@@ -13,14 +13,6 @@
 	<build>
 		<plugins>
 		
-			<!-- for core or single web / rest project -->
-			<!-- This needs to obtain version from project.version of pom.xml 
-			     and save it to src/main/resources/version.properties. -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-			</plugin>
-
 			<!-- for web / rest -->
 			<!-- Sets "failOnMissingWebXml = false" by the definition in ecuacion-splib-parent -->
 			<plugin>

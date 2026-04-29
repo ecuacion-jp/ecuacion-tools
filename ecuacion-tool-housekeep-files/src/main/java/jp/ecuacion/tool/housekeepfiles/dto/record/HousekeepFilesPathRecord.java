@@ -15,7 +15,6 @@
  */
 package jp.ecuacion.tool.housekeepfiles.dto.record;
 
-import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -25,6 +24,7 @@ import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 /**
  * Stores path info.
  */
+@SuppressWarnings("NullAway.Init")
 public class HousekeepFilesPathRecord extends StringExcelTableBean {
 
   @NotEmpty
@@ -57,7 +57,7 @@ public class HousekeepFilesPathRecord extends StringExcelTableBean {
   }
 
   @Override
-  protected @Nonnull String[] getFieldNameArray() {
+  protected String[] getFieldNameArray() {
     return new String[] {"key", "value"};
   }
 

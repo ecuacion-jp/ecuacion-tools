@@ -26,6 +26,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 /**
  * Provides unzip remaining original file task.
  */
+@SuppressWarnings("NullAway")
 public class UnzipRemainOrig extends AbstractTaskLocal {
 
   /**

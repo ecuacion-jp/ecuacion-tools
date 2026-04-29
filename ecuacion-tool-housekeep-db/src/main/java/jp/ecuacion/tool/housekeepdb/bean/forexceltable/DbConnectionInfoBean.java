@@ -1,6 +1,5 @@
 package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 
-import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +9,7 @@ import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
 /**
  * Stores database connection settings.
  */
+@SuppressWarnings("NullAway.Init")
 public class DbConnectionInfoBean extends StringExcelTableBean {
 
   @NotEmpty
@@ -33,7 +33,7 @@ public class DbConnectionInfoBean extends StringExcelTableBean {
   public static final String[] HEADER_LABEL_KEYS = LangExcel.DbConnectionSettings.HEADER_LABELS;
 
   @Override
-  protected @Nonnull String[] getFieldNameArray() {
+  protected String[] getFieldNameArray() {
     return new String[] {"id", "driverName", "protocol", "server", "port", "database", "schema",
         "username", "password"};
   }

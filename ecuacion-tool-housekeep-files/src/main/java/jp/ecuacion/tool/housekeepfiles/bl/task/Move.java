@@ -25,6 +25,7 @@ import org.apache.commons.io.FileUtils;
 /**
  * Provides move task.
  */
+@SuppressWarnings("NullAway")
 public class Move extends AbstractTaskCopyOrMove {
 
   private DateTimeUtil dateUtil = new DateTimeUtil();

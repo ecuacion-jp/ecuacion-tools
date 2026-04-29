@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.stream.Collectors;
@@ -40,6 +41,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.AuthTypeEnum;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provides abstract sftp tasks.
@@ -54,15 +56,15 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
   /**
    * Executes task.
    */
-  protected abstract void doSpecificTask(ConnectionToRemoteServer connection,
-      HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
+  protected abstract void doSpecificTask(@Nullable ConnectionToRemoteServer connection,
+      HousekeepFilesTaskRecord taskRec, @Nullable String fromPath, @Nullable String toPath,
       List<BusinessViolation> warnList) throws Exception;
 
   // private int depth = 0;
 
   @Override
-  protected void doTaskInternal(ConnectionToRemoteServer connection,
-      HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
+  protected void doTaskInternal(@Nullable ConnectionToRemoteServer connection,
+      HousekeepFilesTaskRecord taskRec, @Nullable String fromPath, @Nullable String toPath,
       List<BusinessViolation> warnList) {
     try {
       doSpecificTask(connection, taskRec, fromPath, toPath, warnList);
@@ -76,7 +78,8 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
   public ConnectionToSftpServer getConnection(String remoteHost,
       Map<String, HousekeepFilesAuthRecord> authMap) throws Exception {
 
-    HousekeepFilesAuthRecord auth = authMap.get(remoteHost + "-SFTP");
+    HousekeepFilesAuthRecord auth =
+        Objects.requireNonNull(authMap.get(remoteHost + "-SFTP"));
 
     final String username = auth.getUserName();
     final String password = auth.getPassword();
@@ -119,8 +122,8 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
   }
 
   @Override
-  protected FileInfo getRemoteFileInfo(AbstractTask task, ConnectionToRemoteServer connection,
-      boolean isPathDir, String path) {
+  protected @Nullable FileInfo getRemoteFileInfo(AbstractTask task,
+      @Nullable ConnectionToRemoteServer connection, boolean isPathDir, String path) {
     List<FileInfo> list = getRemoteFileInfoList(task, connection, isPathDir, path);
 
     if (list == null || list.size() == 0) {
@@ -139,8 +142,9 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
   /**
    * Returns specified file or directory if exists.
    */
+  @Override
   protected List<FileInfo> getRemoteFileInfoList(AbstractTask task,
-      ConnectionToRemoteServer connection, boolean isPathDir, String path) {
+      @Nullable ConnectionToRemoteServer connection, boolean isPathDir, String path) {
     List<FileInfo> rtnList = new ArrayList<FileInfo>();
 
     // そもそもファイル／ディレクトリ作成のタスクの場合は、存在しないのが正常なのでチェックなどはせず終了。
@@ -149,7 +153,8 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     }
 
     try {
-      ChannelSftp sftpChannel = ((ConnectionToSftpServer) connection).getSftpChannel();
+      ChannelSftp sftpChannel =
+          ((ConnectionToSftpServer) Objects.requireNonNull(connection)).getSftpChannel();
 
       // pathの記載通りのファイル／ディレクトリが存在するか確認
       try {
@@ -299,7 +304,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
   }
 
   /** 指定したパスをLsEntry形式で返す。 ディレクトリの場合はgetFilenam()が"."となるので注意。 */
-  public LsEntry getRemoteDetail(ChannelSftp channel, String path) throws SftpException {
+  public @Nullable LsEntry getRemoteDetail(ChannelSftp channel, String path) throws SftpException {
     List<LsEntry> list = getRemoteAll(channel, path);
     if (list.size() == 0) {
       return null;
