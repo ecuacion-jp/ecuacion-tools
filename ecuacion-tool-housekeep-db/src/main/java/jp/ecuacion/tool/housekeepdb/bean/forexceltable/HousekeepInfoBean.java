@@ -100,6 +100,7 @@ public class HousekeepInfoBean extends StringExcelTableBean {
    *
    * @param colList colList
    */
+  @SuppressWarnings("null")
   public HousekeepInfoBean(List<String> colList) {
     super(colList);
   }

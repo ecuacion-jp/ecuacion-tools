@@ -39,6 +39,7 @@ public class DbConnectionInfoBean extends StringExcelTableBean {
   }
 
   /** Used for unit test only. */
+  @SuppressWarnings("null")
   public DbConnectionInfoBean(String id, String driverName, String protocol, String server,
       String port, String database, String schema, String username, String password) {
     super(Arrays.asList(new String[] {id, driverName, protocol, server, port, database, schema,
@@ -48,6 +49,7 @@ public class DbConnectionInfoBean extends StringExcelTableBean {
   /** 
    * Constructs a new instance.
    */
+  @SuppressWarnings("null")
   public DbConnectionInfoBean(List<String> colList) {
     super(colList);
   }

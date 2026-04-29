@@ -74,6 +74,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     }
   }
 
+  @SuppressWarnings("unused")
   @Override
   public ConnectionToSftpServer getConnection(String remoteHost,
       Map<String, HousekeepFilesAuthRecord> authMap) throws Exception {
@@ -243,7 +244,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
   }
 
   /**
-   *  フォルダはあるが配下のファイル／フォルダがないのと、フォルダがない、またはpathがファイルの場合を区別するため、後者はエラーとする。 
+   * フォルダはあるが配下のファイル／フォルダがないのと、フォルダがない、またはpathがファイルの場合を区別するため、後者はエラーとする.
    */
   public List<String> getRemoteDirChildrenNameList(ChannelSftp channel, String dirPath)
       throws SftpException {
@@ -261,7 +262,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     }
   }
 
-  /** フォルダはあるが配下のファイル／フォルダがないのと、フォルダがない、またはpathがファイルの場合を区別するため、後者はエラーとする。 */
+  /** フォルダはあるが配下のファイル／フォルダがないのと、フォルダがない、またはpathがファイルの場合を区別するため、後者はエラーとする. */
   public List<LsEntry> getRemoteDirChildrenList(ChannelSftp channel, String dirPath)
       throws SftpException {
     if (!remoteDirExists(channel, dirPath)) {
@@ -279,6 +280,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     }
   }
 
+  /** Returns true if the remote directory exists at the specified path. */
   public boolean remoteDirExists(ChannelSftp channel, String path) throws SftpException {
     List<LsEntry> list = getRemoteAll(channel, path);
     if (list.size() == 0) {
@@ -290,6 +292,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     return filteredList.size() == 1;
   }
 
+  /** Returns true if the remote file exists at the specified path. */
   public boolean remoteFileExists(ChannelSftp channel, String path) throws SftpException {
     List<LsEntry> list = getRemoteAll(channel, path);
     if (list.size() == 0) {
@@ -299,11 +302,12 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     return !remoteDirExists(channel, path);
   }
 
+  /** Returns true if a file or directory exists at the specified remote path. */
   public boolean remoteExists(ChannelSftp channel, String path) throws SftpException {
     return getRemoteAll(channel, path).size() > 0;
   }
 
-  /** 指定したパスをLsEntry形式で返す。 ディレクトリの場合はgetFilenam()が"."となるので注意。 */
+  /** 指定したパスをLsEntry形式で返す. ディレクトリの場合はgetFilename()が"."となるので注意. */
   public @Nullable LsEntry getRemoteDetail(ChannelSftp channel, String path) throws SftpException {
     List<LsEntry> list = getRemoteAll(channel, path);
     if (list.size() == 0) {
@@ -322,8 +326,9 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
   }
 
   /**
-   * pathがディレクトリの場合は".", ".." 及び配下のファイル・ディレクトリを返す、ファイルの場合は1つのみを返す。 pathが存在しない場合はsizeゼロのlistを返す。 ".",
-   * ".." を含めた生データを返すので使用しにくいことから外から呼べない形としている。ただしテストで使用するためprivateにはしない。
+   * pathがディレクトリの場合は".", ".." 及び配下のファイル・ディレクトリを返す、ファイルの場合は1つのみを返す.
+   * pathが存在しない場合はsizeゼロのlistを返す。 "..",
+   * "." を含めた生データを返すので使用しにくいことから外から呼べない形としている。ただしテストで使用するためprivateにはしない。
    */
   List<LsEntry> getRemoteAll(ChannelSftp channel, String path) throws SftpException {
     try {

@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 public class Test11_031_xmlデータの値検証_taskList_チェック_共通 extends TestTool {
 
+  @SuppressWarnings("null")
   DoNothingInConstructorForm form = null;
 
   @BeforeAll
@@ -47,6 +48,7 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
     }
   }
 
+  @SuppressWarnings("null")
   @Test
   public void test01_System名がnull() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,
@@ -66,6 +68,7 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
     }
   }
 
+  @SuppressWarnings("null")
   @Test
   public void test02_System名が空欄() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,

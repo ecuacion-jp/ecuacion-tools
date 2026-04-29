@@ -22,22 +22,23 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * aaa.
+ * Tests for {@link DateTimeUtil#hasDesignatedTermPassed}.
  *
  * @author 庸介
  *
  */
+@SuppressWarnings("null")
 public class DateUtiHhasDesignatedTimePassed {
 
   Calendar calLastModifiedTimestamp = null;
   Calendar calCurrentTimestampMinusValue = null;
   DateTimeUtil bl = null;
 
-  /** */
+  /** テストクラスの静的初期化処理. */
   @BeforeAll
   public static void beforeClass() {}
 
-  /** */
+  /** 各テスト前の初期化処理. */
   @BeforeEach
   public void before() {
     calLastModifiedTimestamp = Calendar.getInstance();
@@ -51,14 +52,14 @@ public class DateUtiHhasDesignatedTimePassed {
     };
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test01_hasDesignatedTermPassed_秒_設定値_0_差_0() {
     Assertions.assertEquals(true,
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.SECOND, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test02_hasDesignatedTermPassed_秒_設定値_0_差_1() {
     // 差を指定
@@ -67,7 +68,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.SECOND, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test03_hasDesignatedTermPassed_秒_設定値_3_差_2() {
     // 差を指定
@@ -76,7 +77,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.SECOND, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test04_hasDesignatedTermPassed_秒_設定値_3_差_3() {
     // 差を指定
@@ -85,7 +86,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.SECOND, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test05_hasDesignatedTermPassed_秒_設定値_3_差_1分() {
     // 差を指定
@@ -94,14 +95,14 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.SECOND, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test11_hasDesignatedTermPassed_分_設定値_0_差_0() {
     Assertions.assertEquals(true,
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MINUTE, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test12_hasDesignatedTermPassed_分_設定値_0_差_1() {
     // 差を指定
@@ -110,7 +111,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MINUTE, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test13_hasDesignatedTermPassed_分_設定値_3_差_2() {
     // 差を指定
@@ -119,7 +120,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MINUTE, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test14_hasDesignatedTermPassed_分_設定値_3_差_3() {
     // 差を指定
@@ -128,7 +129,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MINUTE, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test15_hasDesignatedTermPassed_分_設定値_3_差_1時間() {
     // 差を指定
@@ -137,7 +138,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MINUTE, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test16_hasDesignatedTermPassed_分_設定値_3_差_5秒() {
     // 差を指定
@@ -146,14 +147,14 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MINUTE, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test21_hasDesignatedTermPassed_時_設定値_0_差_0() {
     Assertions.assertEquals(true,
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.HOUR, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test22_hasDesignatedTermPassed_時_設定値_0_差_1() {
     // 差を指定
@@ -162,7 +163,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.HOUR, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test23_hasDesignatedTermPassed_時_設定値_3_差_2() {
     // 差を指定
@@ -171,7 +172,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.HOUR, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test24_hasDesignatedTermPassed_時_設定値_3_差_3() {
     // 差を指定
@@ -180,7 +181,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.HOUR, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test25_hasDesignatedTermPassed_時_設定値_3_差_1日() {
     // 差を指定
@@ -189,7 +190,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.HOUR, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test26_hasDesignatedTermPassed_時_設定値_3_差_5分() {
     // 差を指定
@@ -198,14 +199,14 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.HOUR, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test31_hasDesignatedTermPassed_日_設定値_0_差_0() {
     Assertions.assertEquals(true, bl.hasDesignatedTermPassed(
         calLastModifiedTimestamp.getTimeInMillis(), Calendar.DAY_OF_MONTH, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test32_hasDesignatedTermPassed_日_設定値_0_差_1() {
     // 差を指定
@@ -214,7 +215,7 @@ public class DateUtiHhasDesignatedTimePassed {
         calLastModifiedTimestamp.getTimeInMillis(), Calendar.DAY_OF_MONTH, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test33_hasDesignatedTermPassed_日_設定値_3_差_2() {
     // 差を指定
@@ -223,7 +224,7 @@ public class DateUtiHhasDesignatedTimePassed {
         calLastModifiedTimestamp.getTimeInMillis(), Calendar.DAY_OF_MONTH, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test34_hasDesignatedTermPassed_日_設定値_3_差_3() {
     // 差を指定
@@ -232,7 +233,7 @@ public class DateUtiHhasDesignatedTimePassed {
         calLastModifiedTimestamp.getTimeInMillis(), Calendar.DAY_OF_MONTH, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test35_hasDesignatedTermPassed_日_設定値_3_差_1カ月() {
     // 差を指定
@@ -241,7 +242,7 @@ public class DateUtiHhasDesignatedTimePassed {
         calLastModifiedTimestamp.getTimeInMillis(), Calendar.DAY_OF_MONTH, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test36_hasDesignatedTermPassed_日_設定値_3_差_5時間() {
     // 差を指定
@@ -250,14 +251,14 @@ public class DateUtiHhasDesignatedTimePassed {
         calLastModifiedTimestamp.getTimeInMillis(), Calendar.DAY_OF_MONTH, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test41_hasDesignatedTermPassed_月_設定値_0_差_0() {
     Assertions.assertEquals(true,
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MONTH, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test42_hasDesignatedTermPassed_月_設定値_0_差_1() {
     // 差を指定
@@ -266,7 +267,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MONTH, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test43_hasDesignatedTermPassed_月_設定値_3_差_2() {
     // 差を指定
@@ -275,7 +276,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MONTH, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test44_hasDesignatedTermPassed_月_設定値_3_差_3() {
     // 差を指定
@@ -284,7 +285,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MONTH, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test45_hasDesignatedTermPassed_月_設定値_3_差_1年() {
     // 差を指定
@@ -293,7 +294,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MONTH, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test46_hasDesignatedTermPassed_月_設定値_3_差_5日() {
     // 差を指定
@@ -302,14 +303,14 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MONTH, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test51_hasDesignatedTermPassed_年_設定値_0_差_0() {
     Assertions.assertEquals(true,
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.MONTH, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test52_hasDesignatedTermPassed_年_設定値_0_差_1() {
     // 差を指定
@@ -318,7 +319,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.YEAR, 0));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test53_hasDesignatedTermPassed_年_設定値_3_差_2() {
     // 差を指定
@@ -327,7 +328,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.YEAR, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test54_hasDesignatedTermPassed_年_設定値_3_差_3() {
     // 差を指定
@@ -336,7 +337,7 @@ public class DateUtiHhasDesignatedTimePassed {
         bl.hasDesignatedTermPassed(calLastModifiedTimestamp.getTimeInMillis(), Calendar.YEAR, 3));
   }
 
-  /** */
+  /** Test method. */
   @Test
   public void test55_hasDesignatedTermPassed_年_設定値_3_差_5カ月() {
     // 差を指定
