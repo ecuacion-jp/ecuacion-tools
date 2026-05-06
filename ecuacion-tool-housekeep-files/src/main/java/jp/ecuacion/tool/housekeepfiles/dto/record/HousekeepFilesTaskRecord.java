@@ -36,7 +36,7 @@ import jp.ecuacion.lib.validation.constraints.IntegerString;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
-import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
+import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
