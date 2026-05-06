@@ -11,7 +11,7 @@
 
  ## Documentation
 
- - [javadoc](https://javadoc.ecuacion.jp/apidocs/ecuacion-tool-command-api/)
+ - [javadoc](https://docs.ecuacion.jp/javadoc/apidocs/ecuacion-tool-command-api/)
 
  ## Installation
 

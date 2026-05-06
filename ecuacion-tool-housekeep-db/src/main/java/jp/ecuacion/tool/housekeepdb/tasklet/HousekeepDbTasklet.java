@@ -31,8 +31,8 @@ import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
-import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
-import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
+import jp.ecuacion.util.excel.table.reader.concrete.StringHeaderExcelTableReader;
+import jp.ecuacion.util.excel.table.reader.concrete.StringHeaderExcelTableToBeanReader;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.event.Level;
@@ -386,8 +386,8 @@ public class HousekeepDbTasklet implements Tasklet {
   private Map<String, String> getInfoMap(String filePath) throws Exception {
     List<List<String>> list;
     try {
-      list = new StringOneLineHeaderExcelTableReader("Info", new String[] {"item", "value"}, null,
-          1, null).read(filePath);
+      list = new StringHeaderExcelTableReader("Info", new String[] {"item", "value"})
+          .read(filePath);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -402,9 +402,9 @@ public class HousekeepDbTasklet implements Tasklet {
     LangExcel langLocal = Objects.requireNonNull(lang);
     Map<String, DbConnectionInfoBean> dbConnectionInfoMap;
     try {
-      dbConnectionInfoMap = new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
+      dbConnectionInfoMap = new StringHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
           DbConnectionInfoBean.class, langLocal.get(LangExcel.DB_CONNECTION_SETTINGS),
-          langLocal.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+          langLocal.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS))
               .readToBean(filePath).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -423,19 +423,19 @@ public class HousekeepDbTasklet implements Tasklet {
       Map<String, DbConnectionInfoBean> dbConnectionMap) throws Exception {
     LangExcel langLocal = Objects.requireNonNull(lang);
     List<HousekeepInfoBean> housekeepList =
-        new StringOneLineHeaderExcelTableToBeanReader<HousekeepInfoBean>(HousekeepInfoBean.class,
+        new StringHeaderExcelTableToBeanReader<HousekeepInfoBean>(HousekeepInfoBean.class,
             langLocal.get(LangExcel.HOUSEKEEP_DB_SETTINGS),
-            langLocal.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+            langLocal.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS))
                 .readToBean(filePath);
     List<WhereConditionInfoBean> whereConditionList =
-        new StringOneLineHeaderExcelTableToBeanReader<WhereConditionInfoBean>(
+        new StringHeaderExcelTableToBeanReader<WhereConditionInfoBean>(
             WhereConditionInfoBean.class, langLocal.get(LangExcel.SEARCH_CONDITION_SETTINGS),
-            langLocal.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+            langLocal.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS))
                 .readToBean(filePath);
     List<RelatedTableInfoBean> relatedTableList =
-        new StringOneLineHeaderExcelTableToBeanReader<RelatedTableInfoBean>(
+        new StringHeaderExcelTableToBeanReader<RelatedTableInfoBean>(
             RelatedTableInfoBean.class, langLocal.get(LangExcel.RELATED_TABLE_SETTINGS),
-            langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+            langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS))
                 .readToBean(filePath);
 
     // task IDの重複を検知するためのset

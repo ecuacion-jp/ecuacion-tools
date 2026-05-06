@@ -23,7 +23,7 @@ import jakarta.validation.constraints.Size;
 import java.util.Arrays;
 import java.util.List;
 import jp.ecuacion.tool.housekeepfiles.enums.AuthTypeEnum;
-import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
+import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 
 /**
  * Store Auth info.
