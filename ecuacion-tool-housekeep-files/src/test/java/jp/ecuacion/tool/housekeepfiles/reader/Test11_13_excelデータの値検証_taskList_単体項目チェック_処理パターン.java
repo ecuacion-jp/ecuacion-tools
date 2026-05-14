@@ -18,7 +18,7 @@ package jp.ecuacion.tool.housekeepfiles.reader;
 import jakarta.validation.ConstraintViolation;
 import java.util.ArrayList;
 import jp.ecuacion.lib.core.exception.ViolationException;
-import jp.ecuacion.lib.core.util.ViolationUtil;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
         null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ViolationUtil.validate(rec).throwIfAny();
+      new Violations().validate(rec).throwIfAny();
       fail();
 
     } catch (ViolationException ex) {
@@ -52,7 +52,7 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
         null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ViolationUtil.validate(rec).throwIfAny();
+      new Violations().validate(rec).throwIfAny();
       fail();
 
     } catch (ViolationException ex) {
