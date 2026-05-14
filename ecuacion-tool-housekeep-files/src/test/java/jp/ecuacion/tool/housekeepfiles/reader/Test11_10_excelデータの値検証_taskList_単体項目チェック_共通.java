@@ -15,7 +15,7 @@
  */
 package jp.ecuacion.tool.housekeepfiles.reader;
 
-import jp.ecuacion.lib.core.util.ViolationUtil;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ public class Test11_10_excelデータの値検証_taskList_単体項目チェッ
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
-    ViolationUtil.validate(rec).throwIfAny();
+    new Violations().validate(rec).throwIfAny();
   }
 
   @Test
@@ -40,6 +40,6 @@ public class Test11_10_excelデータの値検証_taskList_単体項目チェッ
         "SFTP_MOVE_FROM_SERVER", "aHost", "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE",
         "FALSE", "IGNORE", "key1=value2,key2");
 
-    ViolationUtil.validate(rec).throwIfAny();
+    new Violations().validate(rec).throwIfAny();
   }
 }
