@@ -9,7 +9,7 @@ import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
-import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
+import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 
 /**

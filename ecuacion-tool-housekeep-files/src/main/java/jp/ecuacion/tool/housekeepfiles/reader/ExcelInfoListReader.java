@@ -19,12 +19,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
+import jp.ecuacion.util.excel.table.reader.concrete.StringHeaderExcelTableReader;
 
 /**
  * Reads info sheet of the settings excel.
  */
-public class ExcelInfoListReader extends StringOneLineHeaderExcelTableReader {
+public class ExcelInfoListReader extends StringHeaderExcelTableReader {
 
   private static final String[] headerLabels = new String[] {"項目", "値"};
 
@@ -32,7 +32,7 @@ public class ExcelInfoListReader extends StringOneLineHeaderExcelTableReader {
    * Constructs a new instance.
    */
   public ExcelInfoListReader() {
-    super("基礎情報設定", headerLabels, null, 1, null);
+    super("基礎情報設定", headerLabels);
   }
 
   /**

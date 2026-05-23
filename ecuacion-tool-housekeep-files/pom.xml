@@ -103,7 +103,7 @@
 		<!-- ecuacion-util -->
 		<dependency>
 			<groupId>jp.ecuacion.util</groupId>
-			<artifactId>ecuacion-util-poi</artifactId>
+			<artifactId>ecuacion-util-excel-table</artifactId>
 		</dependency>
 
 		<!-- other -->

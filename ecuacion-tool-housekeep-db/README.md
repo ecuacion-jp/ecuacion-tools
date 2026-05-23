@@ -15,7 +15,7 @@
 
 ## Documentation
 
-- [javadoc](https://javadoc.ecuacion.jp/apidocs/ecuacion-tool-housekeep-db/)
+- [javadoc](https://docs.ecuacion.jp/javadoc/apidocs/ecuacion-tool-housekeep-db/)
 
 ## Premises
 

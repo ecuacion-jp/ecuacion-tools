@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import jp.ecuacion.lib.core.exception.ViolationException;
-import jp.ecuacion.lib.core.util.ViolationUtil;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
         null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ViolationUtil.validate(rec).throwIfAny();
+      new Violations().validate(rec).throwIfAny();
       fail();
 
     } catch (ViolationException ex) {
@@ -52,7 +52,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
         null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ViolationUtil.validate(rec).throwIfAny();
+      new Violations().validate(rec).throwIfAny();
       fail();
 
     } catch (ViolationException ex) {
@@ -77,7 +77,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
             "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ViolationUtil.validate(rec).throwIfAny();
+      new Violations().validate(rec).throwIfAny();
       fail();
 
     } catch (ViolationException ex) {
@@ -96,7 +96,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
 
     try {
-      ViolationUtil.validate(rec).throwIfAny();
+      new Violations().validate(rec).throwIfAny();
       fail();
 
     } catch (ViolationException ex) {
