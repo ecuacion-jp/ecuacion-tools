@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotEmpty;
 import java.util.Arrays;
 import java.util.List;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
-import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
+import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 
 /**
  * Stores database connection settings.
