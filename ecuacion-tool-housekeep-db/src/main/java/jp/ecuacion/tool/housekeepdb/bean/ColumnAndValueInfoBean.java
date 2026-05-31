@@ -50,8 +50,8 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditi
   }
 
   private String getStringFromObject(Object value) {
-    if (value instanceof String) {
-      return (String) value;
+    if (value instanceof String s) {
+      return s;
 
     } else {
       // Roughly covers numbers and various other cases. Address any issues as they arise.
@@ -74,6 +74,7 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditi
     return mark + value.toString() + mark;
   }
 
+  @Override
   public String getCondition() {
     return getColumn() + " = " + surroundWithQuotationMarks();
   }

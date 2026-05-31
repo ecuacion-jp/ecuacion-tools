@@ -202,8 +202,8 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
    * Gets isSrcPathDir.
    */
   public @Nullable Boolean getIsSrcPathDir() {
-    return (StringUtils.isEmpty(isSrcPathDirEnumName)) ? null
-        : Boolean.valueOf(isSrcPathDirEnumName.toLowerCase());
+    return StringUtils.isEmpty(isSrcPathDirEnumName) ? null
+        : Boolean.valueOf(isSrcPathDirEnumName.toLowerCase(Locale.ROOT));
   }
 
   public String getSrcPath() {
@@ -211,8 +211,8 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   }
 
   public @Nullable Boolean getIsDestPathDir() {
-    return (StringUtils.isEmpty(isDestPathDirEnumName)) ? null
-        : Boolean.valueOf(isDestPathDirEnumName.toLowerCase());
+    return StringUtils.isEmpty(isDestPathDirEnumName) ? null
+        : Boolean.valueOf(isDestPathDirEnumName.toLowerCase(Locale.ROOT));
   }
 
   public String getDestPath() {
@@ -229,12 +229,12 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   }
 
   public @Nullable Boolean getDoesOverwriteDestPath() {
-    return (StringUtils.isEmpty(doesOverwriteDestPathEnumName)) ? null
-        : Boolean.valueOf(doesOverwriteDestPathEnumName.toLowerCase());
+    return StringUtils.isEmpty(doesOverwriteDestPathEnumName) ? null
+        : Boolean.valueOf(doesOverwriteDestPathEnumName.toLowerCase(Locale.ROOT));
   }
 
   public @Nullable IncidentTreatedAsEnum getActionForDestFileExists() {
-    return (StringUtils.isEmpty(actionForDestFileExistsEnumName)) ? null
+    return StringUtils.isEmpty(actionForDestFileExistsEnumName) ? null
         : IncidentTreatedAsEnum.valueOf(actionForDestFileExistsEnumName);
   }
 
