@@ -24,7 +24,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesPathRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.reader.ExcelInfoListReader;
-import jp.ecuacion.util.excel.table.reader.concrete.StringHeaderExcelTableToBeanReader;
+import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
 
 /**
  * Stores multiple records.
@@ -81,13 +81,13 @@ public class HousekeepFilesForm {
       taskInfoHdRec = new HousekeepFilesHdRecord();
       taskInfoHdRec.setSysName(Objects.requireNonNull(infoMap.get("env-name")));
       taskInfoHdRec.recList =
-          new StringHeaderExcelTableToBeanReader<HousekeepFilesTaskRecord>(
+          new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesTaskRecord>(
               HousekeepFilesTaskRecord.class, "タスク設定", HEADER_LABELS_TASK)
                   .withIgnoresAdditionalColumnsOfHeaderData(true).readToBean(excelPath);
-      pathInfoRecList = new StringHeaderExcelTableToBeanReader<HousekeepFilesPathRecord>(
+      pathInfoRecList = new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesPathRecord>(
           HousekeepFilesPathRecord.class, "パス設定", HEADER_LABELS_PATH)
               .readToBean(excelPath);
-      authInfoRecList = new StringHeaderExcelTableToBeanReader<HousekeepFilesAuthRecord>(
+      authInfoRecList = new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesAuthRecord>(
           HousekeepFilesAuthRecord.class, "サーバ認証設定", HEADER_LABELS_AUTH)
               .readToBean(excelPath);
 

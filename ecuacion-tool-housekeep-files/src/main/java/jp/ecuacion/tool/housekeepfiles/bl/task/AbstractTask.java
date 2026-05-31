@@ -41,6 +41,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
+import jp.ecuacion.tool.housekeepfiles.util.WildcardPathUtil;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -282,7 +283,7 @@ public abstract class AbstractTask {
   @SuppressWarnings("null")
   protected List<FileInfo> getLocalFileInfoList(String path) {
     List<FileInfo> rtnList = new ArrayList<FileInfo>();
-    List<String> pathStrList = FileUtil.getPathListFromPathWithWildcard(path);
+    List<String> pathStrList = WildcardPathUtil.getPathListFromPathWithWildcard(path);
     for (String strPath : pathStrList) {
       FileInfo fi = new FileInfo();
       File fileObj = new File(strPath);

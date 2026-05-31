@@ -60,7 +60,7 @@ public class HousekeepFilesBlf {
     logJobStartMsg(form);
 
     // WARN情報を保持するリスト
-    List<BusinessViolation> warnList = new ArrayList<>();
+    final List<BusinessViolation> warnList = new ArrayList<>();
 
     // 複数レコード・複数データ種別間のチェック
     bl.consistencyCheckBetweenMultipleData(form);
@@ -69,8 +69,9 @@ public class HousekeepFilesBlf {
     Map<String, String> envVarInfoMap = bl.createPathInfoMap(form);
 
     // authInfoをmap形式で作成。キーは"<サーバ名>-<プロトコル>"とする
-    Map<String, HousekeepFilesAuthRecord> authMap = form.getAuthInfoRecList().stream().collect(
-        Collectors.toMap(rec -> rec.getRemoteServer() + "-" + rec.getProtocol(), rec -> rec));
+    final Map<String, HousekeepFilesAuthRecord> authMap =
+        form.getAuthInfoRecList().stream().collect(
+            Collectors.toMap(rec -> rec.getRemoteServer() + "-" + rec.getProtocol(), rec -> rec));
 
     // srcPath, destPathに指定している環境変数のenvVarInfoMap存在チェックと環境変数展開済みパスの設定
     bl.envVarExistenceCheckAndSetEnvBarExpandedPaths(form.getTaskInfoHdRec().recList,

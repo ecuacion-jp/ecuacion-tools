@@ -54,6 +54,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.util.DateTimeUtil;
 import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
+import jp.ecuacion.tool.housekeepfiles.util.WildcardPathUtil;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -249,7 +250,7 @@ public class HousekeepFilesBl {
     List<String> tmpToFileAndDirMixedList = null;
     // ワイルドカードが存在するかどうかで処理を分ける
     // ワイルドカードが存在しない場合は、ディレクトリを自動生成する
-    if (!FileUtil.containsWildCard(varSubstitutedToPath)) {
+    if (!WildcardPathUtil.containsWildCard(varSubstitutedToPath)) {
       // fu.getPathListFromPathWithWildcardにはclean処理が含まれるが、こちらの場合は通らないので個別に呼び出しておく
       varSubstitutedToPath = FileUtil.cleanPathStrWithSlash(varSubstitutedToPath);
       tmpToFileAndDirMixedList = new ArrayList<String>();
@@ -267,7 +268,8 @@ public class HousekeepFilesBl {
       }
 
     } else {
-      tmpToFileAndDirMixedList = FileUtil.getPathListFromPathWithWildcard(varSubstitutedToPath);
+      tmpToFileAndDirMixedList =
+          WildcardPathUtil.getPathListFromPathWithWildcard(varSubstitutedToPath);
     }
 
     for (String path : tmpToFileAndDirMixedList) {
