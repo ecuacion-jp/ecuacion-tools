@@ -3,15 +3,11 @@
 ## What is it?
 
 `ecuacion-tool-housekeep-db` housekeeps records in a database. It handles soft and hard delete.
+Only `Postgresql` is supported (for now).
 
 - It deletes conditionally (only records with defined term passed).
 - It is able to delete records in related tables at the same time.
 - It is able to skip deletion when a record in related table exists.
-
-## System Requirements
-
-- JDK 21 or above.
-- Only `Postgresql` is supported (for now)
 
 ## Documentation
 
