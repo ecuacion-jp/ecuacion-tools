@@ -109,9 +109,9 @@ public class HousekeepFilesBl {
   }
 
   /** Creates a map of path variables from the form's path info records and built-in variables. */
-  public HashMap<String, String> createPathInfoMap(HousekeepFilesForm form)
+  public Map<String, String> createPathInfoMap(HousekeepFilesForm form)
       throws UnknownHostException {
-    HashMap<String, String> pathInfoMap = new HashMap<String, String>();
+    Map<String, String> pathInfoMap = new HashMap<>();
     for (HousekeepFilesPathRecord pathInfo : form.getPathInfoRecList()) {
       pathInfoMap.put(pathInfo.getKey(), pathInfo.getValue());
     }
@@ -132,11 +132,11 @@ public class HousekeepFilesBl {
     for (HousekeepFilesTaskRecord rec : taskRecList) {
       // Verify that ${xxx} variable names in the path exist in the path list.
       if (rec.getSrcPath() != null) {
-        analyzePathVarAndCheckIfExistsInSet(rec, envVarInfoMap.keySet(), rec.getSrcPath());
+        analyzePathVarAndCheckIfExistsInSet(envVarInfoMap.keySet(), rec.getSrcPath());
       }
 
       if (rec.getDestPath() != null) {
-        analyzePathVarAndCheckIfExistsInSet(rec, envVarInfoMap.keySet(), rec.getDestPath());
+        analyzePathVarAndCheckIfExistsInSet(envVarInfoMap.keySet(), rec.getDestPath());
       }
 
       // If no issues, set envVarInfoMap on taskRec to generate environment-variable-expanded paths.
@@ -144,8 +144,7 @@ public class HousekeepFilesBl {
     }
   }
 
-  private void analyzePathVarAndCheckIfExistsInSet(HousekeepFilesTaskRecord taskRec,
-      Set<String> pathKeySet, String path) {
+  private void analyzePathVarAndCheckIfExistsInSet(Set<String> pathKeySet, String path) {
 
     // Create new keySet to add reserved keys.
     Set<String> keySet = new HashSet<>(pathKeySet);
@@ -188,7 +187,7 @@ public class HousekeepFilesBl {
 
   /** Expands all path patterns for the given task and returns source and destination path lists. */
   public HousekeepFilesExpandedPathsInfo expandAllPath(AbstractTask task,
-      HousekeepFilesTaskRecord taskRec, Map<String, String> envVarInfoMap,
+      HousekeepFilesTaskRecord taskRec,
       @Nullable ConnectionToRemoteServer connection) throws Exception {
 
     List<String> fromPathList = new ArrayList<String>();
@@ -196,12 +195,12 @@ public class HousekeepFilesBl {
 
     // src
     if (task.hasSrcPathInfo()) {
-      expandFromPath(envVarInfoMap, connection, taskRec, task, fromPathList);
+      expandFromPath(connection, taskRec, task, fromPathList);
     }
 
     // dest
     if (task.hasDestPathInfo()) {
-      expandToPath(envVarInfoMap, connection, taskRec, task, toPathList);
+      expandToPath(connection, taskRec, task, toPathList);
     }
 
     // The "to" path should ultimately be exactly one, but skip the check here
@@ -210,9 +209,8 @@ public class HousekeepFilesBl {
   }
 
   @SuppressWarnings("null")
-  private void expandFromPath(Map<String, String> envVarInfoMap,
-      @Nullable ConnectionToRemoteServer connection, HousekeepFilesTaskRecord taskRec,
-      AbstractTask task, List<String> fromPathList) {
+  private void expandFromPath(@Nullable ConnectionToRemoteServer connection,
+      HousekeepFilesTaskRecord taskRec, AbstractTask task, List<String> fromPathList) {
 
     List<FileInfo> tmpFromFileAndDirMixedList = task.getFromDirFileInfoList(task, connection,
         taskRec.getIsSrcPathDir(), taskRec.getEnvVarExpandedSrcPath());
@@ -244,12 +242,16 @@ public class HousekeepFilesBl {
   }
 
   @SuppressWarnings("null")
-  private void expandToPath(Map<String, String> envVarInfoMap,
-      @Nullable ConnectionToRemoteServer connection,
+  private void expandToPath(@Nullable ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, AbstractTask task, List<String> toPathList)
       throws Exception {
     // to
     String varSubstitutedToPath = taskRec.getEnvVarExpandedDestPath();
+
+    // If no destination path is specified, there is nothing to expand.
+    if (varSubstitutedToPath == null || varSubstitutedToPath.isEmpty()) {
+      return;
+    }
 
     List<String> tmpToFileAndDirMixedList = null;
     // Branch based on whether a wildcard is present.
@@ -287,8 +289,8 @@ public class HousekeepFilesBl {
       } else {
         // Add to toPathList only when isDestPathDir matches the actual path type
         // (file or directory).
-        if (dirInfo != null && taskRec.getIsDestPathDir()
-            || fileInfo != null && !taskRec.getIsDestPathDir()) {
+        if ((dirInfo != null && taskRec.getIsDestPathDir())
+            || (fileInfo != null && !taskRec.getIsDestPathDir())) {
           toPathList.add(path);
         }
         // if ((dtE.getIsDestPathDir() == true) == task.getToPathFileInfo(connection,
@@ -467,7 +469,7 @@ public class HousekeepFilesBl {
     // Send email.
     List<String> mailTo = new ArrayList<String>();
     for (String to : PropertiesFileUtil
-        .getApplication("jp.ecuacion.lib.core.mail.address-csv-on-system-error").split(",")) {
+        .getApplication("jp.ecuacion.lib.core.mail.address-csv-on-system-error").split(",", -1)) {
       mailTo.add(to);
     }
 

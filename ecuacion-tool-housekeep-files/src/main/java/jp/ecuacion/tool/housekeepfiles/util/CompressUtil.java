@@ -50,30 +50,9 @@ public class CompressUtil {
       throws IOException {
     File baseFile = new File(toFilePath);
     File file = new File(fromDirPath);
-    ZipOutputStream outZip = null;
-    try {
-      // Create ZIP file output object.
-      outZip = new ZipOutputStream(new FileOutputStream(baseFile), Charset.forName(encoding));
+    try (ZipOutputStream outZip =
+        new ZipOutputStream(new FileOutputStream(baseFile), Charset.forName(encoding))) {
       archive(outZip, baseFile, file);
-    } finally {
-      // Close ZIP entry.
-      if (outZip != null) {
-        try {
-          outZip.closeEntry();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-        try {
-          outZip.flush();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-        try {
-          outZip.close();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
     }
   }
 
@@ -105,45 +84,20 @@ public class CompressUtil {
    */
   public void zipFileList(List<String> fromFileList, String filePath, String encoding)
       throws IOException {
-    ZipOutputStream outZip = null;
     File baseFile = new File(filePath);
-    try {
-      // Create ZIP file output object.
-      outZip = new ZipOutputStream(new FileOutputStream(baseFile), Charset.forName(encoding));
+    try (ZipOutputStream outZip =
+        new ZipOutputStream(new FileOutputStream(baseFile), Charset.forName(encoding))) {
       // Compress files in the list sequentially.
       for (int i = 0; i < fromFileList.size(); i++) {
-        // Create file object.
         File file = new File(fromFileList.get(i));
         archive(outZip, file, file.getName());
-      }
-    } finally {
-      // Close ZIP entry.
-      if (outZip != null) {
-        try {
-          outZip.closeEntry();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-        try {
-          outZip.flush();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-        try {
-          outZip.close();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
       }
     }
   }
 
   /*
    * Recursive processing for directory compression.
-   *
-   * @param outZip ZipOutputStream
-   * @param baseFile the output ZIP file
-   * @param file the file to compress
+   * baseFile is the output ZIP file and targetFile is the file or directory to compress.
    */
   private void archive(ZipOutputStream outZip, File baseFile, File targetFile) throws IOException {
     if (targetFile.isDirectory()) {
@@ -167,7 +121,7 @@ public class CompressUtil {
    *
    * @param outZip ZipOutputStream outputStream
    * @param targetFile The file you want to zip
-   * @parma entryName saved zip file name
+   * @param entryName saved zip file name
    */
   private void archive(ZipOutputStream outZip, File targetFile, String entryName)
       throws IOException {
@@ -175,7 +129,7 @@ public class CompressUtil {
     outZip.setLevel(5);
 
     // Create ZIP entry.
-    String entryNameForZipUtil = (targetFile.isDirectory()) ? entryName + "/" : entryName;
+    String entryNameForZipUtil = targetFile.isDirectory() ? entryName + "/" : entryName;
     ZipEntry ze = new ZipEntry(entryNameForZipUtil);
     ze.setTime(targetFile.lastModified());
     outZip.putNextEntry(ze);

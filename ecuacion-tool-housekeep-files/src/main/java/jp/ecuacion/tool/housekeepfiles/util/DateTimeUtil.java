@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * Provides utilities on date and time.
  */
+@SuppressWarnings("JavaUtilDate")
 public class DateTimeUtil {
 
   /**

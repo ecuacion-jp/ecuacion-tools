@@ -46,6 +46,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
 
   @BeforeEach
   private void beforeEach() throws Exception {
+    procCalledOnWarnListIsNotEmpty = false;
     beforeEachOnSftpTest();
   }
 
