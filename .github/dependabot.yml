@@ -1,0 +1,9 @@
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "0.0"  # 新リリースブランチ作成時に更新する
+    ignore:
+      - dependency-name: "jp.ecuacion:*"
