@@ -32,14 +32,15 @@ public class HkFileManipulateUtil {
       String fromPath, String toPath) {
 
     if (taskRec.getIsDestPathDir() == false) {
-      // toがファイルの場合
-      // extensionを考慮
+      // When the destination is a file.
+      // Taking file extension into account.
       // toPath = toPath + extension;
       return (new File(toPath).exists()) ? true : false;
 
     } else {
-      // toがディレクトリの場合、そのディレクトリの中まで確認してチェックを行う
-      // fromがディレクトリかどうかでも処理を分ける。しかも、fromがディレクトリでも、zip指定があれば結局ファイルの扱いになるのでそれも分岐条件に入れる。
+      // When the destination is a directory, check inside that directory.
+      // Also branch based on whether from is a directory. Note that even if from is a directory,
+      // it is treated as a file when zip is specified, so include that in the condition.
       boolean isSrcPathDir;
       try {
         isSrcPathDir = taskRec.getIsSrcPathDir() == true;
@@ -47,14 +48,14 @@ public class HkFileManipulateUtil {
         throw new RuntimeException(e);
       }
       if (isSrcPathDir) {
-        // 結局、ここはfrom=ディレクトリ、to=ディレクトリ
-        // toの下のフォルダにfrom側のディレクトリ名があるかを確認。
+        // This case is: from=directory, to=directory.
+        // Check whether a folder with the same name as the from directory exists under to.
         return (new File(FileUtil.concatFilePaths(toPath, new File(fromPath).getName())).exists())
             ? true
             : false;
 
       } else {
-        // ここは、from=ファイル、to=ディレクトリ
+        // This case is: from=file, to=directory.
         // fromPath = fromPath + extension;
         return (new File(FileUtil.concatFilePaths(toPath, new File(fromPath).getName())).exists())
             ? true

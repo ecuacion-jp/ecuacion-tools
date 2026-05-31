@@ -26,10 +26,10 @@ import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("null")
-public class Test11_12_excelデータの値検証_taskList_単体項目チェック_タスク名 extends TestTool {
+public class Test11_12_ExcelDataValidation_taskList_ItemCheck_TaskName extends TestTool {
 
   @Test
-  public void test01_タスク名_異常系_null() throws Exception {
+  public void test01_taskName_invalid_null() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", null, "CREATE_DIR", null,
         null, null, null, null, null, null, null, null, null, null);
 
@@ -47,7 +47,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
   }
 
   @Test
-  public void test02_タスク名_異常系_空文字() throws Exception {
+  public void test02_taskName_invalid_emptyString() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "", "CREATE_DIR", null,
         null, null, null, null, null, null, null, null, null, null);
 
@@ -56,9 +56,9 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
       fail();
 
     } catch (ViolationException ex) {
-      // NotEmptyとSize
+      // NotEmpty and Size
       assertEquals(2, ex.getViolations().getConstraintViolations().size());
-      // 両方ともtaskNameでエラーになっていることを確認
+      // Verify that both are failing with an error on taskName.
       Set<String> set = new HashSet<>();
       for (ConstraintViolation<?> cv : ex.getViolations().getConstraintViolations()) {
         assertEquals("taskName", cv.getPropertyPath().toString());
@@ -71,7 +71,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
   }
 
   @Test
-  public void test03_タスク名_異常系_長さ超過() throws Exception {
+  public void test03_taskName_invalid_tooLong() throws Exception {
     HousekeepFilesTaskRecord rec =
         new HousekeepFilesTaskRecord("aTaskId", "12345678901234567890123456789012345678901",
             "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
@@ -90,7 +90,7 @@ public class Test11_12_excelデータの値検証_taskList_単体項目チェッ
   }
 
   @Test
-  public void test04_タスク名_異常系_不正文字使用_hash()
+  public void test04_taskName_invalid_illegalChar_hash()
       throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName#",
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);

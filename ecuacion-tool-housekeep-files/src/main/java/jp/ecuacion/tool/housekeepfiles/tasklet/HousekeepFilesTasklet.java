@@ -56,21 +56,21 @@ public class HousekeepFilesTasklet implements Tasklet {
   @SuppressWarnings("unused")
   public void execute(String excelFilePath) throws Exception {
 
-    // 第一引数をチェック
+    // Check the first argument.
     if (excelFilePath == null || excelFilePath.equals("")) {
       new Violations()
           .add(new BusinessViolation("MSG_ERR_PARAM_NULL_OR_EMPTY", "1st argument(excelFilePath)"))
           .throwIfAny();
 
     } else if (!excelFilePath.contains(".")) {
-      // 拡張子が存在しない
+      // No file extension found.
       new Violations().add(new BusinessViolation("MSG_ERR_1ST_ARG_HAS_NO_EXTENSION", excelFilePath))
           .throwIfAny();
     }
 
     Objects.requireNonNull(excelFilePath);
 
-    // 第一引数のパスに含まれるファイル名の拡張子によりパラメータの数を判断
+    // Determine the number of parameters based on the file extension in the first argument path.
     String extension = excelFilePath.substring(excelFilePath.lastIndexOf("."));
 
     if (extension.equals(".xlsx")) {

@@ -28,7 +28,7 @@ import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("null")
-public class Test81_101_単体動作確認_task_ディレクトリ作成 extends TestTool {
+public class Test81_101_UnitTest_task_CreateDir extends TestTool {
 
   public static boolean procCalledOnWarnListIsNotEmpty = false;
 
@@ -42,7 +42,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test01_異常系_input_validation_remoteServer_notEmpty() throws Exception {
+  public void test01_invalid_inputValidation_remoteServer_notEmpty() throws Exception {
     HousekeepFilesTaskRecord rec =
         new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "CREATE_DIR", "aHost", null, null,
             null, null, null, "aPath", "TRUE", "FALSE", "IGNORE", null);
@@ -60,7 +60,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test02_異常系_input_validation_srcPath_notEmpty() throws Exception {
+  public void test02_invalid_inputValidation_srcPath_notEmpty() throws Exception {
     HousekeepFilesTaskRecord rec =
         new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "CREATE_DIR", null, "a", "TRUE", "5",
             "0", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
@@ -78,7 +78,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test03_異常系_input_validation_destPath_empty() throws Exception {
+  public void test03_invalid_inputValidation_destPath_empty() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
     HousekeepFilesForm form = getForm(rec);
@@ -95,7 +95,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test11_異常系_input_validation_taskDependent_isDestPathDir_false() throws Exception {
+  public void test11_invalid_inputValidation_taskDependent_isDestPathDir_false() throws Exception {
     HousekeepFilesTaskRecord rec =
         new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "CREATE_DIR", null, null, null, null,
             null, null, "aPath", "FALSE", "FALSE", "IGNORE", null);
@@ -113,7 +113,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test12_異常系_input_validation_taskDependent_DoesOverwriteDestPath_true()
+  public void test12_invalid_inputValidation_taskDependent_DoesOverwriteDestPath_true()
       throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
         "CREATE_DIR", null, null, null, null, null, null, "aPath", "TRUE", "TRUE", "IGNORE", null);
@@ -131,7 +131,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test21_異常系_ディレクトリ存在_先パス存在時処理_IGNORE() throws Exception {
+  public void test21_invalid_dirExists_whenDestPathExists_IGNORE() throws Exception {
     String path = TEST_HOME_PATH + "/test-dir";
     new File(path).mkdir();
 
@@ -143,7 +143,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test22_異常系_ディレクトリ存在_先パス存在時処理_WARN() throws Exception {
+  public void test22_invalid_dirExists_whenDestPathExists_WARN() throws Exception {
     String path = TEST_HOME_PATH + "/test-dir";
     new File(path).mkdirs();
 
@@ -151,7 +151,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
         "CREATE_DIR", null, null, null, null, null, null, path, "TRUE", "FALSE", "WARN", null);
     HousekeepFilesForm form = getForm(rec);
 
-    // HousekeepFilesBl#sendWarnMail を呼ばれたことがわかるよう置き換え
+    // Replace HousekeepFilesBl#sendWarnMail to detect when it is called.
     HousekeepFilesBl bl = new HousekeepFilesBl() {
       @Override
       public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
@@ -166,7 +166,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test23_異常系_ディレクトリ存在_先パス存在時処理_ERROR() throws Exception {
+  public void test23_invalid_dirExists_whenDestPathExists_ERROR() throws Exception {
     String path = TEST_HOME_PATH + "/test-dir";
     new File(path).mkdirs();
 
@@ -185,7 +185,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test24_異常系_ファイル存在_先パス存在時処理_IGNORE() throws Exception {
+  public void test24_invalid_fileExists_whenDestPathExists_IGNORE() throws Exception {
     String path = TEST_HOME_PATH + "/test-dir";
     new File(TEST_HOME_PATH).mkdirs();
     new File(path).createNewFile();
@@ -205,7 +205,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test25_異常系_ファイル存在_先パス存在時処理_WARN() throws Exception {
+  public void test25_invalid_fileExists_whenDestPathExists_WARN() throws Exception {
     String path = TEST_HOME_PATH + "/test-dir";
     new File(TEST_HOME_PATH).mkdirs();
     new File(path).createNewFile();
@@ -225,7 +225,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test26_異常系_ファイル存在_先パス存在時処理_ERROR() throws Exception {
+  public void test26_invalid_fileExists_whenDestPathExists_ERROR() throws Exception {
     String path = TEST_HOME_PATH + "/test-dir";
     new File(TEST_HOME_PATH).mkdirs();
     new File(path).createNewFile();
@@ -245,7 +245,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test31_正常系_1階層() throws Exception {
+  public void test31_valid_singleLevel() throws Exception {
     String path = TEST_HOME_PATH + "/test-dir";
     new File(TEST_HOME_PATH).mkdirs();
 
@@ -262,7 +262,7 @@ public class Test81_101_単体動作確認_task_ディレクトリ作成 extends
   }
 
   @Test
-  public void test32_正常系_複数階層() throws Exception {
+  public void test32_valid_multipleLevels() throws Exception {
     String path = TEST_HOME_PATH + "/test-dir/1/2";
     new File(TEST_HOME_PATH).mkdirs();
 

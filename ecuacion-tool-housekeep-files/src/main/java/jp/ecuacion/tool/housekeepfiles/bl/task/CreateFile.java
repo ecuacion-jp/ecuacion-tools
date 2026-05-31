@@ -45,13 +45,13 @@ public class CreateFile extends AbstractTaskLocal {
   @SuppressWarnings("null")
   @Override
   public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
-    // 先パスがディレクトリ がTRUEは指定不可
+    // "Destination path is directory" cannot be set to TRUE.
     if (taskRec.getIsDestPathDir()) {
       violations.add(new BusinessViolation("MSG_ERR_TASK_CANNOT_SET_IS_DEST_PATH_DIR_TO_VALUE",
           taskRec.getTaskId(), taskRec.taskPtnEnumName, "TRUE"));
     }
 
-    // 先パス存在時上書き がTRUEは指定不可
+    // "Overwrite if destination exists" cannot be set to TRUE.
     if (taskRec.getDoesOverwriteDestPath() == true) {
       violations.add(new BusinessViolation("MSG_ERR_TASK_CANNOT_SET_OVERWRITE_TO_VALUE",
           taskRec.getTaskId(), taskRec.taskPtnEnumName, "TRUE"));
@@ -65,20 +65,20 @@ public class CreateFile extends AbstractTaskLocal {
 
     File dest = new File(destPath);
 
-    // 作成対象ファイルが既に存在する場合
+    // If the file to create already exists.
     if (dest.exists() && !dest.isDirectory()) {
       treatDestPathExists(taskRec, destPath, warnList);
     }
 
-    // 以下、作成対象ディレクトリが存在しない場合
+    // Below: when the target directory does not exist.
 
-    // toPathがファイルでなくディレクトリとして存在する場合
+    // If toPath exists as a directory rather than a file.
     if (dest.exists() && dest.isDirectory()) {
       new Violations().add(new BusinessViolation("MSG_ERR_DEST_PATH_IS_DIR",
           taskRec.getTaskId(), taskRec.getTaskName(), destPath)).throwIfAny();
     }
 
-    // ファイル・ディレクトリとも存在しない場合。親ディレクトリがあれば作成する。
+    // Neither file nor directory exists. Create the file if the parent directory exists.
     File parent = new File(dest.getParent());
     if (!parent.exists() || !parent.isDirectory()) {
       new Violations().add(new BusinessViolation("MSG_ERR_PARENT_DIR_NOT_EXIST",

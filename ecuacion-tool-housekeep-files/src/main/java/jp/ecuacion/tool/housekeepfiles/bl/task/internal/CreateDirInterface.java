@@ -25,13 +25,13 @@ public interface CreateDirInterface {
   public default void taskDependentCheckCreateDir(Violations violations,
       HousekeepFilesTaskRecord taskRec) {
 
-    // 先パスがディレクトリ がFALSEは指定不可
+    // "Destination path is directory" cannot be set to FALSE.
     if (!taskRec.getIsDestPathDir()) {
       violations.add(new BusinessViolation("MSG_ERR_TASK_CANNOT_SET_IS_DEST_PATH_DIR_TO_VALUE",
           taskRec.getTaskId(), taskRec.taskPtnEnumName, "FALSE"));
     }
 
-    // 先パス存在時上書き がTRUEは指定不可
+    // "Overwrite if destination exists" cannot be set to TRUE.
     if (taskRec.getDoesOverwriteDestPath() == true) {
       violations.add(new BusinessViolation("MSG_ERR_TASK_CANNOT_SET_OVERWRITE_TO_VALUE",
           taskRec.getTaskId(), taskRec.taskPtnEnumName, "TRUE"));

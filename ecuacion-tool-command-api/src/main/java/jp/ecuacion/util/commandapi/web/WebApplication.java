@@ -22,7 +22,7 @@ public class WebApplication extends SpringBootServletInitializer {
     SpringApplication.run(WebApplication.class, args);
   }
 
-  /** 既存tomcatにwarとして配置するために必要. */
+  /** Required for deploying as a WAR to an existing Tomcat instance. */
   @Override
   protected SpringApplicationBuilder configure(@Nullable SpringApplicationBuilder application) {
     return Objects.requireNonNull(application).sources(WebApplication.class);

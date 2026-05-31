@@ -18,10 +18,10 @@ package jp.ecuacion.tool.housekeepfiles.tasklet;
 import java.io.FileNotFoundException;
 import org.junit.jupiter.api.Test;
 
-public class Test02_01_excel設定ファイル不正関連_ extends TaskletTestTool {
+public class Test02_01_ExcelConfigFileInvalid_ extends TaskletTestTool {
 
   @Test
-  public void test01_ファイルが存在しない場合() {
+  public void test01_whenFileDoesNotExist() {
     try {
       execute("./testpath/test.xlsx");
       fail();

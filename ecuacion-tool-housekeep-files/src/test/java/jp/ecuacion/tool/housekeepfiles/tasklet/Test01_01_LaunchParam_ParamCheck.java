@@ -23,36 +23,32 @@ import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/**
- * @author 庸介
- *
- */
 @SuppressWarnings("null")
-public class Test01_01_起動パラメータ関連_パラメータチェック extends TaskletTestTool {
+public class Test01_01_LaunchParam_ParamCheck extends TaskletTestTool {
 
   @BeforeEach
   public void before() throws IOException {
     super.before();
-    // テスト用に変更
+    // Modified for testing.
     action = new HousekeepFilesTasklet() {
       @Override
       protected HousekeepFilesForm getFormFromExcel(String excelFilePath) {
-        // 何もしない
+        // Do nothing.
         return null;
       }
     };
 
-    // ここではblfをスタブにしたいので置き換え
+    // Replace blf with a stub here.
     action.blf = new HousekeepFilesBlf() {
       @Override
       public void execute(HousekeepFilesForm form) throws Exception {
-        // 何もしないで終了
+        // Do nothing and return.
       }
     };
   }
 
   @Test
-  public void test11_引数がnullの場合() {
+  public void test11_whenArgIsNull() {
     try {
       action.execute(null);
       fail();
@@ -66,7 +62,7 @@ public class Test01_01_起動パラメータ関連_パラメータチェック e
   }
 
   @Test
-  public void test12_引数が空文字の場合() {
+  public void test12_whenArgIsEmpty() {
     try {
       action.execute("");
       fail();

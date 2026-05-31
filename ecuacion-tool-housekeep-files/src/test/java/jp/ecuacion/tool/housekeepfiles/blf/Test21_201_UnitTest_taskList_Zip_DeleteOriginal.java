@@ -22,7 +22,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import org.junit.jupiter.api.Test;
 
-public class Test21_201_単体動作確認_taskList_Zip_元を削除 extends BlfTestTool {
+public class Test21_201_UnitTest_taskList_Zip_DeleteOriginal extends BlfTestTool {
 
   @Test
   public void test01_zip1File() throws IOException {
