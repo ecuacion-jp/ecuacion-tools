@@ -15,14 +15,48 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout ecuacion-lib
+        uses: actions/checkout@v5
+        with:
+          repository: ecuacion-jp/ecuacion-lib
+          path: ecuacion-lib
+
+      - name: Checkout ecuacion-utils
+        uses: actions/checkout@v5
+        with:
+          repository: ecuacion-jp/ecuacion-utils
+          path: ecuacion-utils
+
+      - name: Checkout ecuacion-splib
+        uses: actions/checkout@v5
+        with:
+          repository: ecuacion-jp/ecuacion-splib
+          path: ecuacion-splib
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          path: ecuacion-tools
 
       - uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Install ecuacion-lib
+        working-directory: ecuacion-lib
+        run: mvn install -DskipTests -Dwagon.skip=true
+
+      - name: Install ecuacion-utils
+        working-directory: ecuacion-utils
+        run: mvn install -DskipTests -Dwagon.skip=true
+
+      - name: Install ecuacion-splib
+        working-directory: ecuacion-splib
+        run: mvn install -DskipTests -Dwagon.skip=true
+
       - name: Verify
+        working-directory: ecuacion-tools
         run: mvn verify -Dwagon.skip=true
 
       - name: Upload coverage to Codecov
@@ -31,6 +65,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: >-
-            ecuacion-tool-housekeep-db/target/site/jacoco/jacoco.xml,
-            ecuacion-tool-housekeep-files/target/site/jacoco/jacoco.xml
+            ecuacion-tools/ecuacion-tool-housekeep-db/target/site/jacoco/jacoco.xml,
+            ecuacion-tools/ecuacion-tool-housekeep-files/target/site/jacoco/jacoco.xml
           fail_ci_if_error: false
