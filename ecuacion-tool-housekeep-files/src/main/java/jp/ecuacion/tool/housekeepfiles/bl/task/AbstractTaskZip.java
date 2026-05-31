@@ -66,7 +66,7 @@ public abstract class AbstractTaskZip extends AbstractTaskLocal {
       }
     } catch (Exception e) {
       dlog.debug("ファイルがロックされているためスキップします：" + fromPath);
-      e.printStackTrace();
+      dlog.warn(e);
       // zipをスキップしているのに元ファイルを削除するのは問題なのでここで終了。
       return;
     }
@@ -82,7 +82,7 @@ public abstract class AbstractTaskZip extends AbstractTaskLocal {
           fromFile.delete();
         }
 
-      } catch (Exception e) {
+      } catch (Exception ignored) {
         dlog.debug("zip元ファイルがロックされているためスキップします：" + fromPath);
       }
     }
