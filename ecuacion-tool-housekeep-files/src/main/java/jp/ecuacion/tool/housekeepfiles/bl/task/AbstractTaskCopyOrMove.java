@@ -81,7 +81,7 @@ public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
       } else {
         // When overwriting, delete the destination file first to prevent FileExistsException.
         String toFilePath =
-            (isToDir) ? FileUtil.concatFilePaths(destPath, new File(srcPath).getName()) : destPath;
+            isToDir ? FileUtil.concatFilePaths(destPath, new File(srcPath).getName()) : destPath;
         new File(toFilePath).delete();
       }
     }

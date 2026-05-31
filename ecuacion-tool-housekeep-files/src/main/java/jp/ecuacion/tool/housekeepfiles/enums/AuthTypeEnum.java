@@ -22,7 +22,7 @@ public enum AuthTypeEnum {
 
   PASSWORD("01"), KEY("11"), KERBEROS("21");
 
-  private String code;
+  private final String code;
 
   private AuthTypeEnum(String code) {
     this.code = code;

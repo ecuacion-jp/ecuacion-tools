@@ -18,10 +18,6 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 import static jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum.ARBITRARY;
 import static jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum.PROHIBITED;
 import static jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum.REQUIRED;
-import static jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum.change;
-import static jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum.create;
-import static jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum.createFromOriginal;
-import static jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum.delete;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -76,19 +72,19 @@ public abstract class AbstractTask {
 
     // Set allowable values based on taskActionKind. Override in individual task classes when
     // exceptional patterns occur.
-    if (taskActionKind == create) {
+    if (taskActionKind == TaskActionKindEnum.create) {
       inputRuleForSrcPathInfo = PROHIBITED;
       inputRuleForDestPathInfo = REQUIRED;
 
-    } else if (taskActionKind == change) {
+    } else if (taskActionKind == TaskActionKindEnum.change) {
       inputRuleForSrcPathInfo = REQUIRED;
       inputRuleForDestPathInfo = REQUIRED;
 
-    } else if (taskActionKind == delete) {
+    } else if (taskActionKind == TaskActionKindEnum.delete) {
       inputRuleForSrcPathInfo = REQUIRED;
       inputRuleForDestPathInfo = PROHIBITED;
 
-    } else if (taskActionKind == createFromOriginal) {
+    } else if (taskActionKind == TaskActionKindEnum.createFromOriginal) {
       inputRuleForSrcPathInfo = REQUIRED;
       inputRuleForDestPathInfo = ARBITRARY;
     }
@@ -134,8 +130,8 @@ public abstract class AbstractTask {
   @SuppressWarnings("null")
   protected void checkNeedRemoteServer(HousekeepFilesTaskRecord taskRec,
       Violations violations) {
-    boolean containsRemoteAction = isSrcPathLocal() != null && !isSrcPathLocal()
-        || isDestPathLocal() != null && !isDestPathLocal();
+    boolean containsRemoteAction = (isSrcPathLocal() != null && !isSrcPathLocal())
+        || (isDestPathLocal() != null && !isDestPathLocal());
 
     checkTaskItemNoThrow(violations, taskRec.getTaskId(), taskPtn,
         containsRemoteAction ? TaskAttrCheckPtnEnum.REQUIRED : TaskAttrCheckPtnEnum.PROHIBITED,
@@ -217,7 +213,7 @@ public abstract class AbstractTask {
 
   /** Returns whether the task holds source path information. */
   public boolean hasSrcPathInfo() {
-    if (getTaskActionKind() == create) {
+    if (getTaskActionKind() == TaskActionKindEnum.create) {
       return false;
 
     } else {
@@ -227,7 +223,7 @@ public abstract class AbstractTask {
 
   /** Returns whether the task holds destination path information. */
   public boolean hasDestPathInfo() {
-    if (getTaskActionKind() == delete) {
+    if (getTaskActionKind() == TaskActionKindEnum.delete) {
       return false;
 
     } else {

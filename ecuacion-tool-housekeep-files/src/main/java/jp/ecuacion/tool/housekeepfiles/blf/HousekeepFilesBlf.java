@@ -91,7 +91,7 @@ public class HousekeepFilesBlf {
     try {
       // Execute task.
       for (HousekeepFilesTaskRecord taskInfo : form.getTaskInfoHdRec().recList) {
-        execEachTask(taskInfo.task, connectionMap, taskInfo, envVarInfoMap, authMap, warnList);
+        execEachTask(taskInfo.task, connectionMap, taskInfo, authMap, warnList);
       }
 
     } finally {
@@ -124,7 +124,7 @@ public class HousekeepFilesBlf {
    */
   protected void execEachTask(AbstractTask task,
       Map<String, ConnectionToRemoteServer> connectionMap, HousekeepFilesTaskRecord taskInfo,
-      Map<String, String> envVarInfoMap, Map<String, HousekeepFilesAuthRecord> authMap,
+      Map<String, HousekeepFilesAuthRecord> authMap,
       List<BusinessViolation> warnList) throws Exception {
 
     // Retrieve connection if not already held.
@@ -140,7 +140,7 @@ public class HousekeepFilesBlf {
 
     // Expand ${VAR} references and wildcards in PATH.
     HousekeepFilesExpandedPathsInfo pathInfo =
-        bl.expandAllPath(task, taskInfo, envVarInfoMap, conn);
+        bl.expandAllPath(task, taskInfo, conn);
 
     // Checks passed, so populate toPath in pathInfoMap.
     // For task patterns with no destination (delete, zip), pathInfo.tmpToFileList will be
