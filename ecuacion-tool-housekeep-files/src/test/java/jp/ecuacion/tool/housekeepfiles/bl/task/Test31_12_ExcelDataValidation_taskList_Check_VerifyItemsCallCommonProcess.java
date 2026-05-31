@@ -28,9 +28,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * HousekeepFilesXmlDataChecker#checkTaskItem のテスト。
+ * Test for HousekeepFilesXmlDataChecker#checkTaskItem.
  */
-public class Test31_12_excelデータの値検証_taskList_チェック_各項目が共通処理を呼んでいるか確認 extends TestTool {
+public class Test31_12_ExcelDataValidation_taskList_Check_VerifyItemsCallCommonProcess extends TestTool {
 
   @SuppressWarnings("null")
   DoNothingInConstructorForm form = null;
@@ -50,14 +50,14 @@ public class Test31_12_excelデータの値検証_taskList_チェック_各項�
   }
 
   @Test
-  public void test01_各項目がcheckTaskItemメソッドを呼んでいるかの確認() throws Exception {
+  public void test01_verifyEachItemCallsCheckTaskItem() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
         "aHost", "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
     form.getTaskInfoHdRec().recList.add(rec);
 
     // stub
     final CounterForStub counterObj = new CounterForStub();
-    // checkerを変更
+    // Replace checker.
     Move move = new Move() {
       @Override
       public void checkTaskItem(Violations violations, String taskId, TaskPtnEnum taskPtn,

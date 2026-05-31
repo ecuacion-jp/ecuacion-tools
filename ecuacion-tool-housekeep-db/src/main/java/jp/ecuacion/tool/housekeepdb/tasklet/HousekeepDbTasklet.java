@@ -93,22 +93,22 @@ public class HousekeepDbTasklet implements Tasklet {
       // DB Connection settings
       try (Connection conn = connectionSettings(dbConnectionInfoMap, info)) {
 
-        // GetMAX_SELECT_LINES 行分、idを取得
+        // Retrieve IDs up to MAX_SELECT_LINES rows.
         String selectSql = getMainSelectSql(info);
 
-        // 大量件数がある場合でもMAX_SELECT_LINES件で区切って処理
+        // Process in batches of MAX_SELECT_LINES even when there are many records.
         while (true) {
           try (PreparedStatement stmt = getStatement(conn, selectSql)) {
             ResultSet rs = stmt.executeQuery();
 
-            // 検索結果が1件以上あったかどうかを判別するフラグ
+            // Flag to determine whether the query returned at least one result.
             boolean isResultZero = true;
 
-            // 取得したレコード1件ごとに処理
+            // Process each retrieved record one by one.
             while (rs.next()) {
               Object idValue = rs.getObject(info.getIdColumnInfo().getColumn());
 
-              // skipすべきデータが存在する場合はskipなのでそのためのチェック
+              // Check for data that should be skipped.
               if (needsSkipFromRelatedTableDataCheck(conn, info, idValue, rs)) {
                 continue;
               }
@@ -119,7 +119,7 @@ public class HousekeepDbTasklet implements Tasklet {
               deleteTargetData(conn, info, idValue, tableRecordDeleted);
             }
 
-            // resultSetが0件の場合は終了
+            // Terminate when the result set is empty.
             if (isResultZero) {
               break;
             }
@@ -157,7 +157,7 @@ public class HousekeepDbTasklet implements Tasklet {
   }
 
   private String getMainSelectSql(HousekeepInfoBean info) {
-    // where句の作成
+    // Build the WHERE clause.
     List<SqlConditionInterface> whereList = new ArrayList<>();
 
     whereList.addAll(
@@ -170,11 +170,12 @@ public class HousekeepDbTasklet implements Tasklet {
     }
 
     if (info.isSoftDelete()) {
-      // 何度も更新しないよう、論理廃止フラグが立っていないもののみを検索対象とする
+      // To avoid updating already-processed records, target only rows where the soft-delete
+      // flag is not set.
       whereList.add(new ColumnAndValueInfoBean(info.getSoftDeleteColumn(), false, "false"));
 
     } else {
-      // 削除でかつ「論理廃止：カラム名」が指定されている場合はwhere句に追加
+      // If hard delete and "soft-delete column name" is specified, add to the WHERE clause.
       if (StringUtils.isNotEmpty(info.getSoftDeleteColumn())) {
         whereList.add(new ColumnAndValueInfoBean(info.getSoftDeleteColumn(), false, "true"));
       }
@@ -279,7 +280,7 @@ public class HousekeepDbTasklet implements Tasklet {
         }
       }
 
-      // まずtargetTableから対象カラムの値を取得
+      // First retrieve the target column value from the target table.
       String sqlTargetSelect =
           "select " + relatedInfo.getTargetTableColumn() + " from " + info.getTable() + " where "
               + info.getIdColumnInfo().getColumnAndValueInfo(id).getCondition();
@@ -295,12 +296,13 @@ public class HousekeepDbTasklet implements Tasklet {
         List<SqlConditionInterface> whereList = new ArrayList<>();
         whereList.add(relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val));
 
-        // 物理削除で論理廃止カラムが指定されている場合は、そのカラムがtrueであることもwhere句に追加
+        // When hard-deleting and a soft-delete column is specified, also add a condition that
+        // the column is true to the WHERE clause.
         if (!info.isSoftDelete() && !StringUtils.isEmpty(relatedInfo.getSoftDeleteColumn())) {
           whereList.add(relatedInfo.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
         }
 
-        // related tableのcolumnに取得した値があるレコードは削除
+        // Delete records in the related table whose column contains the retrieved value.
         String softDeleteSql =
             "update " + relatedInfo.getRelatedTable() + SqlUtil.getUpdateSet(updateSetList);
         String hardDeleteSql = "delete from " + relatedInfo.getRelatedTable();
@@ -345,7 +347,8 @@ public class HousekeepDbTasklet implements Tasklet {
     List<SqlConditionInterface> whereList = new ArrayList<>();
     whereList.add(info.getIdColumnInfo().getColumnAndValueInfo(idValue));
 
-    // 物理削除で論理廃止カラムが指定されている場合は、そのカラムがtrueであることも条件に追加
+    // When hard-deleting and a soft-delete column is specified, also add a condition that
+    // the column is true.
     if (!info.isSoftDelete() && !StringUtils.isEmpty(info.getSoftDeleteColumn())) {
       whereList.add(info.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
     }
@@ -437,10 +440,10 @@ public class HousekeepDbTasklet implements Tasklet {
             langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS))
                 .readToBean(filePath);
 
-    // task IDの重複を検知するためのset
+    // Set for detecting duplicate task IDs.
     Set<String> housekeepInfoTaskIdSet = new HashSet<>();
     for (HousekeepInfoBean hpBean : housekeepList) {
-      // task ID重複チェック
+      // Check for duplicate task IDs.
       if (housekeepInfoTaskIdSet.contains(hpBean.getTaskId())) {
         new Violations()
             .add(new BusinessViolation("MSG_ERR_TASK_ID_DUPLICATED", hpBean.getTaskId()))
@@ -449,7 +452,7 @@ public class HousekeepDbTasklet implements Tasklet {
 
       housekeepInfoTaskIdSet.add(hpBean.getTaskId());
 
-      // DB Connectionは必須なのでない場合はエラー
+      // DB Connection is required; error if not found.
       if (!dbConnectionMap.containsKey(hpBean.getDbConnectionInfoId())) {
         new Violations().add(new BusinessViolation("MSG_ERR_DB_CONN_ID_NOT_FOUND",
             hpBean.getTaskId(), hpBean.getDbConnectionInfoId())).throwIfAny();
@@ -465,13 +468,16 @@ public class HousekeepDbTasklet implements Tasklet {
           .filter(bean -> bean.getTaskId().equals(hpBean.getTaskId())).toList());
     }
 
-    // 「関連テーブル処理設定」、「データ検索条件設定」未使用のデータがないかを確認。
-    // あれば、task IDのずれにより想定通り設定ができていない可能性があるのでエラーとする。
-    // 「DB接続設定」は、1 taskに対して1つのみで、かつ必須にしているので、使用されていないものがあっても大きな問題とは思いにくいことから、未使用があっても問題なしとする。
+    // Verify there are no unused records in "Related Table Settings" and
+    // "Search Condition Settings".
+    // If found, a task ID mismatch may mean the configuration is not as intended, so treat as
+    // an error.
+    // "DB Connection Settings" is limited to one per task and is required, so unused entries
+    // are unlikely to indicate a significant problem — treat as acceptable.
     Set<RelatedTableInfoBean> relSet = new HashSet<>();
     housekeepList.stream().forEach(bean -> relSet.addAll(bean.getRelatedRecordTableInfoList()));
     for (RelatedTableInfoBean relBean : relatedTableList) {
-      // 一致するか否かを判断するkeyがないので、objectとしての同一性で比較
+      // Since there is no key to match on, compare by object identity.
       if (!relSet.contains(relBean)) {
         new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_REL", relBean.getTaskId(),
             langLocal.get(relBean.getRelatedTableProcessPatternStringKey()),
@@ -482,7 +488,7 @@ public class HousekeepDbTasklet implements Tasklet {
     Set<WhereConditionInfoBean> condSet = new HashSet<>();
     housekeepList.stream().forEach(bean -> condSet.addAll(bean.getWhereConditionInfoList()));
     for (WhereConditionInfoBean condBean : whereConditionList) {
-      // 一致するか否かを判断するkeyがないので、objectとしての同一性で比較
+      // Since there is no key to match on, compare by object identity.
       if (!condSet.contains(condBean)) {
         new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_COND",
             condBean.getTaskId(), condBean.getConditionColumn())).throwIfAny();
