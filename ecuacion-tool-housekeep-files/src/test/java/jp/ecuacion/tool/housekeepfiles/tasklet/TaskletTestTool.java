@@ -28,7 +28,7 @@ public class TaskletTestTool extends TestTool {
 
   @BeforeEach
   public void before() throws IOException {
-    // actionの生成
+    // Create action instance.
     action = new HousekeepFilesTasklet();
   }
 

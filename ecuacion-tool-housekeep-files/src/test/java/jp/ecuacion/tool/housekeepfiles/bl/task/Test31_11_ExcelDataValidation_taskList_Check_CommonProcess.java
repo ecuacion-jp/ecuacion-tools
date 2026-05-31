@@ -28,10 +28,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * HousekeepFilesXmlDataChecker#checkTaskItem のテスト。
+ * Test for HousekeepFilesXmlDataChecker#checkTaskItem.
  */
 @SuppressWarnings("null")
-public class Test31_11_excelデータの値検証_taskList_チェック_共通処理 extends TestTool {
+public class Test31_11_ExcelDataValidation_taskList_Check_CommonProcess extends TestTool {
 
   DoNothingInConstructorForm form = null;
   HousekeepFilesTaskRecord taskRec = null;
@@ -56,7 +56,7 @@ public class Test31_11_excelデータの値検証_taskList_チェック_共通�
   }
 
   @Test
-  public void test02_checkTaskItem_required_空文字() {
+  public void test02_checkTaskItem_required_emptyString() {
     Violations violations = new Violations();
     new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
         TaskAttrCheckPtnEnum.REQUIRED, "unit", "");
@@ -67,7 +67,7 @@ public class Test31_11_excelデータの値検証_taskList_チェック_共通�
   }
 
   @Test
-  public void test03_checkTaskItem_required_通常文字列() {
+  public void test03_checkTaskItem_required_normalString() {
     Violations violations = new Violations();
     new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
         TaskAttrCheckPtnEnum.REQUIRED, "anItem", "aValue");
@@ -83,7 +83,7 @@ public class Test31_11_excelデータの値検証_taskList_チェック_共通�
   }
 
   @Test
-  public void test12_checkTaskItem_prohibited_空文字() {
+  public void test12_checkTaskItem_prohibited_emptyString() {
     Violations violations = new Violations();
     new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
         TaskAttrCheckPtnEnum.PROHIBITED, "anItem", "");
@@ -91,7 +91,7 @@ public class Test31_11_excelデータの値検証_taskList_チェック_共通�
   }
 
   @Test
-  public void test13_checkTaskItem_prohibited_通常文字列() {
+  public void test13_checkTaskItem_prohibited_normalString() {
     Violations violations = new Violations();
     new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
         TaskAttrCheckPtnEnum.PROHIBITED, "unit", "aValue");
@@ -110,7 +110,7 @@ public class Test31_11_excelデータの値検証_taskList_チェック_共通�
   }
 
   @Test
-  public void test22_checkTaskItem_arbitrary_空文字() {
+  public void test22_checkTaskItem_arbitrary_emptyString() {
     Violations violations = new Violations();
     new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
         TaskAttrCheckPtnEnum.ARBITRARY, "anItem", "");
@@ -118,7 +118,7 @@ public class Test31_11_excelデータの値検証_taskList_チェック_共通�
   }
 
   @Test
-  public void test23_checkTaskItem_arbitrary_通常文字列() {
+  public void test23_checkTaskItem_arbitrary_normalString() {
     Violations violations = new Violations();
     new Move().checkTaskItem(violations, "aTaskId", TaskPtnEnum.MOVE,
         TaskAttrCheckPtnEnum.ARBITRARY, "anItem", "aValue");

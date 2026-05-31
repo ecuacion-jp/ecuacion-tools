@@ -56,7 +56,7 @@ public class Delete extends AbstractTaskLocal {
       try {
         FileUtils.deleteDirectory(new File(fromPath));
       } catch (Exception e) {
-        dlog.debug("ファイルがロックされているためスキップします：" + fromPath);
+        dlog.debug("Skipping because the file is locked: " + fromPath);
       }
     } else {
       new File(fromPath).delete();

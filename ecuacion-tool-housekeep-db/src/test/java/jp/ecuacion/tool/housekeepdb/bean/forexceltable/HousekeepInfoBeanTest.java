@@ -58,7 +58,7 @@ public class HousekeepInfoBeanTest {
 
     // J (softDeleteColumn) column is required only when isSoftDelete == true
 
-    list = Arrays.asList(new String[] {"taskId", "dbConnectionInfoId", "論理廃止", "SOFT_DELETE",
+    list = Arrays.asList(new String[] {"taskId", "dbConnectionInfoId", "Soft Delete", "SOFT_DELETE",
         "table", "idColumn", "(none)", null, null, null, null, null, null, null, null});
     set = validator.validate(new HousekeepInfoBean(list));
     Assertions.assertEquals(1, set.size());
@@ -67,8 +67,8 @@ public class HousekeepInfoBeanTest {
 
     // no error with "HARD_DELETE" and "quotes(')".
 
-    list = Arrays.asList(new String[] {"taskId", "dbConnectionInfoId", "削除", "HARD_DELETE", "table",
-        "idColumn", "quotes(')", null, null, null, null, null, null, null, null});
+    list = Arrays.asList(new String[] {"taskId", "dbConnectionInfoId", "Hard Delete", "HARD_DELETE",
+        "table", "idColumn", "quotes(')", null, null, null, null, null, null, null, null});
     Set<ConstraintViolation<@NonNull HousekeepInfoBean>> opt =
         validator.validate(new HousekeepInfoBean(list));
     Assertions.assertTrue(opt.isEmpty());
@@ -77,8 +77,9 @@ public class HousekeepInfoBeanTest {
     // softDeleteUpdateUserIdColumnNeedsQuotationMark should be one of the patterns
 
     list = Arrays.asList(
-        new String[] {"taskId", "dbConnectionInfoId", "削除", "HARD_DELETE", "table", "idColumn",
-            "(none)", "lst_upd_time", "OffsetDateTime", "30", "rem_flg", "a", "b", "c", "d"});
+        new String[] {"taskId", "dbConnectionInfoId", "Hard Delete", "HARD_DELETE", "table",
+            "idColumn", "(none)", "lst_upd_time", "OffsetDateTime", "30", "rem_flg", "a", "b", "c",
+            "d"});
     set = validator.validate(new HousekeepInfoBean(list));
     Assertions.assertEquals(2, set.size());
   }

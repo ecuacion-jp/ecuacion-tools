@@ -40,10 +40,11 @@ public class Copy extends AbstractTaskCopyOrMove {
     File to = new File(toPath);
     try {
       if (isFromDir) {
-        // FileUtilsのcopyDirectoryとはちょっと考え方が異なる。
-        // FileUtilsでは、fromをhome/fromDir、toをhome/toDirとすると、fromDirの中に入っているものをtoDirの中にコピーする。
-        // それは、home/fromDir/*と指定した場合に期待する動きであって、home/fromDirと指定した場合は、toには
-        // home/toDir/fromDir となるのが正しい。
+        // The behavior here differs slightly from FileUtils.copyDirectory.
+        // With FileUtils, if from is home/fromDir and to is home/toDir, the contents inside
+        // fromDir are copied into toDir.
+        // That is the behavior expected when specifying home/fromDir/*, but when specifying
+        // home/fromDir, the destination should be home/toDir/fromDir.
         String newToPath = FileUtil.concatFilePaths(to.getAbsolutePath(), from.getName());
         FileUtils.copyDirectory(from, new File(newToPath));
       } else {

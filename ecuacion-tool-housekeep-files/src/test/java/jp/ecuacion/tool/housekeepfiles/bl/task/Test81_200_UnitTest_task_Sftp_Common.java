@@ -34,7 +34,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("null")
-public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
+public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
 
   private AbstractTaskSftp task = new AbstractTaskSftp() {
     @Override
@@ -61,7 +61,7 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
     }
   };
 
-  /** パスに乱数を使用し存在しないパス文字列を作成 */
+  /** Creates a path string that does not exist by incorporating a random value. */
   private String getTestRootPath() {
     return SFTP_ROOT_PATH + "/" + new Random().nextLong();
   }
@@ -73,7 +73,8 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
 
   @BeforeEach
   private void beforeEach() throws Exception {
-    // testToolのbeforeEachOnSftpTestはここでテストするメソッドを使用した処理が入っており、それだとテストの意義がわからなくなるので使用しない。
+    // Do not use testTool.beforeEachOnSftpTest here because it internally calls the method
+    // under test, which would defeat the purpose of this test.
     channel = connectChannelSftp(session);
   }
 
@@ -90,29 +91,28 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   private List<LsEntry> checkExistenceOfDotAndDoubleDotThenReturnElse(List<LsEntry> list) {
     List<LsEntry> rtnList = new ArrayList<>(list);
 
-    // "." の存在を確認の上listから除去
+    // Verify the presence of "." and remove it from the list.
     List<LsEntry> targetList = list.stream().filter(e -> e.getFilename().equals(".")).toList();
     assertEquals(1, targetList.size());
     rtnList.remove(targetList.get(0));
 
-    // ".." の存在を確認の上listから除去
+    // Verify the presence of ".." and remove it from the list.
     targetList = list.stream().filter(e -> e.getFilename().equals("..")).toList();
     assertEquals(1, targetList.size());
     rtnList.remove(targetList.get(0));
 
-    // のこりをreturn
     return rtnList;
   }
 
   private void createTestRootDir(String testRootPath) {
-    // ディレクトリがなければ作成、あればスキップ
+    // Create if not exists, skip if already exists.
     try {
       channel.mkdir(SFTP_ROOT_PATH);
     } catch (Exception ex) {
 
     }
 
-    // ディレクトリがなければ作成、あればスキップ
+    // Create if not exists, skip if already exists.
     try {
       channel.mkdir(testRootPath);
     } catch (Exception ex) {
@@ -121,13 +121,13 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   // @Test
-  // public void test01_session_異常系_リモート接続エラー() throws Exception {
+  // public void test01_session_invalid_remoteConnectionError() throws Exception {
   // try {
   // sftpWrongConnectSession();
   // fail();
   //
   // } catch (JSchException ex) {
-  // // ここを通ればOK。
+  // // Reaching here means OK.
   //
   // } finally {
   // session = null;
@@ -136,14 +136,14 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   // }
 
   @Test
-  public void testa1_getRemoteAll_異常系_存在なし() throws Exception {
+  public void testa1_getRemoteAll_invalid_notExist() throws Exception {
     String testRootpath = getTestRootPath();
     List<LsEntry> list = task.getRemoteAll(channel, testRootpath);
     assertEquals(0, list.size());
   }
 
   @Test
-  public void testa2_getRemoteAll_正常系_ファイル存在() throws Exception {
+  public void testa2_getRemoteAll_valid_fileExists() throws Exception {
     String testRootpath = getTestRootPath();
     String testFilePath = testRootpath + "/testfile";
     createTestRootDir(testRootpath);
@@ -164,7 +164,7 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testa3_getRemoteAll_正常系_ディレクトリ存在() throws Exception {
+  public void testa3_getRemoteAll_valid_dirExists() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
 
@@ -180,10 +180,10 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testa4_getRemoteAll_正常系_ディレクトリ存在で子ファイルとディレクトリ存在() throws Exception {
+  public void testa4_getRemoteAll_valid_dirExistsWithChildFilesAndDirs() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
-    // 子を作成
+    // Create children.
     String childFilePath1 = testRootPath + "/childFile1.txt";
     String childFilePath2 = testRootPath + "/childFile2.txt";
     String childDirPath1 = testRootPath + "/childDir1";
@@ -205,14 +205,14 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testb1_remoteExists_正常系_存在なし() throws Exception {
+  public void testb1_remoteExists_valid_notExist() throws Exception {
     String testRootPath = getTestRootPath();
     boolean bl = task.remoteExists(channel, testRootPath);
     assertEquals(false, bl);
   }
 
   @Test
-  public void testb2_remoteExists_正常系_ファイル存在() throws Exception {
+  public void testb2_remoteExists_valid_fileExists() throws Exception {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
@@ -226,7 +226,7 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testb3_remoteExists_正常系_ディレクトリ存在() throws Exception {
+  public void testb3_remoteExists_valid_dirExists() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
 
@@ -237,14 +237,14 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testc1_remoteDirExists_正常系_存在なし() throws Exception {
+  public void testc1_remoteDirExists_valid_notExist() throws Exception {
     String testRootPath = getTestRootPath();
     boolean bl = task.remoteDirExists(channel, testRootPath);
     assertEquals(false, bl);
   }
 
   @Test
-  public void testc2_remoteDirExists_正常系_ファイル存在() throws Exception {
+  public void testc2_remoteDirExists_valid_fileExists() throws Exception {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
@@ -258,7 +258,7 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testc3_remoteDirExists_正常系_ディレクトリ存在() throws Exception {
+  public void testc3_remoteDirExists_valid_dirExists() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
 
@@ -269,14 +269,14 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testd1_remoteFileExists_正常系_存在なし() throws Exception {
+  public void testd1_remoteFileExists_valid_notExist() throws Exception {
     String testRootPath = getTestRootPath();
     boolean bl = task.remoteFileExists(channel, testRootPath);
     assertEquals(false, bl);
   }
 
   @Test
-  public void testd2_remoteFileExists_正常系_ファイル存在() throws Exception {
+  public void testd2_remoteFileExists_valid_fileExists() throws Exception {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
@@ -290,7 +290,7 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testd3_remoteFileExists_正常系_ディレクトリ存在() throws Exception {
+  public void testd3_remoteFileExists_valid_dirExists() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
 
@@ -301,14 +301,14 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void teste1_getRemoteDetail_正常系_存在なし() throws Exception {
+  public void teste1_getRemoteDetail_valid_notExist() throws Exception {
     String testRootPath = getTestRootPath();
     LsEntry entry = task.getRemoteDetail(channel, testRootPath);
     assertEquals(null, entry);
   }
 
   @Test
-  public void teste2_getRemoteDetail_正常系_ファイル存在() throws Exception {
+  public void teste2_getRemoteDetail_valid_fileExists() throws Exception {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
@@ -323,7 +323,7 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void teste3_getRemoteDetail_正常系_ディレクトリ存在() throws Exception {
+  public void teste3_getRemoteDetail_valid_dirExists() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
 
@@ -335,19 +335,19 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testf1_getRemoteDirChildrenList_正常系_存在なし() throws Exception {
+  public void testf1_getRemoteDirChildrenList_valid_notExist() throws Exception {
     String testRootPath = getTestRootPath();
     try {
       task.getRemoteDirChildrenList(channel, testRootPath);
       fail();
 
     } catch (RuntimeException ex) {
-      
+
     }
   }
 
   @Test
-  public void testf2_getRemoteDirChildrenList_異常系_ファイル存在() throws Exception {
+  public void testf2_getRemoteDirChildrenList_invalid_fileExists() throws Exception {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
@@ -358,7 +358,7 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
       fail();
 
     } catch (RuntimeException ex) {
-      
+
     }
 
     channel.rm(testFilePath);
@@ -366,21 +366,21 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testf3_getRemoteDirChildrenList_正常系_ディレクトリ存在子なし() throws Exception {
+  public void testf3_getRemoteDirChildrenList_valid_dirExistsNoChildren() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
 
     List<LsEntry> list = task.getRemoteDirChildrenList(channel, testRootPath);
     assertEquals(0, list.size());
-    
+
     channel.rmdir(testRootPath);
   }
 
   @Test
-  public void testf4_getRemoteDirChildrenList_正常系_ディレクトリ存在子あり() throws Exception {
+  public void testf4_getRemoteDirChildrenList_valid_dirExistsWithChildren() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
-    // 子を作成
+    // Create children.
     String childFilePath1 = testRootPath + "/childFile1.txt";
     String childDirPath1 = testRootPath + "/childDir1";
     channel.put(new ByteArrayInputStream("".getBytes()), childFilePath1);
@@ -391,26 +391,26 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
     List<String> strList = list.stream().map(e -> e.getFilename()).toList();
     assertTrue(strList.contains("childFile1.txt"));
     assertTrue(strList.contains("childDir1"));
-    
+
     channel.rm(childFilePath1);
     channel.rmdir(childDirPath1);
     channel.rmdir(testRootPath);
   }
 
   @Test
-  public void testg1_getRemoteDirChildrenNameList_異常系_存在なし() throws Exception {
+  public void testg1_getRemoteDirChildrenNameList_invalid_notExist() throws Exception {
     String testRootPath = getTestRootPath();
     try {
       task.getRemoteDirChildrenNameList(channel, testRootPath);
       fail();
 
     } catch (RuntimeException ex) {
-      
+
     }
   }
 
   @Test
-  public void testg2_getRemoteDirChildrenNameList_異常系_ファイル存在() throws Exception {
+  public void testg2_getRemoteDirChildrenNameList_invalid_fileExists() throws Exception {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
@@ -421,7 +421,7 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
       fail();
 
     } catch (RuntimeException ex) {
-      
+
     }
 
     channel.rm(testFilePath);
@@ -429,21 +429,21 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
   }
 
   @Test
-  public void testg3_getRemoteDirChildrenNameList_正常系_ディレクトリ存在子なし() throws Exception {
+  public void testg3_getRemoteDirChildrenNameList_valid_dirExistsNoChildren() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
 
     List<String> list = task.getRemoteDirChildrenNameList(channel, testRootPath);
     assertEquals(0, list.size());
-    
+
     channel.rmdir(testRootPath);
   }
 
   @Test
-  public void testg4_getRemoteDirChildrenNameList_正常系_ディレクトリ存在子あり() throws Exception {
+  public void testg4_getRemoteDirChildrenNameList_valid_dirExistsWithChildren() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
-    // 子を作成
+    // Create children.
     String childFilePath1 = testRootPath + "/childFile1.txt";
     String childDirPath1 = testRootPath + "/childDir1";
     channel.put(new ByteArrayInputStream("".getBytes()), childFilePath1);
@@ -453,7 +453,7 @@ public class Test81_200_単体動作確認_task_SFTP_共通 extends TestTool {
     assertEquals(2, list.size());
     assertTrue(list.contains("childFile1.txt"));
     assertTrue(list.contains("childDir1"));
-    
+
     channel.rm(childFilePath1);
     channel.rmdir(childDirPath1);
     channel.rmdir(testRootPath);

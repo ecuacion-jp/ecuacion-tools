@@ -143,3 +143,18 @@ products/
 
 # vscode
 .vscode/
+
+<<<<<<< Updated upstream
+# claude
+.claude
+
+# allure
+.allure
+=======
+# allure
+.allure
+
+# claude
+.claude
+
+>>>>>>> Stashed changes

@@ -20,7 +20,7 @@
 //import org.junit.BeforeClass;
 //import org.junit.Test;
 //
-//public class Test11_101_xmlデータの値検証_taskList_チェック_移動 extends AbstractTestTool {
+//public class Test11_101_XmlDataValidation_taskList_Check_Move extends AbstractTestTool {
 //
 //  @BeforeClass
 //  public static void beforeClass() throws IOException {
@@ -33,10 +33,11 @@
 //  }
 //
 //  /**
-//   * taskListの各項目が空欄の場合にエラーになることの確認。 別途テストするが、Actionから見てちゃんと動いているかの抜粋テスト。
+//   * Verify that an error occurs when each item in taskList is empty.
+//   * A spot check from the Action perspective, with detailed tests elsewhere.
 //   */
 //  @Test
-//  public void test01_taskListの中身が空欄() {
+//  public void test01_taskListContentIsEmpty() {
 //
 //  }
 //

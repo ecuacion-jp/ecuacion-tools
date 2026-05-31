@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Assertions;
 public class TestTools {
 
   //
-  // static importが面倒なので、test methodをここに定義しておく。
+  // Define test methods here to avoid cumbersome static imports.
   //
 
   public void assertTrue(boolean bl) {
@@ -39,8 +39,8 @@ public class TestTools {
     Assertions.fail();
   }
 
-  // assertThat(..) は使いやすくしようがないので対象のクラスをコメントで記録しておく。。。
-  // assertThatを使う場合は、以下の方をimportしておく。
+  // assertThat(..) is not easy to simplify, so recording the target class in a comment.
+  // When using assertThat, import the following.
   // org.assertj.core.api.Assertions
 
 }

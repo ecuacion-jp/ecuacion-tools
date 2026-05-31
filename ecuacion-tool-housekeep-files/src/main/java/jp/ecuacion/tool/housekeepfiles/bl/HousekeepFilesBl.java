@@ -72,19 +72,19 @@ public class HousekeepFilesBl {
 
   /** Validates cross-record consistency such as duplicate task IDs and task names. */
   public void consistencyCheckBetweenMultipleData(HousekeepFilesForm form) {
-    // taskInfoHdRecはreaderで読み込んでいない＝validation checkが動いていないので実施。
-    // 実質sysNameの存在チェック。
+    // taskInfoHdRec is not read by the reader, so validation check is not run - run it here.
+    // Effectively checks for the existence of sysName.
     new Violations()
         .addAll(Validation.buildDefaultValidatorFactory().getValidator()
             .validate(form.getTaskInfoHdRec()))
         .throwIfAny();
 
-    // taskがゼロの場合はエラー
+    // Error if task count is zero.
     if (form.getTaskInfoHdRec().recList == null || form.getTaskInfoHdRec().recList.size() == 0) {
       new Violations().add(new BusinessViolation("MSG_ERR_AT_LEAST_ONE_TASK_NEEDED")).throwIfAny();
     }
 
-    // taskId, taskNameが重複していないことを確認
+    // Verify that taskId and taskName are not duplicated.
     HashSet<String> taskIdSet = new HashSet<String>();
     HashSet<String> taskNameSet = new HashSet<String>();
     for (HousekeepFilesTaskRecord rec : form.getTaskInfoHdRec().recList) {
@@ -116,7 +116,7 @@ public class HousekeepFilesBl {
       pathInfoMap.put(pathInfo.getKey(), pathInfo.getValue());
     }
 
-    // defaultで用意される項目を追加
+    // Add fields provided by default.
     pathInfoMap.put(Constants.ENV_VAR_SYS_NAME, form.getTaskInfoHdRec().getSysName());
     pathInfoMap.put(Constants.ENV_VAR_DATE, dateUtil.getDateStr8());
     pathInfoMap.put(Constants.ENV_VAR_TIMESTAMP, dateUtil.getTimestampNumString());
@@ -128,9 +128,9 @@ public class HousekeepFilesBl {
   /** Validates env variable references in paths and stores the variable map in each task record. */
   public void envVarExistenceCheckAndSetEnvBarExpandedPaths(
       List<HousekeepFilesTaskRecord> taskRecList, Map<String, String> envVarInfoMap) {
-    // pathFrom, pathToのチェック
+    // Validate pathFrom and pathTo.
     for (HousekeepFilesTaskRecord rec : taskRecList) {
-      // パスに含まれる${xxx}のxxx値がパスリストに存在するかを確認
+      // Verify that ${xxx} variable names in the path exist in the path list.
       if (rec.getSrcPath() != null) {
         analyzePathVarAndCheckIfExistsInSet(rec, envVarInfoMap.keySet(), rec.getSrcPath());
       }
@@ -139,7 +139,7 @@ public class HousekeepFilesBl {
         analyzePathVarAndCheckIfExistsInSet(rec, envVarInfoMap.keySet(), rec.getDestPath());
       }
 
-      // 問題なければ、envVarInfoMapをtaskRecに設定することで環境変数展開済みパスを生成
+      // If no issues, set envVarInfoMap on taskRec to generate environment-variable-expanded paths.
       rec.setEnvVarInfoMap(envVarInfoMap);
     }
   }
@@ -166,7 +166,7 @@ public class HousekeepFilesBl {
       Violations violations) throws Exception {
     for (HousekeepFilesTaskRecord dtRec : form.getTaskInfoHdRec().recList) {
       createTaskInstance(dtRec, dtRec.getTaskPtn());
-      // task別の入力必須・禁止のチェック処理
+      // Per-task required/prohibited field validation.
       try {
         dtRec.task.check(dtRec);
       } catch (ViolationException ex) {
@@ -204,7 +204,8 @@ public class HousekeepFilesBl {
       expandToPath(envVarInfoMap, connection, taskRec, task, toPathList);
     }
 
-    // toについては、本来一つでなければならないが、ここではチェックせずArrayListのまま保持させる
+    // The "to" path should ultimately be exactly one, but skip the check here
+    // and keep it as an ArrayList.
     return new HousekeepFilesExpandedPathsInfo(fromPathList, toPathList);
   }
 
@@ -216,25 +217,28 @@ public class HousekeepFilesBl {
     List<FileInfo> tmpFromFileAndDirMixedList = task.getFromDirFileInfoList(task, connection,
         taskRec.getIsSrcPathDir(), taskRec.getEnvVarExpandedSrcPath());
     for (FileInfo fi : tmpFromFileAndDirMixedList) {
-      // isSrcPathDirと実際のパスの内容（ファイルかディレクトリか）が一致している場合のみを対象に残すものとするので、そうでない場合はスキップ
+      // Keep only entries where isSrcPathDir matches the actual path type (file or directory);
+      // skip otherwise.
       if (!(taskRec.getIsSrcPathDir() == true) == fi.isDirectory()) {
         continue;
 
       }
-      // さらに最終更新日の条件を満たすもののみを対象とする。必要な期間が経過していないものは除外。
+      // Further filter to entries whose last-modified date satisfies the elapsed-time condition.
+      // Exclude entries that have not yet passed the required period.
       if (!dateUtil.hasDesignatedTermPassed(fi.getLastUpdTimeInMillis(), taskRec.getUnit(),
           taskRec.getValue())) {
         continue;
       }
 
-      // ファイルにロックがかかっている場合はリストに追加せず、ワーニングのログのみ出力する
-      // これは、対応しているプロトコルとそうでないものがある（現時点では、ローカルファイルシステムにのみ対応）
+      // If the file is locked, skip adding it to the list and only output a warning log.
+      // This applies only to supported protocols (currently only the local filesystem).
       if (fi.isLocked()) {
-        logWithTaskId(taskRec.getTaskId(), "ファイルがロックされているためスキップします：" + fi.getFilePath());
+        logWithTaskId(taskRec.getTaskId(), "Skipping because the file is locked: "
+            + fi.getFilePath());
         continue;
       }
 
-      // リストに追加
+      // Add to the list.
       fromPathList.add(fi.getFilePath());
     }
   }
@@ -248,20 +252,21 @@ public class HousekeepFilesBl {
     String varSubstitutedToPath = taskRec.getEnvVarExpandedDestPath();
 
     List<String> tmpToFileAndDirMixedList = null;
-    // ワイルドカードが存在するかどうかで処理を分ける
-    // ワイルドカードが存在しない場合は、ディレクトリを自動生成する
+    // Branch based on whether a wildcard is present.
+    // If no wildcard, auto-create the directory.
     if (!WildcardPathUtil.containsWildCard(varSubstitutedToPath)) {
-      // fu.getPathListFromPathWithWildcardにはclean処理が含まれるが、こちらの場合は通らないので個別に呼び出しておく
+      // fu.getPathListFromPathWithWildcard includes a clean step, but this path bypasses it,
+      // so call clean individually.
       varSubstitutedToPath = FileUtil.cleanPathStrWithSlash(varSubstitutedToPath);
       tmpToFileAndDirMixedList = new ArrayList<String>();
       tmpToFileAndDirMixedList.add(varSubstitutedToPath);
 
-      // ディレクトリがない場合は作成する
+      // Create the directory if it does not exist.
       String dirPath = (taskRec.getIsDestPathDir() != null && taskRec.getIsDestPathDir() == true)
           ? varSubstitutedToPath
           : new File(varSubstitutedToPath).getParent();
 
-      // 相対パスの場合は絶対パスに書き換え
+      // Convert relative paths to absolute paths.
       if (dirPath != null && !dirPath.startsWith("/")) {
         String dirPathTmp = dirPath.startsWith("./") ? dirPath.substring(2) : dirPath;
         dirPath = FileUtil.concatFilePaths(System.getProperty("user.dir"), dirPathTmp);
@@ -273,14 +278,15 @@ public class HousekeepFilesBl {
     }
 
     for (String path : tmpToFileAndDirMixedList) {
-      // TOのpathのファイル・ディレクトリが既に存在している場合
+      // If the destination path file/directory already exists.
       FileInfo dirInfo = task.getToPathFileInfo(task, connection, true, path);
       FileInfo fileInfo = task.getToPathFileInfo(task, connection, false, path);
       if (dirInfo == null && fileInfo == null) {
         toPathList.add(path);
 
       } else {
-        // isDestPathDirと実際のパスの内容（ファイルかディレクトリか）が一致している場合のみtoPathListに追加
+        // Add to toPathList only when isDestPathDir matches the actual path type
+        // (file or directory).
         if (dirInfo != null && taskRec.getIsDestPathDir()
             || fileInfo != null && !taskRec.getIsDestPathDir()) {
           toPathList.add(path);
@@ -297,7 +303,7 @@ public class HousekeepFilesBl {
       HousekeepFilesTaskRecord rec, HousekeepFilesExpandedPathsInfo pathInfo) {
     List<BusinessViolation> warnList = new ArrayList<>();
 
-    // toがファイルの場合は、fromもひとつでなければならない
+    // When the destination is a file, there must be exactly one source.
     if (rec.getIsDestPathDir() != null && rec.getIsDestPathDir() == false
         && pathInfo.fromFileList.size() > 1) {
       new Violations().add(new BusinessViolation(
@@ -305,7 +311,7 @@ public class HousekeepFilesBl {
           rec.getTaskId(), rec.getTaskName())).throwIfAny();
     }
 
-    // fromの存在チェックを行う
+    // Check that the source path exists.
     if (rec.getSrcPath() != null && task.isSrcPathLocal() != null && task.isSrcPathLocal()
         && pathInfo.fromFileList.size() == 0) {
       if (rec.getActionForNoSrcPath() == IncidentTreatedAsEnum.ERROR) {
@@ -319,10 +325,12 @@ public class HousekeepFilesBl {
       }
     }
 
-    // toが存在しないtaskPtnの場合はスキップ。また、zipの場合はtoは記載しないがoverwriteチェックだけ行うので別だし
+    // Skip task patterns that have no destination.
+    // For zip, no destination is specified but overwrite check is still performed,
+    // so handle separately.
     if (task.getInputRuleForDestPath() == TaskAttrCheckPtnEnum.REQUIRED) {
       if (task.isDestPathLocal()) {
-        // toの存在チェックを行う。toは、一つでなければならない
+        // Check that the destination path exists. The destination must be exactly one.
         if (pathInfo.tmpToFileList.size() == 0) {
           new Violations().add(new BusinessViolation("MSG_ERR_TO_PATH_DOESNT_EXIST",
               rec.getTaskId(), rec.getTaskName())).throwIfAny();
@@ -334,14 +342,16 @@ public class HousekeepFilesBl {
       }
 
       for (String fromPath : pathInfo.fromFileList) {
-        // toのファイル・ディレクトリが存在する場合は、actionForToFileExistsの設定に従う。
+        // If the destination file/directory exists, follow the actionForToFileExists setting.
         String toPath = pathInfo.tmpToFileList.get(0);
         boolean doesFileOrDirExists =
             fmu.checkIfToOverwrittenFileOrDirExists(rec, fromPath, toPath);
         if (doesFileOrDirExists) {
-          // ディレクトリからディレクトリへのコピーで、かつディレクトリ名が先に存在する、となると、その下のコピー内容が、上書きしたりなんだりを追うのが大変だし、
-          // それら下の階層を含めすべてのコピーをするのはそもそも処理として非常に乱暴なので、有無を言わさずエラーとする
-          // 尚、fromがディレクトリでcompress指定がある場合は、結局ファイルとしての扱いになるのでその場合は除外
+          // For directory-to-directory copy where the destination directory already exists,
+          // tracking overwrite behavior across nested contents is complex, and copying the full
+          // hierarchy is too destructive, so treat it as an unconditional error.
+          // Note: if the source is a directory with compression specified, it is treated as a file,
+          // so that case is excluded.
           if (rec.getIsSrcPathDir() == true && rec.getIsDestPathDir() == true) {
             new Violations().add(new BusinessViolation(
                 "MSG_ERR_TO_DIR_EXISTS_AND_COPY_SETTING_VAGUE",
@@ -368,7 +378,7 @@ public class HousekeepFilesBl {
   public void doTaskForMultipleFiles(HousekeepFilesTaskRecord taskRec,
       HousekeepFilesExpandedPathsInfo pathInfo, @Nullable ConnectionToRemoteServer conn,
       List<BusinessViolation> warnList) throws Exception {
-    // ログ
+    // Log output.
     logTaskStartMsg(taskRec);
 
     AbstractTask task = getTaskInstance(taskRec);
@@ -377,13 +387,13 @@ public class HousekeepFilesBl {
       task.doTask(conn, taskRec, taskRec.getEnvVarExpandedSrcPath(), pathInfo.toPath, warnList);
 
     } else {
-      // fromのファイル・ディレクトリごとにループ
+      // Loop over each source file/directory.
       for (String fromPath : pathInfo.fromFileList) {
         task.doTask(conn, taskRec, fromPath, pathInfo.toPath, warnList);
       }
     }
 
-    // ログ
+    // Log output.
     logTaskFinishMsg(taskRec, pathInfo);
   }
 
@@ -407,7 +417,7 @@ public class HousekeepFilesBl {
 
   private void logTaskFinishMsg(HousekeepFilesTaskRecord taskRec,
       HousekeepFilesExpandedPathsInfo pathInfo) {
-    dlog.debug("### finishTask :" + taskRec.getTaskId() + " | 処理ファイル／ディレクトリ数:"
+    dlog.debug("### finishTask :" + taskRec.getTaskId() + " | processed file/directory count:"
         + pathInfo.fromFileList.size());
   }
 
@@ -432,7 +442,7 @@ public class HousekeepFilesBl {
   /** Sends a warning email listing all accumulated violations to the configured recipients. */
   public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
       throws Exception {
-    // エラーメッセージの一覧を取得
+    // Retrieve the list of error messages.
     List<String> msgList = new ArrayList<>();
     Violations warnViolations = new Violations();
     warnList.forEach(warnViolations::add);
@@ -442,7 +452,7 @@ public class HousekeepFilesBl {
       msgList.addAll(ExceptionUtil.getMessageList(ex, Locale.JAPANESE));
     }
 
-    // メッセージを作成
+    // Build the message.
     final String title = PropertiesFileUtil.getApplication("jp.ecuacion.lib.core.mail.title-prefix")
         + "[WARN] HousekeepFiles:" + hdE.getSysName();
     String hostname = InetAddress.getLocalHost().getHostName();
@@ -452,9 +462,9 @@ public class HousekeepFilesBl {
       msg.append("- " + additionalMsg + "\n");
     }
 
-    // ログ
+    // Log output.
     dlog.debug(msg.toString());
-    // メール送信
+    // Send email.
     List<String> mailTo = new ArrayList<String>();
     for (String to : PropertiesFileUtil
         .getApplication("jp.ecuacion.lib.core.mail.address-csv-on-system-error").split(",")) {

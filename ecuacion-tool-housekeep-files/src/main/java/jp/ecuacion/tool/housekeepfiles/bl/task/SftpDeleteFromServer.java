@@ -65,7 +65,7 @@ public class SftpDeleteFromServer extends AbstractTaskSftp {
       HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
       List<BusinessViolation> warnList) throws Exception {
     ChannelSftp sftp = ((ConnectionToSftpServer) connection).getSftpChannel();
-    // 指定のディレクトリがそもそも存在しない場合は作成する
+    // Create the specified directory if it does not exist.
     // makeRemoteDirs(connection, fromPath);
     sftp.rm(fromPath);
   }

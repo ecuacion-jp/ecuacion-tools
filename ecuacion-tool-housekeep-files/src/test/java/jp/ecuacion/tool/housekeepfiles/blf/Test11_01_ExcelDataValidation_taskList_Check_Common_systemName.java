@@ -23,14 +23,15 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("null")
-public class Test11_01_excelデータの値検証_taskList_チェック_共通_systemName extends BlfTestTool {
+public class Test11_01_ExcelDataValidation_taskList_Check_Common_systemName extends BlfTestTool {
 
   /**
-   * taskListのsystemが空欄の場合。 エラーとする。 別途テストするが、Actionから見てちゃんと動いているかの抜粋テスト。
-   * systemだけ、属性にくっついてるので念のため別扱いにしておく
+   * When the system field in taskList is empty. Treat as an error.
+   * A spot check from the Action perspective, with detailed tests elsewhere.
+   * system is attached as an attribute, so handle it separately for safety.
    */
   @Test
-  public void test01_system名が空欄() throws Exception {
+  public void test01_systemNameIsEmpty() throws Exception {
     HousekeepFilesForm form = new HousekeepFilesForm();
 
     try {

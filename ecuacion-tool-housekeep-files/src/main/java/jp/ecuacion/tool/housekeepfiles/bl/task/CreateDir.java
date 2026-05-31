@@ -55,21 +55,21 @@ public class CreateDir extends AbstractTaskLocal implements CreateDirInterface {
 
     File dest = new File(destPath);
 
-    // 作成対象ディレクトリが既に存在する場合
+    // If the directory to create already exists.
     if (dest.exists() && dest.isDirectory()) {
       treatDestPathExists(taskRec, destPath, warnList);
       return;
     }
-    
-    // 以下、作成対象ディレクトリが存在しない場合
 
-    // toPathがディレクトリでなくファイルとして存在する場合
+    // Below: when the directory to create does not exist.
+
+    // If toPath exists as a file rather than a directory.
     if (dest.exists() && !dest.isDirectory()) {
       new Violations().add(new BusinessViolation("MSG_ERR_DEST_PATH_IS_FILE",
           taskRec.getTaskId(), taskRec.getTaskName(), destPath)).throwIfAny();
     }
 
-    // ファイル・ディレクトリとも存在しない場合。作成する
+    // Neither file nor directory exists. Create it.
     new File(destPath).mkdirs();
   }
 }
