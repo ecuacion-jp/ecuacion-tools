@@ -35,32 +35,13 @@ public class HkFileManipulateUtil {
       // When the destination is a file.
       // Taking file extension into account.
       // toPath = toPath + extension;
-      return (new File(toPath).exists()) ? true : false;
+      return new File(toPath).exists();
 
     } else {
       // When the destination is a directory, check inside that directory.
-      // Also branch based on whether from is a directory. Note that even if from is a directory,
-      // it is treated as a file when zip is specified, so include that in the condition.
-      boolean isSrcPathDir;
-      try {
-        isSrcPathDir = taskRec.getIsSrcPathDir() == true;
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-      if (isSrcPathDir) {
-        // This case is: from=directory, to=directory.
-        // Check whether a folder with the same name as the from directory exists under to.
-        return (new File(FileUtil.concatFilePaths(toPath, new File(fromPath).getName())).exists())
-            ? true
-            : false;
-
-      } else {
-        // This case is: from=file, to=directory.
-        // fromPath = fromPath + extension;
-        return (new File(FileUtil.concatFilePaths(toPath, new File(fromPath).getName())).exists())
-            ? true
-            : false;
-      }
+      // Covers both from=directory and from=file cases: check whether a file/dir with the same
+      // name as the from entry exists under the to directory.
+      return new File(FileUtil.concatFilePaths(toPath, new File(fromPath).getName())).exists();
     }
   }
 

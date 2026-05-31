@@ -28,7 +28,7 @@ public enum TaskPtnEnum {
   SFTP_DELETE_FROM_SERVER("231");
   //@formatter:on
 
-  private String code;
+  private final String code;
 
   private TaskPtnEnum(String code) {
     this.code = code;

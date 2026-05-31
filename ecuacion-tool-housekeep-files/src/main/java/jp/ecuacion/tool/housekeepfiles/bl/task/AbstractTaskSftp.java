@@ -15,7 +15,6 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
-import static jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum.create;
 
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
@@ -41,6 +40,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.AuthTypeEnum;
+import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -150,7 +150,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
 
     // For file/directory creation tasks, non-existence is the expected state,
     // so skip checks and return.
-    if (task.getTaskActionKind() == create) {
+    if (task.getTaskActionKind() == TaskActionKindEnum.create) {
       return rtnList;
     }
 

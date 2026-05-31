@@ -16,6 +16,7 @@
 package jp.ecuacion.tool.housekeepdb.util;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
@@ -43,7 +44,7 @@ public class SqlUtil {
    */
   public static String getTimestampNow(String protocol) {
     if (protocol.equals("postgresql")) {
-      return OffsetDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME);
+      return OffsetDateTime.now(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_DATE_TIME);
 
     } else {
       throw new RuntimeException("Protocol not recognized. protocol: " + protocol);
