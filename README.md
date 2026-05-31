@@ -23,7 +23,7 @@ This project follows the spirit of [Semantic Versioning](https://semver.org/). M
 
 ## Documentation
 
-- See the `Documentation` section of the `README` in each module for details.
+- javadoc - See the `Documentation` section of the `README` in each module
 
 ## Download & Usage
 
