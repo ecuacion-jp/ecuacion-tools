@@ -52,7 +52,7 @@ public class Move extends AbstractTaskCopyOrMove {
         FileUtils.moveDirectory(from, new File(newToPath));
       } catch (Exception e) {
         dlog.debug("ファイルがロックされているためスキップします：" + from);
-        e.printStackTrace();
+        dlog.warn(e);
       }
     } else {
       // fromのファイルの期間が条件を満たすかを確認
@@ -68,7 +68,7 @@ public class Move extends AbstractTaskCopyOrMove {
           }
         } catch (Exception e) {
           dlog.debug("ファイルがロックされているためスキップします：" + from);
-          e.printStackTrace();
+          dlog.warn(e);
         }
       }
     }

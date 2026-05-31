@@ -3,11 +3,12 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>jp.ecuacion.tool</groupId>
 	<artifactId>ecuacion-tool-parent</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<parent>
 		<groupId>jp.ecuacion.splib</groupId>
 		<artifactId>ecuacion-splib-parent</artifactId>
-		<version>0.0.1-SNAPSHOT</version>
+		<version>0.0.2-SNAPSHOT</version>
 		<relativePath>../ecuacion-splib</relativePath>
 	</parent>
 	<properties>
