@@ -19,7 +19,7 @@
 //import org.junit.Before;
 //import org.junit.BeforeClass;
 //
-//public class Test41_01_結合テスト_連続動作確認 extends AbstractTestTool {
+//public class Test41_01_IntegrationTest_ContinuousOperation extends AbstractTestTool {
 //
 //  @BeforeClass
 //  public static void beforeClass() throws IOException {

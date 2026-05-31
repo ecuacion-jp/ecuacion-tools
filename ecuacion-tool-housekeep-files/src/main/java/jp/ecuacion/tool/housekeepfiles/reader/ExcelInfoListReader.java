@@ -39,7 +39,7 @@ public class ExcelInfoListReader extends StringOneLineHeaderExcelTableReader {
    * Returns excel data as map format.
    */
   public Map<String, String> readToMap(String excelPath) throws IOException {
-    // 表の情報をlistの形で取得
+    // Retrieve the table data as a list.
     List<List<String>> rowList;
     try {
       rowList = read(excelPath);

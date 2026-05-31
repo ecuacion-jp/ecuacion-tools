@@ -29,7 +29,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 
 /**
- * テスト用task. taskPtnとしてはMOVEを使いながら、すべてをPROHIBITEDにしている.
+ * Test task that uses MOVE as the task pattern but sets all fields to PROHIBITED.
  *
  * @author yosuk_000
  *

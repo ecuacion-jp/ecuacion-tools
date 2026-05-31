@@ -21,7 +21,7 @@ import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.BeforeEach;
 
 @SuppressWarnings("null")
-public class Test81_301_単体動作確認_task_SFTP_サーバからコピー extends TestTool {
+public class Test81_301_UnitTest_task_Sftp_CopyFromServer extends TestTool {
   SftpCopyFromServer task = null;
   HousekeepFilesTaskRecord taskRec = null;
 
@@ -42,7 +42,7 @@ public class Test81_301_単体動作確認_task_SFTP_サーバからコピー ex
   // }
   //
   // @Test
-  // public void test01_正常系_fromファイル_toフォルダ() throws IOException {
+  // public void test01_valid_fromFile_toFolder() throws IOException {
   // String fromFilePath = "/var/www/html/tanpinkatsuyou/background.jpg";
   // String remoteServer = "dev.ecuacion.jp";
   //
@@ -64,7 +64,7 @@ public class Test81_301_単体動作確認_task_SFTP_サーバからコピー ex
   // }
   //
   // @Test
-  // public void testXX_正常系_鍵使用_fromファイル_toフォルダ() throws IOException {
+  // public void testXX_valid_withKey_fromFile_toFolder() throws IOException {
   // String remoteServer = "resources.ecuacion.jp";
   //
   // String fromFilePath = "/var/log/yum-debug.log";
@@ -75,7 +75,7 @@ public class Test81_301_単体動作確認_task_SFTP_サーバからコピー ex
   //
   // HousekeepFilesAuthRecord auth = new HousekeepFilesAuthRecord(remoteServer, "SFTP", "5306",
   // AuthTypeEnum.KEY.getName(), "file_share_user", "HtyT#flsr!Aster1s",
-  // "C:/Users/yosuk_000/Dropbox/アスタリス/400_開発/81_サーバ関連/resourcesサーバ/"
+  // "C:/Users/yosuk_000/Dropbox/Asterisk/400_dev/81_server/resources-server/"
   // + "ssh-key/file_share_user-private-key-for-resouces-ssh-for-openssh.ppk");
   //
   // HashMap<String, HousekeepFilesAuthRecord> map = new HashMap<>();
