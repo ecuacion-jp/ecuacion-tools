@@ -31,15 +31,15 @@ import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
-import jp.ecuacion.util.excel.table.reader.concrete.StringHeaderExcelTableReader;
-import jp.ecuacion.util.excel.table.reader.concrete.StringHeaderExcelTableToBeanReader;
+import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
+import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.event.Level;
-import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
-import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
 /**
@@ -55,7 +55,6 @@ public class HousekeepDbTasklet implements Tasklet {
   /**
    * Executes the procedure.
    */
-  @SuppressWarnings("null")
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
 
@@ -386,7 +385,7 @@ public class HousekeepDbTasklet implements Tasklet {
   private Map<String, String> getInfoMap(String filePath) throws Exception {
     List<List<String>> list;
     try {
-      list = new StringHeaderExcelTableReader("Info", new String[] {"item", "value"})
+      list = new StringOneLineHeaderExcelTableReader("Info", new String[] {"item", "value"})
           .read(filePath);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -402,7 +401,7 @@ public class HousekeepDbTasklet implements Tasklet {
     LangExcel langLocal = Objects.requireNonNull(lang);
     Map<String, DbConnectionInfoBean> dbConnectionInfoMap;
     try {
-      dbConnectionInfoMap = new StringHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
+      dbConnectionInfoMap = new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
           DbConnectionInfoBean.class, langLocal.get(LangExcel.DB_CONNECTION_SETTINGS),
           langLocal.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS))
               .readToBean(filePath).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
@@ -423,17 +422,17 @@ public class HousekeepDbTasklet implements Tasklet {
       Map<String, DbConnectionInfoBean> dbConnectionMap) throws Exception {
     LangExcel langLocal = Objects.requireNonNull(lang);
     List<HousekeepInfoBean> housekeepList =
-        new StringHeaderExcelTableToBeanReader<HousekeepInfoBean>(HousekeepInfoBean.class,
+        new StringOneLineHeaderExcelTableToBeanReader<HousekeepInfoBean>(HousekeepInfoBean.class,
             langLocal.get(LangExcel.HOUSEKEEP_DB_SETTINGS),
             langLocal.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS))
                 .readToBean(filePath);
     List<WhereConditionInfoBean> whereConditionList =
-        new StringHeaderExcelTableToBeanReader<WhereConditionInfoBean>(
+        new StringOneLineHeaderExcelTableToBeanReader<WhereConditionInfoBean>(
             WhereConditionInfoBean.class, langLocal.get(LangExcel.SEARCH_CONDITION_SETTINGS),
             langLocal.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS))
                 .readToBean(filePath);
     List<RelatedTableInfoBean> relatedTableList =
-        new StringHeaderExcelTableToBeanReader<RelatedTableInfoBean>(
+        new StringOneLineHeaderExcelTableToBeanReader<RelatedTableInfoBean>(
             RelatedTableInfoBean.class, langLocal.get(LangExcel.RELATED_TABLE_SETTINGS),
             langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS))
                 .readToBean(filePath);
