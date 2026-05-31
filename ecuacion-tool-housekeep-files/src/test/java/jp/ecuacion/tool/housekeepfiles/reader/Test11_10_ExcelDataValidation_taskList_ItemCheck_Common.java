@@ -20,12 +20,12 @@ import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
 
-public class Test11_10_excelデータの値検証_taskList_単体項目チェック_共通 extends TestTool {
+public class Test11_10_ExcelDataValidation_taskList_ItemCheck_Common extends TestTool {
 
   
   
   @Test
-  public void test01_共通_正常系_必須項目以外全てnull()
+  public void test01_common_valid_allNullExceptRequired()
       throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
         "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
@@ -34,7 +34,7 @@ public class Test11_10_excelデータの値検証_taskList_単体項目チェッ
   }
 
   @Test
-  public void test02_共通_正常系_全項目null以外の通常文字列入力()
+  public void test02_common_valid_allItemsNormalStringInput()
       throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
         "SFTP_MOVE_FROM_SERVER", "aHost", "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE",

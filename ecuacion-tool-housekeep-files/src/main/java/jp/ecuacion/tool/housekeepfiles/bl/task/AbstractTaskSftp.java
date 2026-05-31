@@ -137,7 +137,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
       }
     }
 
-    throw new RuntimeException("ここに到達することはない");
+    throw new RuntimeException("This point should never be reached.");
   }
 
   /**
@@ -148,7 +148,8 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
       @Nullable ConnectionToRemoteServer connection, boolean isPathDir, String path) {
     List<FileInfo> rtnList = new ArrayList<FileInfo>();
 
-    // そもそもファイル／ディレクトリ作成のタスクの場合は、存在しないのが正常なのでチェックなどはせず終了。
+    // For file/directory creation tasks, non-existence is the expected state,
+    // so skip checks and return.
     if (task.getTaskActionKind() == create) {
       return rtnList;
     }
@@ -157,42 +158,43 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
       ChannelSftp sftpChannel =
           ((ConnectionToSftpServer) Objects.requireNonNull(connection)).getSftpChannel();
 
-      // pathの記載通りのファイル／ディレクトリが存在するか確認
+      // Check whether the file/directory exists exactly as specified by the path.
       try {
         SftpATTRS attrs = sftpChannel.stat(path);
 
-        // 存在する場合：そのファイル・ディレクトリを返す
+        // If it exists: return that file/directory.
         rtnList.add(new FileInfo(path, true, ((long) attrs.getMTime() * 1000L), false));
         return rtnList;
 
       } catch (Exception e) {
-        // 処理なし。次へ進む
+        // No action. Proceed to the next step.
       }
 
-      // pathの記載通りのファイル／ディレクトリがない＝本当にないか、ワイルドカードが使用された場合。
+      // The file/directory does not exist as specified in path - either truly absent or a wildcard
+      // was used.
 
-      // remoteのディレクトリの存在チェック。存在しない場合はエラー。
+      // Check that the remote directory exists. Error if it does not.
       Vector<ChannelSftp.LsEntry> files;
       try {
         files = (Vector<ChannelSftp.LsEntry>) sftpChannel.ls(path);
 
       } catch (SftpException sftpEx) {
-        dlog.error("★★★ If not exist, CREATE DIRECTORY : " + path);
+        dlog.error("*** If not exist, CREATE DIRECTORY : " + path);
         throw sftpEx;
       }
 
       // @SuppressWarnings("unchecked")
       // Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>) sftpChannel.ls(path);
 
-      // この処理は、ディレクトリを指定すると、「..」、「.」及びその配下を取ってくる処理。
+      // This operation, when given a directory, retrieves "..", ".", and entries under it.
       List<ChannelSftp.LsEntry> list = files.stream()
           .filter(bean -> bean.getAttrs().isDir() == isPathDir).collect(Collectors.toList());
       if (list == null || list.size() == 0) {
         return new ArrayList<>();
       }
 
-      // //ディレクトリ指定の場合は、「.」があればそれが正解だし、ファイル指定の場合は「.」があれば、
-      // //指定のパスはディレクトリなので「ファイルはなかった」という判断になる。その判断を先にしてしまう。
+      // // For a directory spec, if "." exists that is correct; for a file spec, if "." exists,
+      // // the path is a directory so the judgment is "no file found". Make that judgment first.
       // for (ChannelSftp.LsEntry file : list) {
       // if (file.getFilename().equals(".")) {
       // FileInfo dir = new FileInfo(path, true); List<FileInfo> flist = new ArrayList<>();
@@ -207,12 +209,12 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
         String fullPath = null;
 
         if (fi.isDirectory()) {
-          // parent dirは無視
+          // Ignore the parent directory entry.
           if (file.getFilename().equals("..")) {
             continue;
           }
 
-          // 自分が存在したら、元のpathをそのまま設定
+          // If self-entry exists, set the original path as-is.
           if (file.getFilename().equals(".")) {
             fullPath = path;
 
@@ -226,11 +228,12 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
               FileUtil.concatFilePaths(FileUtil.getParentDirPath(path), file.getFilename()));
         }
 
-        // 普通ならdirectoryの場合はpathをそのまま使えばいいのだが、wildcardが入ってくる場合があるため必ず一度上に行ってから戻ってくる。
-        // ChannelSftp.LsEntryにpathを持っていれば良いのだが、持っていないようだ・・・
+        // Normally, for a directory the path could be used as-is, but because wildcards may appear,
+        // always go up one level and come back.
+        // It would be ideal if ChannelSftp.LsEntry held the path, but it does not...
         fi.setFilePath(fullPath);
 
-        // ロックの確認は難しそうなので、常にfalseとしておく
+        // Checking for locks appears difficult, so always return false.
         fi.setLocked(false);
         fi.setLastUpdTimeInMillis(((long) file.getAttrs().getMTime()) * 1000L);
         rtnList.add(fi);
@@ -244,7 +247,8 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
   }
 
   /**
-   * フォルダはあるが配下のファイル／フォルダがないのと、フォルダがない、またはpathがファイルの場合を区別するため、後者はエラーとする.
+   * To distinguish between "folder exists but has no contents" and "folder does not exist or path
+   * is a file", treat the latter as an error.
    */
   public List<String> getRemoteDirChildrenNameList(ChannelSftp channel, String dirPath)
       throws SftpException {
@@ -262,7 +266,10 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     }
   }
 
-  /** フォルダはあるが配下のファイル／フォルダがないのと、フォルダがない、またはpathがファイルの場合を区別するため、後者はエラーとする. */
+  /**
+   * To distinguish between "folder exists but has no contents" and "folder does not exist or path
+   * is a file", treat the latter as an error.
+   */
   public List<LsEntry> getRemoteDirChildrenList(ChannelSftp channel, String dirPath)
       throws SftpException {
     if (!remoteDirExists(channel, dirPath)) {
@@ -307,7 +314,9 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     return getRemoteAll(channel, path).size() > 0;
   }
 
-  /** 指定したパスをLsEntry形式で返す. ディレクトリの場合はgetFilename()が"."となるので注意. */
+  /**
+   * Returns the specified path as an LsEntry. Note that getFilename() returns "." for directories.
+   */
   public @Nullable LsEntry getRemoteDetail(ChannelSftp channel, String path) throws SftpException {
     List<LsEntry> list = getRemoteAll(channel, path);
     if (list.size() == 0) {
@@ -326,9 +335,10 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
   }
 
   /**
-   * pathがディレクトリの場合は".", ".." 及び配下のファイル・ディレクトリを返す、ファイルの場合は1つのみを返す.
-   * pathが存在しない場合はsizeゼロのlistを返す。 "..",
-   * "." を含めた生データを返すので使用しにくいことから外から呼べない形としている。ただしテストで使用するためprivateにはしない。
+   * Returns ".", ".." and all entries under path when it is a directory; returns a single entry
+   * when it is a file. Returns an empty list when path does not exist. Because this method returns
+   * raw data including ".." and ".", it is not intended for external callers, but is not private
+   * so it can be used in tests.
    */
   List<LsEntry> getRemoteAll(ChannelSftp channel, String path) throws SftpException {
     try {

@@ -24,13 +24,16 @@ import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("null")
-public class Test11_13_excelデータの値検証_taskList_単体項目チェック_処理パターン extends TestTool {
+public class Test11_14_ExcelDataValidation_taskList_ItemCheck_OtherItems extends TestTool {
+
+  // test01_remoteServer_invalid_tooLong
+  // test11_srcPath_invalid_tooLong
 
   @Test
-  public void test01_処理パターン_異常系_null()
+  public void test21_srcPathIsDir_invalid_unsupportedString()
       throws Exception {
-    HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", null, null,
-        null, null, null, null, null, null, null, null, null, null);
+    HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
+        null, "aPath", "はい", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
     try {
       new Violations().validate(rec).throwIfAny();
@@ -39,17 +42,29 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
     } catch (ViolationException ex) {
       ConstraintViolation<?> cv =
           new ArrayList<>(ex.getViolations().getConstraintViolations()).get(0);
-      assertEquals("jakarta.validation.constraints.NotEmpty",
+      assertEquals("jp.ecuacion.lib.validation.constraints.BooleanString",
           cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
-      assertEquals("taskPtnEnumName", cv.getPropertyPath().toString());
+      assertEquals("isSrcPathDirEnumName", cv.getPropertyPath().toString());
     }
   }
 
+  // test31_srcPathPeriodUnit_invalid_unexpectedString
+  // test41_srcPathPeriodValue_invalid_decimalValue
+  // test42_srcPathPeriodValue_invalid_commaIncludedNumber
+  // test43_srcPathPeriodValue_invalid_notANumber
+
+  // test61_destPath_invalid_tooLong
+  // test62_destPath_invalid_wildcard_asterisk
+  // test63_destPath_invalid_wildcard_questionMark
+  // test71_destPathIsDir_invalid_unsupportedString
+  // test81_overwriteDestPath_invalid_unsupportedString
+  // test91_whenDestPathExists_invalid_unsupportedString
+
   @Test
-  public void test02_処理パターン_異常系_想定外文字列()
+  public void test51_actionForNoSrcPath_invalid_unsupportedString()
       throws Exception {
-    HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,
-        null, null, null, null, null, null, null, null, null, null);
+    HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
+        null, "aPath", "TRUE", "DAY", "7", "無視", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
     try {
       new Violations().validate(rec).throwIfAny();
@@ -60,7 +75,8 @@ public class Test11_13_excelデータの値検証_taskList_単体項目チェッ
           new ArrayList<>(ex.getViolations().getConstraintViolations()).get(0);
       assertEquals("jp.ecuacion.lib.validation.constraints.EnumElement",
           cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
-      assertEquals("taskPtnEnumName", cv.getPropertyPath().toString());
+      assertEquals("actionForNoSrcPathEnumName", cv.getPropertyPath().toString());
     }
   }
+
 }

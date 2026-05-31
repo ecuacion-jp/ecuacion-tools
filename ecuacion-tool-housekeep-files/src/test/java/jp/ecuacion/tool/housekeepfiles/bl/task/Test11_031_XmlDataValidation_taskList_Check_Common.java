@@ -28,7 +28,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class Test11_031_xmlデータの値検証_taskList_チェック_共通 extends TestTool {
+public class Test11_031_XmlDataValidation_taskList_Check_Common extends TestTool {
 
   @SuppressWarnings("null")
   DoNothingInConstructorForm form = null;
@@ -50,7 +50,7 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
 
   @SuppressWarnings("null")
   @Test
-  public void test01_System名がnull() throws Exception {
+  public void test01_systemNameIsNull() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,
         "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
     form.getTaskInfoHdRec().recList.add(rec);
@@ -70,7 +70,7 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
 
   @SuppressWarnings("null")
   @Test
-  public void test02_System名が空欄() throws Exception {
+  public void test02_systemNameIsEmpty() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,
         "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
     form.getTaskInfoHdRec().recList.add(rec);
@@ -90,7 +90,7 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
   }
 
   @Test
-  public void test03_System名が正常値() {
+  public void test03_systemNameIsValid() {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
         null, "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
     form.getTaskInfoHdRec().recList.add(rec);
@@ -106,7 +106,7 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
   }
 
   // @Test
-  // public void test11_値が空欄時の挙動確認_taskId() {
+  // public void test11_behaviorWhenValueIsEmpty_taskId() {
   // HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord(null, "aTaskName", "MOVE", null,
   // "TRUE", "aPath", "TRUE", "aPath", "DAY", "7", "IGNORE", "FALSE", "IGNORE");
   // form.taskInfoHdRec.recList.add(rec);
@@ -128,7 +128,7 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
   // }
   //
   // @Test
-  // public void test12_値が空欄時の挙動確認_taskName() {
+  // public void test12_behaviorWhenValueIsEmpty_taskName() {
   // HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", null, "MOVE", null,
   // "TRUE", "aPath", "TRUE", "aPath", "DAY", "7", "IGNORE", "FALSE", "IGNORE");
   // form.taskInfoHdRec.recList.add(rec);
@@ -149,7 +149,7 @@ public class Test11_031_xmlデータの値検証_taskList_チェック_共通 ex
   // }
   //
   // @Test
-  // public void test13_値が空欄時の挙動確認_taskPtn() {
+  // public void test13_behaviorWhenValueIsEmpty_taskPtn() {
   // HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", null, null,
   // "TRUE", "aPath", "TRUE", "aPath", "DAY", "7", "IGNORE", "FALSE", "IGNORE");
   // form.taskInfoHdRec.recList.add(rec);

@@ -55,13 +55,15 @@ public abstract class AbstractTask {
 
   protected TaskPtnEnum taskPtn;
 
-  // 各タスクに対して、xml上の項目の入力必須・禁止・任意を規定
+  // Defines required, prohibited, and optional fields in the XML for each task.
   protected TaskAttrCheckPtnEnum inputRuleForSrcPathInfo;
   protected TaskAttrCheckPtnEnum inputRuleForDestPathInfo;
 
   /**
-   * その他、taskの動作にかかわる属性を定義.
-   * 以下は、zip・unzipを想定し「xml上はTOを指定しないが、結果的にTOファイルができるもの」を表す。デフォルトではfalseとし、対象のタスクのみこの値を書き換えるものとする
+   * Also defines attributes that affect task behavior.
+   * The following represents tasks where no destination is specified in the XML, but a destination
+   * file is created as a result (intended for zip/unzip). Defaults to false; only relevant tasks
+   * override this.
    */
   protected boolean doesCreateOutputFileAutomatically = false;
 
@@ -72,7 +74,8 @@ public abstract class AbstractTask {
   public AbstractTask() {
     TaskActionKindEnum taskActionKind = getTaskActionKind();
 
-    // taskActionKindから設定可能な値を設定。例外的に異なるパターンが発生する場合は個別タスク側で上書き。
+    // Set allowable values based on taskActionKind. Override in individual task classes when
+    // exceptional patterns occur.
     if (taskActionKind == create) {
       inputRuleForSrcPathInfo = PROHIBITED;
       inputRuleForDestPathInfo = REQUIRED;
@@ -104,14 +107,18 @@ public abstract class AbstractTask {
     return doesCreateOutputFileAutomatically;
   }
 
-  /** taskに対するHousekeepFilesTaskRecordのinput情報の内容チェック. task実行の前にcheckをする関係でdoTaskとは分けている. */
+  /**
+   * Validates the HousekeepFilesTaskRecord input for the task. Separated from doTask because
+   * validation runs before task execution.
+   */
   public void check(HousekeepFilesTaskRecord dtRec) {
     Violations violations = new Violations();
     checkNeedRemoteServer(dtRec, violations);
     checkRequiredOrProhibited(violations, dtRec);
 
-    // ここまででnull値項目の正当性含めinput validation済み。
-    // この後の処理でnullであるべきでない値がnullなのを気にしてnull条件を書くのは煩雑なので、一旦エラーがあれば返しておく。
+    // Input validation including null-value legitimacy is complete up to this point.
+    // Writing null checks for values that should never be null would be cumbersome,
+    // so return early if there are errors.
     violations.throwIfAny();
 
     taskDependentCheck(dtRec, violations);
@@ -119,7 +126,7 @@ public abstract class AbstractTask {
     violations.throwIfAny();
   }
 
-  /** checkから呼び出される. 各taskにてチェック実装. */
+  /** Called from check. Each task implements its own validation. */
   public abstract void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
       Violations violations);
 
@@ -138,11 +145,13 @@ public abstract class AbstractTask {
   private void checkRequiredOrProhibited(Violations violations,
       HousekeepFilesTaskRecord taskRec) {
 
-    // 元パス関連。元パスが全入力または全空欄なのは事前に確認済みなので、ここでは代表でsrcPathのみをチェック
+    // Source path related. Since all-or-nothing for source path fields has already been verified,
+    // only srcPath is checked here as a representative.
     checkTaskItemNoThrow(violations, taskRec.getTaskId(), taskPtn, getInputRuleForSrcPath(),
         "srcPath", taskRec.getSrcPath());
 
-    // 先パス関連。先パスが全入力または全空欄なのは事前に確認済みなので、ここでは代表でdestPathのみをチェック
+    // Destination path related. Since all-or-nothing for destination path fields has already been
+    // verified, only destPath is checked here as a representative.
     checkTaskItemNoThrow(violations, taskRec.getTaskId(), taskPtn, getInputRuleForDestPath(),
         "destPath", taskRec.getDestPath());
   }
@@ -169,13 +178,13 @@ public abstract class AbstractTask {
 
   // abstract methods.
 
-  /** taskの種類を指定. それによりfrom, toの入力要否などを設定. */
+  /** Specifies the task type, which determines whether from/to are required, etc. */
   public abstract TaskActionKindEnum getTaskActionKind();
 
-  /** "SFTP"などのprotocolを設定. localの場合はnull. */
+  /** Sets the protocol such as "SFTP". Null for local. */
   public abstract @Nullable String getConnectionProtocol();
 
-  /** それぞれのremote通信に対するconnection. */
+  /** Connection for each remote communication. */
   public abstract @Nullable ConnectionToRemoteServer getConnection(String remoteServer,
       Map<String, HousekeepFilesAuthRecord> authMap) throws Exception;
 
@@ -194,19 +203,19 @@ public abstract class AbstractTask {
   protected abstract @Nullable List<FileInfo> getRemoteFileInfoList(AbstractTask task,
       @Nullable ConnectionToRemoteServer connection, boolean isPathDir, String path);
 
-  /** task実行. 外部からtaskを実行する際はこれを呼ぶ. */
+  /** Executes the task. Call this to run the task from outside. */
   public void doTask(@Nullable ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
       @Nullable String srcPath, @Nullable String destPath, List<BusinessViolation> warnList)
       throws Exception {
     doTaskInternal(conn, taskRec, srcPath, destPath, warnList);
   }
 
-  /** doTaskから呼び出される. 各taskにて処理実装. */
+  /** Called from doTask. Each task implements its own processing. */
   protected abstract void doTaskInternal(@Nullable ConnectionToRemoteServer conn,
       HousekeepFilesTaskRecord taskRec, @Nullable String srcPath, @Nullable String destPath,
       List<BusinessViolation> warnList) throws Exception;
 
-  /** taskが元パス情報を保持しているかをbooleanで返す. */
+  /** Returns whether the task holds source path information. */
   public boolean hasSrcPathInfo() {
     if (getTaskActionKind() == create) {
       return false;
@@ -216,7 +225,7 @@ public abstract class AbstractTask {
     }
   }
 
-  /** taskが先パス情報を保持しているかをbooleanで返す. */
+  /** Returns whether the task holds destination path information. */
   public boolean hasDestPathInfo() {
     if (getTaskActionKind() == delete) {
       return false;
@@ -249,18 +258,18 @@ public abstract class AbstractTask {
     }
   }
 
-  // local用処理を本クラスに記載
+  // Local processing is defined in this class.
 
   /** Returns true if the specified local directory path exists. */
   protected boolean localDirExists(String dirPath) {
     return new File(dirPath).exists() && new File(dirPath).isDirectory();
   }
 
-  /** ローカルディスク上の一覧取得. */
+  /** Retrieves the file information from the local disk. */
   protected @Nullable FileInfo getLocalFileInfo(String path) {
     File file = new File(path);
 
-    // 存在しない場合はnullを返す
+    // Returns null if the path does not exist.
     if (!file.exists()) {
       return null;
     }
@@ -269,7 +278,7 @@ public abstract class AbstractTask {
     fi.setFilePath(path);
     fi.setDirectory(file.isDirectory());
     fi.setLastUpdTimeInMillis(file.lastModified());
-    // ロックをチェック
+    // Check for file lock.
     try {
       FileUtil.isLocked(path);
     } catch (Exception e) {
@@ -279,7 +288,7 @@ public abstract class AbstractTask {
     return fi;
   }
 
-  /** ローカルディスク上の一覧取得. */
+  /** Retrieves the file list from the local disk. */
   @SuppressWarnings("null")
   protected List<FileInfo> getLocalFileInfoList(String path) {
     List<FileInfo> rtnList = new ArrayList<FileInfo>();
@@ -290,7 +299,7 @@ public abstract class AbstractTask {
       fi.setFilePath(strPath);
       fi.setDirectory(fileObj.isDirectory());
       fi.setLastUpdTimeInMillis(fileObj.lastModified());
-      // ロックをチェック
+      // Check for file lock.
       try {
         FileUtil.isLocked(strPath);
       } catch (Exception e) {
@@ -301,7 +310,7 @@ public abstract class AbstractTask {
     return rtnList;
   }
 
-  /** 設定がwarnかerrorかで処理を分ける. */
+  /** Branches processing based on whether the setting is warn or error. */
   protected void treatIncident(@Nullable IncidentTreatedAsEnum pattern, BusinessViolation violation,
       List<BusinessViolation> warnList) {
     if (pattern == IncidentTreatedAsEnum.WARN) {

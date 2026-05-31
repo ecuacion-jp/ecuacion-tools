@@ -64,7 +64,7 @@ public class SftpCopyToServer extends AbstractTaskSftp {
       HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
       List<BusinessViolation> warnList) throws Exception {
     ChannelSftp sftp = ((ConnectionToSftpServer) connection).getSftpChannel();
-    // remote側は、ディレクトリがないとエラーになるのでなければ作成する
+    // On the remote side, an error occurs if the directory does not exist, so create it if absent.
     // makeRemoteDirs(connection, toPath);
     sftp.put(fromPath, toPath);
   }

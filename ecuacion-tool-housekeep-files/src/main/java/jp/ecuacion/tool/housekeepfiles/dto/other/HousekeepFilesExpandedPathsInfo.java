@@ -23,7 +23,8 @@ import java.util.List;
 @SuppressWarnings("NullAway.Init")
 public class HousekeepFilesExpandedPathsInfo {
   public List<String> fromFileList;
-  // 本来toは一つでなければならないのだが、一旦チェックをせずに格納しておきたいのでこのリストが存在している。最終的にはtoPathに入れる
+  // The "to" path should be exactly one, but this list exists to hold values without checking yet.
+  // It is eventually moved into toPath.
   public List<String> tmpToFileList;
   public String toPath;
 

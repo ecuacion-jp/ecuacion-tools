@@ -24,16 +24,13 @@ import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("null")
-public class Test11_14_excelデータの値検証_taskList_単体項目チェック_その他項目 extends TestTool {
-
-  // test01_接続先サーバ_異常系_長さ上限超過
-  // test11_元パス_異常系_長さ上限超過
+public class Test11_13_ExcelDataValidation_taskList_ItemCheck_TaskPattern extends TestTool {
 
   @Test
-  public void test21_元パスがディレクトリ_異常系_指定外文字列()
+  public void test01_taskPattern_invalid_null()
       throws Exception {
-    HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
-        null, "aPath", "はい", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
+    HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", null, null,
+        null, null, null, null, null, null, null, null, null, null);
 
     try {
       new Violations().validate(rec).throwIfAny();
@@ -42,29 +39,17 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
     } catch (ViolationException ex) {
       ConstraintViolation<?> cv =
           new ArrayList<>(ex.getViolations().getConstraintViolations()).get(0);
-      assertEquals("jp.ecuacion.lib.validation.constraints.BooleanString",
+      assertEquals("jakarta.validation.constraints.NotEmpty",
           cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
-      assertEquals("isSrcPathDirEnumName", cv.getPropertyPath().toString());
+      assertEquals("taskPtnEnumName", cv.getPropertyPath().toString());
     }
   }
 
-  // test31_元パス処理実施対象経過期間単位＿想定外文字列
-  // test41_元パス処理実施対象経過期間値_異常系_小数値
-  // test42_元パス処理実施対象経過期間値_異常系_カンマ入り数値
-  // test43_元パス処理実施対象経過期間値_異常系_数値でない
-
-  // test61_先パス_異常系_長さ上限超過
-  // test62_先パス_異常系_ワイルドカード_asterisk
-  // test63_先パス_異常系_ワイルドカード_question_mark
-  // test71_先パスがディレクトリ_異常系_指定外文字列
-  // test81_先パス存在時上書き_異常系_指定外文字列
-  // test91_先パス存在時処理_異常系_指定外文字列
-
   @Test
-  public void test51_元パス存在なし時処理_異常系_指定外文字列()
+  public void test02_taskPattern_invalid_unexpectedString()
       throws Exception {
-    HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
-        null, "aPath", "TRUE", "DAY", "7", "無視", "aPath", "TRUE", "FALSE", "IGNORE", null);
+    HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,
+        null, null, null, null, null, null, null, null, null, null);
 
     try {
       new Violations().validate(rec).throwIfAny();
@@ -75,8 +60,7 @@ public class Test11_14_excelデータの値検証_taskList_単体項目チェッ
           new ArrayList<>(ex.getViolations().getConstraintViolations()).get(0);
       assertEquals("jp.ecuacion.lib.validation.constraints.EnumElement",
           cv.getConstraintDescriptor().getAnnotation().annotationType().getName());
-      assertEquals("actionForNoSrcPathEnumName", cv.getPropertyPath().toString());
+      assertEquals("taskPtnEnumName", cv.getPropertyPath().toString());
     }
   }
-
 }
