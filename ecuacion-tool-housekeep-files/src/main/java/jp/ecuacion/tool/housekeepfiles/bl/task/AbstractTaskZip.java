@@ -50,7 +50,7 @@ public abstract class AbstractTaskZip extends AbstractTaskLocal {
     } else {
       // When a destination is specified.
       toFilePath =
-          (taskRec.getIsDestPathDir()) ? FileUtil.concatFilePaths(toPath, from.getName() + ".zip")
+          taskRec.getIsDestPathDir() ? FileUtil.concatFilePaths(toPath, from.getName() + ".zip")
               : toPath;
     }
 

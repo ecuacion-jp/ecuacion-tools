@@ -39,6 +39,7 @@ public class HousekeepFilesTasklet implements Tasklet {
   /**
    * Executes housekeeping files.
    */
+  @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
     Map<String, Object> paramMap = chunkContext.getStepContext().getJobParameters();

@@ -72,8 +72,10 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
   @NotEmpty
   @Pattern(regexp = "^" + HousekeepInfoBean.DELETE_KIND_HARD + "|"
       + HousekeepInfoBean.DELETE_KIND_SOFT + "$")
+  @SuppressWarnings("UnusedVariable")
   private String isSoftDeleteInternalValue;
   @NotEmpty
+  @SuppressWarnings("UnusedVariable")
   private String relatedTableProcessPattern;
   @NotEmpty
   @Pattern(regexp = "^" + RELATED_TABLE_PROCESS_PATTERN_DELETE + "|"
