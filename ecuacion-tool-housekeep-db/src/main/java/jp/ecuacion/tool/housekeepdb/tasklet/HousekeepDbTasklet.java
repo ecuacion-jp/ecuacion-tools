@@ -70,6 +70,7 @@ public class HousekeepDbTasklet implements Tasklet {
   /**
    * Executes the procedure.
    */
+  @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
 
@@ -124,7 +125,7 @@ public class HousekeepDbTasklet implements Tasklet {
               Object idValue = rs.getObject(info.getIdColumnInfo().getColumn());
 
               // Check for data that should be skipped.
-              if (needsSkipFromRelatedTableDataCheck(conn, info, idValue, rs)) {
+              if (needsSkipFromRelatedTableDataCheck(conn, info, rs)) {
                 continue;
               }
 
@@ -239,7 +240,7 @@ public class HousekeepDbTasklet implements Tasklet {
    * <p>Returning true means that record is skipped to delete.</p>
    */
   private boolean needsSkipFromRelatedTableDataCheck(Connection connection, HousekeepInfoBean info,
-      Object id, ResultSet mainSqlRs) throws SQLException {
+      ResultSet mainSqlRs) throws SQLException {
     List<RelatedTableInfoBean> relatedSkipList = info.getRelatedRecordTableInfoList().stream()
         .filter(bean -> bean.getRelatedTableProcessPattern() == skipTargetTableRecordDeletion)
         .toList();
