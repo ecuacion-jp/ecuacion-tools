@@ -39,7 +39,7 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditi
       return (String) value;
 
     } else {
-      // 数字やその他諸々を含め、一旦雑にこう書いてみる。問題起きたら適宜対処で。
+      // Roughly covers numbers and various other cases. Address any issues as they arise.
       return value.toString();
     }
   }

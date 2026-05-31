@@ -97,7 +97,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
   public String options;
 
-  // 以下、excelにはない項目
+  // Fields not in the Excel sheet.
 
   private @Nullable String envVarExpandedSrcPath;
 
@@ -105,7 +105,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
   private Map<String, String> envVarInfoMap;
 
-  // taskオブジェクトを保持しておく
+  // Holds the task object.
   public AbstractTask task;
 
   @Override
@@ -273,7 +273,8 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
     this.envVarInfoMap = envVarInfoMap;
 
-    // pathInfoMapを取得。 取得時にsrcPath、destPathの環境変数展開を併せて実施。
+    // Retrieve pathInfoMap. Also expand environment variables in srcPath and destPath
+    // during retrieval.
     envVarExpandedSrcPath = srcPath == null ? null : substituteEnvVars(srcPath);
     envVarExpandedDestPath = destPath == null ? null : substituteEnvVars(destPath);
   }
@@ -287,7 +288,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
       throw new RuntimeException(e);
     }
 
-    // "//"を取り除く
+    // Remove "//".
     while (envVarExpandedPath.contains("//")) {
       envVarExpandedPath = envVarExpandedPath.replace("//", "/");
     }
@@ -298,7 +299,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @Override
   public void afterReading() {
 
-    // 元パス関連情報は、全て入力か全て未入力のいずれか
+    // Source path related fields must all be filled or all empty.
     boolean isAllEmpty = StringUtils.isEmpty(srcPath) && StringUtils.isEmpty(isSrcPathDirEnumName)
         && StringUtils.isEmpty(unitName) && StringUtils.isEmpty(value)
         && StringUtils.isEmpty(actionForNoSrcPathEnumName);
@@ -313,7 +314,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
           getLabelNameCsv(lbls))).throwIfAny();
     }
 
-    // 先パス関連情報は、全て入力か全て未入力のいずれか
+    // Destination path related fields must all be filled or all empty.
     isAllEmpty = StringUtils.isEmpty(destPath) && StringUtils.isEmpty(isDestPathDirEnumName)
         && StringUtils.isEmpty(doesOverwriteDestPathEnumName)
         && StringUtils.isEmpty(actionForDestFileExistsEnumName);

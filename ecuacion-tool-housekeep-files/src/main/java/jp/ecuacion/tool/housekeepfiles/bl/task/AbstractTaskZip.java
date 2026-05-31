@@ -38,16 +38,17 @@ public abstract class AbstractTaskZip extends AbstractTaskLocal {
     CompressUtil cu = new CompressUtil();
 
     File from = new File(fromPath);
-    // Toを指定する場合としない場合があるので分岐
+    // Branch based on whether a destination is specified.
     String toFilePath = null;
     if (taskRec.getIsDestPathDir() == null) {
-      // TOを指定しない場合
-      // fromがfileでもdirでも、from.getParentFile()が結局作成したzipファイルの置きたい場所となる
+      // When no destination is specified.
+      // Whether from is a file or directory, from.getParentFile() is the target location for the
+      // created zip file.
       File toDir = from.getParentFile();
       toFilePath = FileUtil.concatFilePaths(toDir.getAbsolutePath(), from.getName() + ".zip");
 
     } else {
-      // TOを指定する場合
+      // When a destination is specified.
       toFilePath =
           (taskRec.getIsDestPathDir()) ? FileUtil.concatFilePaths(toPath, from.getName() + ".zip")
               : toPath;
@@ -65,13 +66,13 @@ public abstract class AbstractTaskZip extends AbstractTaskLocal {
         cu.zipFile(fromPath, toFilePath);
       }
     } catch (Exception e) {
-      dlog.debug("ファイルがロックされているためスキップします：" + fromPath);
+      dlog.debug("Skipping because the file is locked: " + fromPath);
       dlog.warn(e);
-      // zipをスキップしているのに元ファイルを削除するのは問題なのでここで終了。
+      // Deleting the original while skipping the zip would be problematic, so stop here.
       return;
     }
 
-    // deleteOrigの場合は削除
+    // Delete the original when deleteOrig is set.
     if (this.getClass().getSimpleName().contains("DeleteOrig")) {
       try {
         File fromFile = new File(fromPath);
@@ -83,7 +84,7 @@ public abstract class AbstractTaskZip extends AbstractTaskLocal {
         }
 
       } catch (Exception ignored) {
-        dlog.debug("zip元ファイルがロックされているためスキップします：" + fromPath);
+        dlog.debug("Skipping zip source file because it is locked: " + fromPath);
       }
     }
 

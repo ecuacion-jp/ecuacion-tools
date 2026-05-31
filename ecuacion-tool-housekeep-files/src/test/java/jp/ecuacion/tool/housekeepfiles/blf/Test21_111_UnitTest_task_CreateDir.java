@@ -21,10 +21,10 @@
 //import jp.ecuacion.util.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 //import org.junit.jupiter.api.Test;
 //
-//public class Test21_111_単体動作確認_task_ディレクトリ作成 extends BlfTestTool {
+//public class Test21_111_UnitTest_task_CreateDir extends BlfTestTool {
 //
 //    @Test
-//    public void test01_正常系_1階層() {
+//    public void test01_valid_singleLevel() {
 //      HousekeepFilesForm form = getDefaultForm();
 //
 //      String testDirPath = getCurDirPath() + "/" + TEST_HOME_PATH + "/testdir";
@@ -48,7 +48,7 @@
 //
 //    }
 //    
-////  test02_正常系_複数階層
-////  test11_異常系_ファイル存在
-////  test12_異常系_ディレクトリ存在
+////  test02_valid_multipleLevels
+////  test11_invalid_fileExists
+////  test12_invalid_dirExists
 //}
