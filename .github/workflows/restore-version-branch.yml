@@ -1,0 +1,29 @@
+name: Restore release branch after merge
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+jobs:
+  restore-branch:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if source is a release branch
+        id: check
+        run: |
+          if [[ "${{ github.head_ref }}" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.check.outputs.is_release == 'true'
+
+      - name: Recreate release branch
+        if: steps.check.outputs.is_release == 'true'
+        run: |
+          git checkout -b "${{ github.head_ref }}"
+          git push origin "${{ github.head_ref }}"
