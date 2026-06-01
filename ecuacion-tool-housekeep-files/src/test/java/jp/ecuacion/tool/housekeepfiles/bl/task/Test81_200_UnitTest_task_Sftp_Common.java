@@ -20,6 +20,7 @@ import com.jcraft.jsch.JSchException;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
@@ -27,36 +28,37 @@ import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("null")
 public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
 
   private AbstractTaskSftp task = new AbstractTaskSftp() {
     @Override
-    protected void doSpecificTask(ConnectionToRemoteServer connection,
-        HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
+    protected void doSpecificTask(@Nullable ConnectionToRemoteServer connection,
+        HousekeepFilesTaskRecord taskRec, @Nullable String fromPath, @Nullable String toPath,
         List<BusinessViolation> warnList) throws Exception {}
 
     @Override
     public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {}
 
+    @SuppressWarnings({"NullAway", "null"})
     @Override
     public TaskActionKindEnum getTaskActionKind() {
       return null;
     }
 
     @Override
-    public Boolean isSrcPathLocal() {
+    public @Nullable Boolean isSrcPathLocal() {
       return null;
     }
 
     @Override
-    public Boolean isDestPathLocal() {
+    public @Nullable Boolean isDestPathLocal() {
       return null;
     }
   };
@@ -67,19 +69,19 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
   }
 
   @BeforeAll
-  private static void beforeAll() throws JSchException {
+  static void beforeAll() throws JSchException {
     beforeAllOnSftpTest();
   }
 
   @BeforeEach
-  private void beforeEach() throws Exception {
+  void beforeEach() throws Exception {
     // Do not use testTool.beforeEachOnSftpTest here because it internally calls the method
     // under test, which would defeat the purpose of this test.
     channel = connectChannelSftp(session);
   }
 
   @AfterEach
-  private void afterEach() {
+  void afterEach() {
     afterEachOnSftpTest();
   }
 
@@ -300,6 +302,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     channel.rmdir(testRootPath);
   }
 
+  @SuppressWarnings("NullAway")
   @Test
   public void teste1_getRemoteDetail_valid_notExist() throws Exception {
     String testRootPath = getTestRootPath();
@@ -307,6 +310,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     assertEquals(null, entry);
   }
 
+  @SuppressWarnings("NullAway")
   @Test
   public void teste2_getRemoteDetail_valid_fileExists() throws Exception {
     String testRootPath = getTestRootPath();
@@ -315,6 +319,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     channel.put(new ByteArrayInputStream("".getBytes()), testFilePath);
 
     LsEntry entry = task.getRemoteDetail(channel, testFilePath);
+    Objects.requireNonNull(entry);
     assertEquals("testfile", entry.getFilename());
     assertEquals(false, entry.getAttrs().isDir());
 
@@ -322,12 +327,14 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     channel.rmdir(testRootPath);
   }
 
+  @SuppressWarnings("NullAway")
   @Test
   public void teste3_getRemoteDetail_valid_dirExists() throws Exception {
     String testRootPath = getTestRootPath();
     createTestRootDir(testRootPath);
 
     LsEntry entry = task.getRemoteDetail(channel, testRootPath);
+    Objects.requireNonNull(entry);
     assertEquals(".", entry.getFilename());
     assertEquals(true, entry.getAttrs().isDir());
 
