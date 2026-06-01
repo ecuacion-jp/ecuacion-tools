@@ -16,10 +16,11 @@
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import static jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum.PROHIBITED;
+
 import java.util.List;
 import java.util.Map;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
@@ -28,13 +29,15 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 
 /**
- * テスト用task。 taskPtnとしてはMOVEを使いながら、すべてをPROHIBITEDにしている。
+ * Test task that uses MOVE as the task pattern but sets all fields to PROHIBITED.
  *
  * @author yosuk_000
  *
  */
+@SuppressWarnings("NullAway")
 public class AllProhibitedTask extends AbstractTaskLocal {
 
+  /** Initializes with all attributes set to PROHIBITED. */
   public AllProhibitedTask() {
     taskPtn = TaskPtnEnum.MOVE;
     inputRuleForSrcPathInfo = PROHIBITED;
@@ -46,30 +49,35 @@ public class AllProhibitedTask extends AbstractTaskLocal {
     return TaskActionKindEnum.create;
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
-      String srcPath, String destPath, List<AppException> warnList) throws Exception {
+      String srcPath, String destPath, List<BusinessViolation> warnList) throws Exception {
 
   }
 
+  @SuppressWarnings("null")
   @Override
   public ConnectionToRemoteServer getConnection(String remoteServer,
       Map<String, HousekeepFilesAuthRecord> authMap) throws Exception {
     return null;
   }
 
+  @SuppressWarnings("null")
   @Override
   public FileInfo getToPathFileInfo(AbstractTask task, ConnectionToRemoteServer connection,
       boolean isPathDir, String path) throws Exception {
     return null;
   }
 
+  @SuppressWarnings("null")
   @Override
   protected FileInfo getRemoteFileInfo(AbstractTask task, ConnectionToRemoteServer connection,
       boolean isPathDir, String path) {
     return null;
   }
 
+  @SuppressWarnings("null")
   @Override
   protected List<FileInfo> getRemoteFileInfoList(AbstractTask task,
       ConnectionToRemoteServer connection, boolean isPathDir, String path) {
@@ -77,8 +85,7 @@ public class AllProhibitedTask extends AbstractTaskLocal {
   }
 
   @Override
-  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList) {
+  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
 
   }
 }

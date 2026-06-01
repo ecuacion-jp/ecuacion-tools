@@ -17,10 +17,9 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.File;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
 import jp.ecuacion.lib.core.util.FileUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
@@ -30,6 +29,7 @@ import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
 /**
  * Provides abstract task for copy and move.
  */
+@SuppressWarnings("NullAway")
 public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
   private HkFileManipulateUtil fmu = new HkFileManipulateUtil();
 
@@ -46,18 +46,21 @@ public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
 
   @Override
   public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList) {
+      Violations violations) {
 
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String srcPath, String destPath,
-      List<AppException> warnList) throws BizLogicAppException {
+      List<BusinessViolation> warnList) {
     TaskPtnEnum taskPtn = taskRec.getTaskPtn();
     boolean doesOverwrittenFileOrDirExist = true;
 
-    // 先にto側に上書きするファイルが存在するかを確認する。例外が上がるなら既に前回本メソッドを読んだ際に発生しているはずなので、ここではエラーが出ない前提でExceptionを握りつぶす
+    // First check whether a file to overwrite exists on the destination side. Any exception would
+    // have already been thrown on the previous call to this method, so suppress exceptions here
+    // assuming no errors occur.
     try {
       doesOverwrittenFileOrDirExist =
           fmu.checkIfToOverwrittenFileOrDirExists(taskRec, srcPath, destPath);
@@ -65,19 +68,20 @@ public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
       throw new RuntimeException(e);
     }
 
-    // from, toそれぞれがディレクトリかファイルかのフラグを持っておく。この時点で、圧縮した場合はfromは結局ファイルになるのでそれを加味した状態の判断結果としておく
+    // Hold flags indicating whether from and to are directories or files. At this point, if
+    // compression is used, from becomes a file, so the result already accounts for that.
     boolean isFromDir = (taskRec.getIsSrcPathDir() == true);
     boolean isToDir = (taskRec.getIsDestPathDir() == true);
 
-    // 上書きファイルがある場合
+    // If a file to overwrite exists.
     if (doesOverwrittenFileOrDirExist) {
       if (taskRec.getDoesOverwriteDestPath() == false) {
-        // 上書きしない設定の場合は終了
+        // If overwrite is disabled, stop processing.
         return;
       } else {
-        // 上書きする場合は、先のファイルを削除しておかないと「FileExistsExceptionが発生してしまうため削除
+        // When overwriting, delete the destination file first to prevent FileExistsException.
         String toFilePath =
-            (isToDir) ? FileUtil.concatFilePaths(destPath, new File(srcPath).getName()) : destPath;
+            isToDir ? FileUtil.concatFilePaths(destPath, new File(srcPath).getName()) : destPath;
         new File(toFilePath).delete();
       }
     }

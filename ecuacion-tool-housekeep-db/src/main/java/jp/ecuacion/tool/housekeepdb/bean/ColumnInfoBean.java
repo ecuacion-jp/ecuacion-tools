@@ -1,8 +1,21 @@
+/*
+ * Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package jp.ecuacion.tool.housekeepdb.bean;
 
 import jakarta.validation.constraints.NotEmpty;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.unchecked.EclibRuntimeException;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
 
 /**
@@ -34,26 +47,21 @@ public class ColumnInfoBean {
    * @param column column
    * @param needsQuotationMarkExcelString String that represents needsQuationMark
    */
-  public ColumnInfoBean(String column, String needsQuotationMarkExcelString)
-      throws BizLogicAppException {
+  public ColumnInfoBean(String column, String needsQuotationMarkExcelString) {
     this.column = column;
     this.needsQuotationMark =
         getNeedsQuotationMarkBooleanFromExcelString(needsQuotationMarkExcelString);
   }
 
-  private Boolean getNeedsQuotationMarkBooleanFromExcelString(String value)
-      throws BizLogicAppException {
-    if (value == null) { 
-      return null;
-      
-    } else if (value.equals(NO_MARK)) {
+  private boolean getNeedsQuotationMarkBooleanFromExcelString(String value) {
+    if (value.equals(NO_MARK)) {
       return false;
 
     } else if (value.equals(QUOTES)) {
       return true;
 
     } else {
-      throw new EclibRuntimeException(
+      throw new RuntimeException(
           "The value must be either '" + NO_MARK + "' or '" + QUOTES + "'.");
     }
   }

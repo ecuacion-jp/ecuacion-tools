@@ -20,8 +20,8 @@ import com.jcraft.jsch.SftpException;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToSftpServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
@@ -31,6 +31,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 /**
  * Provides sftp move to server task.
  */
+@SuppressWarnings("NullAway")
 public class SftpMoveToServer extends AbstractTaskSftp {
 
   /**
@@ -56,15 +57,15 @@ public class SftpMoveToServer extends AbstractTaskSftp {
   }
 
   @Override
-  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList) {
+  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
 
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doSpecificTask(ConnectionToRemoteServer connection,
-      HousekeepFilesTaskRecord taskRec, String fromPath, String toPath, List<AppException> warnList)
-      throws SftpException, IOException {
+      HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
+      List<BusinessViolation> warnList) throws SftpException, IOException {
     ChannelSftp sftp = ((ConnectionToSftpServer) connection).getSftpChannel();
     sftp.put(fromPath, toPath);
     new File(fromPath).delete();

@@ -22,7 +22,7 @@ public enum IncidentTreatedAsEnum {
 
   IGNORE("0"), ERROR("1"), WARN("2");
 
-  private String code;
+  private final String code;
 
   private IncidentTreatedAsEnum(String code) {
     this.code = code;

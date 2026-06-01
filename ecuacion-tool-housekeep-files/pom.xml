@@ -30,46 +30,10 @@
 	<build>
 		<plugins>
 
-			<!-- maven-source-plugin (outputs a jar of source) -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-			</plugin>
-
-			<!-- maven-javadoc-plugin (outputs a jar of javadocs) -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-			</plugin>
-
-			<!-- wagon to upload javadoc.jar -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>wagon-maven-plugin</artifactId>
-			</plugin>
-
-			<!-- mycila license-maven-plugin -->
-			<plugin>
-				<groupId>com.mycila</groupId>
-				<artifactId>license-maven-plugin</artifactId>
-			</plugin>
-
 			<!-- for batch -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-
-			<!-- checkstyle -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-checkstyle-plugin</artifactId>
-			</plugin>
-			
-			<!-- spotbugs -->
-			<plugin>
-				<groupId>com.github.spotbugs</groupId>
-				<artifactId>spotbugs-maven-plugin</artifactId>
 			</plugin>
 
 		</plugins>
@@ -103,7 +67,7 @@
 		<!-- ecuacion-util -->
 		<dependency>
 			<groupId>jp.ecuacion.util</groupId>
-			<artifactId>ecuacion-util-poi</artifactId>
+			<artifactId>ecuacion-util-excel-table</artifactId>
 		</dependency>
 
 		<!-- other -->
@@ -127,6 +91,17 @@
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.sshd</groupId>
+			<artifactId>sshd-sftp</artifactId>
+			<version>2.13.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>2.21.0</version>
 		</dependency>
 
 	</dependencies>

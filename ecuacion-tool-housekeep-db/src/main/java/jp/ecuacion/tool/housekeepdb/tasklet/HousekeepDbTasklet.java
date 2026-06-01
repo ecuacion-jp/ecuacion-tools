@@ -1,11 +1,25 @@
+/*
+ * Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package jp.ecuacion.tool.housekeepdb.tasklet;
 
 import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.deleteRelatedTableRecord;
 import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.skipTargetTableRecordDeletion;
 
+import jakarta.validation.Validation;
 import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -17,14 +31,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.MultipleAppException;
-import jp.ecuacion.lib.core.exception.unchecked.UncheckedAppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
-import jp.ecuacion.lib.core.util.ValidationUtil;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueStringBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
@@ -34,15 +46,15 @@ import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
-import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
-import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
+import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
+import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.poi.EncryptedDocumentException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.event.Level;
-import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
-import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
 /**
@@ -53,11 +65,12 @@ public class HousekeepDbTasklet implements Tasklet {
 
   private static final int MAX_SELECT_LINES = 1000;
   private DetailLogger detailLogger = new DetailLogger(this);
-  private LangExcel lang = null;
+  private @Nullable LangExcel lang;
 
   /**
    * Executes the procedure.
    */
+  @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
 
@@ -96,23 +109,23 @@ public class HousekeepDbTasklet implements Tasklet {
       // DB Connection settings
       try (Connection conn = connectionSettings(dbConnectionInfoMap, info)) {
 
-        // GetMAX_SELECT_LINES 行分、idを取得
+        // Retrieve IDs up to MAX_SELECT_LINES rows.
         String selectSql = getMainSelectSql(info);
 
-        // 大量件数がある場合でもMAX_SELECT_LINES件で区切って処理
+        // Process in batches of MAX_SELECT_LINES even when there are many records.
         while (true) {
           try (PreparedStatement stmt = getStatement(conn, selectSql)) {
             ResultSet rs = stmt.executeQuery();
 
-            // 検索結果が1件以上あったかどうかを判別するフラグ
+            // Flag to determine whether the query returned at least one result.
             boolean isResultZero = true;
 
-            // 取得したレコード1件ごとに処理
+            // Process each retrieved record one by one.
             while (rs.next()) {
               Object idValue = rs.getObject(info.getIdColumnInfo().getColumn());
 
-              // skipすべきデータが存在する場合はskipなのでそのためのチェック
-              if (needsSkipFromRelatedTableDataCheck(conn, info, idValue, rs)) {
+              // Check for data that should be skipped.
+              if (needsSkipFromRelatedTableDataCheck(conn, info, rs)) {
                 continue;
               }
 
@@ -122,7 +135,7 @@ public class HousekeepDbTasklet implements Tasklet {
               deleteTargetData(conn, info, idValue, tableRecordDeleted);
             }
 
-            // resultSetが0件の場合は終了
+            // Terminate when the result set is empty.
             if (isResultZero) {
               break;
             }
@@ -141,25 +154,26 @@ public class HousekeepDbTasklet implements Tasklet {
     return RepeatStatus.FINISHED;
   }
 
-  private String getExcelPathFromParameter(ChunkContext chunkContext) throws BizLogicAppException {
+  private String getExcelPathFromParameter(ChunkContext chunkContext) {
     Map<String, Object> paramMap = chunkContext.getStepContext().getJobParameters();
 
     String excelPath = (String) paramMap.get("excelPath");
 
     if (excelPath == null) {
-      throw new BizLogicAppException("MSG_ERR_EXCEL_PATH_NOT_SPECIFIED");
+      new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_NOT_SPECIFIED")).throwIfAny();
     }
+    Objects.requireNonNull(excelPath);
 
     File excelFile = new File(excelPath);
     if (!excelFile.exists() || !excelFile.isFile()) {
-      throw new BizLogicAppException("MSG_ERR_EXCEL_PATH_NOT_FOUND");
+      new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_NOT_FOUND")).throwIfAny();
     }
 
     return excelPath;
   }
 
   private String getMainSelectSql(HousekeepInfoBean info) {
-    // where句の作成
+    // Build the WHERE clause.
     List<SqlConditionInterface> whereList = new ArrayList<>();
 
     whereList.addAll(
@@ -172,11 +186,12 @@ public class HousekeepDbTasklet implements Tasklet {
     }
 
     if (info.isSoftDelete()) {
-      // 何度も更新しないよう、論理廃止フラグが立っていないもののみを検索対象とする
+      // To avoid updating already-processed records, target only rows where the soft-delete
+      // flag is not set.
       whereList.add(new ColumnAndValueInfoBean(info.getSoftDeleteColumn(), false, "false"));
 
     } else {
-      // 削除でかつ「論理廃止：カラム名」が指定されている場合はwhere句に追加
+      // If hard delete and "soft-delete column name" is specified, add to the WHERE clause.
       if (StringUtils.isNotEmpty(info.getSoftDeleteColumn())) {
         whereList.add(new ColumnAndValueInfoBean(info.getSoftDeleteColumn(), false, "true"));
       }
@@ -189,12 +204,14 @@ public class HousekeepDbTasklet implements Tasklet {
   }
 
   private Connection connectionSettings(Map<String, DbConnectionInfoBean> dbConnectionInfoMap,
-      HousekeepInfoBean info) throws BizLogicAppException, ClassNotFoundException, SQLException {
+      HousekeepInfoBean info) throws ClassNotFoundException, SQLException {
     DbConnectionInfoBean dbInfo = dbConnectionInfoMap.get(info.getDbConnectionInfoId());
     if (dbInfo == null) {
-      throw new BizLogicAppException("MSG_ERR_DB_CONNECITON_INFO_ID_NOT_EXIST",
-          info.getDbConnectionInfoId());
+      new Violations().add(new BusinessViolation("MSG_ERR_DB_CONNECITON_INFO_ID_NOT_EXIST",
+          info.getDbConnectionInfoId())).throwIfAny();
     }
+
+    Objects.requireNonNull(dbInfo);
 
     Class.forName(dbInfo.getDriverName());
     Connection conn = DriverManager.getConnection(getDbConnectionUrl(dbInfo), dbInfo.getUsername(),
@@ -223,7 +240,7 @@ public class HousekeepDbTasklet implements Tasklet {
    * <p>Returning true means that record is skipped to delete.</p>
    */
   private boolean needsSkipFromRelatedTableDataCheck(Connection connection, HousekeepInfoBean info,
-      Object id, ResultSet mainSqlRs) throws SQLException {
+      ResultSet mainSqlRs) throws SQLException {
     List<RelatedTableInfoBean> relatedSkipList = info.getRelatedRecordTableInfoList().stream()
         .filter(bean -> bean.getRelatedTableProcessPattern() == skipTargetTableRecordDeletion)
         .toList();
@@ -279,7 +296,7 @@ public class HousekeepDbTasklet implements Tasklet {
         }
       }
 
-      // まずtargetTableから対象カラムの値を取得
+      // First retrieve the target column value from the target table.
       String sqlTargetSelect =
           "select " + relatedInfo.getTargetTableColumn() + " from " + info.getTable() + " where "
               + info.getIdColumnInfo().getColumnAndValueInfo(id).getCondition();
@@ -295,12 +312,13 @@ public class HousekeepDbTasklet implements Tasklet {
         List<SqlConditionInterface> whereList = new ArrayList<>();
         whereList.add(relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val));
 
-        // 物理削除で論理廃止カラムが指定されている場合は、そのカラムがtrueであることもwhere句に追加
+        // When hard-deleting and a soft-delete column is specified, also add a condition that
+        // the column is true to the WHERE clause.
         if (!info.isSoftDelete() && !StringUtils.isEmpty(relatedInfo.getSoftDeleteColumn())) {
           whereList.add(relatedInfo.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
         }
 
-        // related tableのcolumnに取得した値があるレコードは削除
+        // Delete records in the related table whose column contains the retrieved value.
         String softDeleteSql =
             "update " + relatedInfo.getRelatedTable() + SqlUtil.getUpdateSet(updateSetList);
         String hardDeleteSql = "delete from " + relatedInfo.getRelatedTable();
@@ -345,7 +363,8 @@ public class HousekeepDbTasklet implements Tasklet {
     List<SqlConditionInterface> whereList = new ArrayList<>();
     whereList.add(info.getIdColumnInfo().getColumnAndValueInfo(idValue));
 
-    // 物理削除で論理廃止カラムが指定されている場合は、そのカラムがtrueであることも条件に追加
+    // When hard-deleting and a soft-delete column is specified, also add a condition that
+    // the column is true.
     if (!info.isSoftDelete() && !StringUtils.isEmpty(info.getSoftDeleteColumn())) {
       whereList.add(info.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
     }
@@ -359,7 +378,8 @@ public class HousekeepDbTasklet implements Tasklet {
     if (count > 0 && !tableRecordDeleted.containsKey(info.getTable())) {
       tableRecordDeleted.put(info.getTable(), 0);
     }
-    tableRecordDeleted.put(info.getTable(), tableRecordDeleted.get(info.getTable()) + count);
+    tableRecordDeleted.put(info.getTable(),
+        Objects.requireNonNull(tableRecordDeleted.get(info.getTable())) + count);
 
     delStmt.close();
 
@@ -380,71 +400,82 @@ public class HousekeepDbTasklet implements Tasklet {
         + "/" + dbInfo.getDatabase() + param;
   }
 
-  private Map<String, String> getInfoMap(String filePath)
-      throws EncryptedDocumentException, AppException, IOException {
-    List<List<String>> list = new StringOneLineHeaderExcelTableReader("Info",
-        new String[] {"item", "value"}, null, 1, null).read(filePath);
+  @SuppressWarnings("null")
+  private Map<String, String> getInfoMap(String filePath) throws Exception {
+    List<List<String>> list;
+    try {
+      list = new StringOneLineHeaderExcelTableReader("Info", new String[] {"item", "value"})
+          .read(filePath);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
 
     return list.stream().collect(Collectors.toMap(l -> l.get(0), l -> l.get(1)));
   }
 
+  @SuppressWarnings("null")
   private Map<String, DbConnectionInfoBean> getDbConnectionInfoMap(String filePath)
-      throws EncryptedDocumentException, URISyntaxException, IOException, AppException {
+      throws Exception {
 
-    Map<String, DbConnectionInfoBean> dbConnectionInfoMap =
-        new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
-            DbConnectionInfoBean.class, lang.get(LangExcel.DB_CONNECTION_SETTINGS),
-            lang.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS), null, 1, null)
-                .readToBean(filePath).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
+    LangExcel langLocal = Objects.requireNonNull(lang);
+    Map<String, DbConnectionInfoBean> dbConnectionInfoMap;
+    try {
+      dbConnectionInfoMap = new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
+          DbConnectionInfoBean.class, langLocal.get(LangExcel.DB_CONNECTION_SETTINGS),
+          langLocal.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS))
+              .readToBean(filePath).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
 
     dbConnectionInfoMap.values().stream().forEach(info -> {
-      try {
-        ValidationUtil.validateThenThrow(info);
-
-      } catch (MultipleAppException e) {
-        throw new UncheckedAppException(e);
-      }
+      new Violations()
+          .addAll(Validation.buildDefaultValidatorFactory().getValidator().validate(info))
+          .throwIfAny();
     });
 
     return dbConnectionInfoMap;
   }
 
   private List<HousekeepInfoBean> getHousekeepInfoList(String filePath,
-      Map<String, DbConnectionInfoBean> dbConnectionMap)
-      throws EncryptedDocumentException, URISyntaxException, IOException, AppException {
+      Map<String, DbConnectionInfoBean> dbConnectionMap) throws Exception {
+    LangExcel langLocal = Objects.requireNonNull(lang);
     List<HousekeepInfoBean> housekeepList =
         new StringOneLineHeaderExcelTableToBeanReader<HousekeepInfoBean>(HousekeepInfoBean.class,
-            lang.get(LangExcel.HOUSEKEEP_DB_SETTINGS),
-            lang.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+            langLocal.get(LangExcel.HOUSEKEEP_DB_SETTINGS),
+            langLocal.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS))
                 .readToBean(filePath);
     List<WhereConditionInfoBean> whereConditionList =
         new StringOneLineHeaderExcelTableToBeanReader<WhereConditionInfoBean>(
-            WhereConditionInfoBean.class, lang.get(LangExcel.SEARCH_CONDITION_SETTINGS),
-            lang.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+            WhereConditionInfoBean.class, langLocal.get(LangExcel.SEARCH_CONDITION_SETTINGS),
+            langLocal.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS))
                 .readToBean(filePath);
     List<RelatedTableInfoBean> relatedTableList =
         new StringOneLineHeaderExcelTableToBeanReader<RelatedTableInfoBean>(
-            RelatedTableInfoBean.class, lang.get(LangExcel.RELATED_TABLE_SETTINGS),
-            lang.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS), null, 1, null)
+            RelatedTableInfoBean.class, langLocal.get(LangExcel.RELATED_TABLE_SETTINGS),
+            langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS))
                 .readToBean(filePath);
 
-    // task IDの重複を検知するためのset
+    // Set for detecting duplicate task IDs.
     Set<String> housekeepInfoTaskIdSet = new HashSet<>();
     for (HousekeepInfoBean hpBean : housekeepList) {
-      // task ID重複チェック
+      // Check for duplicate task IDs.
       if (housekeepInfoTaskIdSet.contains(hpBean.getTaskId())) {
-        throw new BizLogicAppException("MSG_ERR_TASK_ID_DUPLICATED", hpBean.getTaskId());
+        new Violations()
+            .add(new BusinessViolation("MSG_ERR_TASK_ID_DUPLICATED", hpBean.getTaskId()))
+            .throwIfAny();
       }
 
       housekeepInfoTaskIdSet.add(hpBean.getTaskId());
 
-      // DB Connectionは必須なのでない場合はエラー
+      // DB Connection is required; error if not found.
       if (!dbConnectionMap.containsKey(hpBean.getDbConnectionInfoId())) {
-        throw new BizLogicAppException("MSG_ERR_DB_CONN_ID_NOT_FOUND", hpBean.getTaskId(),
-            hpBean.getDbConnectionInfoId());
+        new Violations().add(new BusinessViolation("MSG_ERR_DB_CONN_ID_NOT_FOUND",
+            hpBean.getTaskId(), hpBean.getDbConnectionInfoId())).throwIfAny();
       }
 
-      hpBean.setDbConnectionInfo(dbConnectionMap.get(hpBean.getDbConnectionInfoId()));
+      hpBean.setDbConnectionInfo(
+          Objects.requireNonNull(dbConnectionMap.get(hpBean.getDbConnectionInfoId())));
 
       hpBean.setWhereConditionInfoList(whereConditionList.stream()
           .filter(bean -> bean.getTaskId().equals(hpBean.getTaskId())).toList());
@@ -453,27 +484,30 @@ public class HousekeepDbTasklet implements Tasklet {
           .filter(bean -> bean.getTaskId().equals(hpBean.getTaskId())).toList());
     }
 
-    // 「関連テーブル処理設定」、「データ検索条件設定」未使用のデータがないかを確認。
-    // あれば、task IDのずれにより想定通り設定ができていない可能性があるのでエラーとする。
-    // 「DB接続設定」は、1 taskに対して1つのみで、かつ必須にしているので、使用されていないものがあっても大きな問題とは思いにくいことから、未使用があっても問題なしとする。
+    // Verify there are no unused records in "Related Table Settings" and
+    // "Search Condition Settings".
+    // If found, a task ID mismatch may mean the configuration is not as intended, so treat as
+    // an error.
+    // "DB Connection Settings" is limited to one per task and is required, so unused entries
+    // are unlikely to indicate a significant problem — treat as acceptable.
     Set<RelatedTableInfoBean> relSet = new HashSet<>();
     housekeepList.stream().forEach(bean -> relSet.addAll(bean.getRelatedRecordTableInfoList()));
     for (RelatedTableInfoBean relBean : relatedTableList) {
-      // 一致するか否かを判断するkeyがないので、objectとしての同一性で比較
+      // Since there is no key to match on, compare by object identity.
       if (!relSet.contains(relBean)) {
-        throw new BizLogicAppException("MSG_ERR_DATA_NOT_USED_REL", relBean.getTaskId(),
-            lang.get(relBean.getRelatedTableProcessPatternStringKey()),
-            relBean.getTargetTableColumn(), relBean.getRelatedTable());
+        new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_REL", relBean.getTaskId(),
+            langLocal.get(relBean.getRelatedTableProcessPatternStringKey()),
+            relBean.getTargetTableColumn(), relBean.getRelatedTable())).throwIfAny();
       }
     }
 
     Set<WhereConditionInfoBean> condSet = new HashSet<>();
     housekeepList.stream().forEach(bean -> condSet.addAll(bean.getWhereConditionInfoList()));
     for (WhereConditionInfoBean condBean : whereConditionList) {
-      // 一致するか否かを判断するkeyがないので、objectとしての同一性で比較
+      // Since there is no key to match on, compare by object identity.
       if (!condSet.contains(condBean)) {
-        throw new BizLogicAppException("MSG_ERR_DATA_NOT_USED_COND", condBean.getTaskId(),
-            condBean.getConditionColumn());
+        new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_COND",
+            condBean.getTaskId(), condBean.getConditionColumn())).throwIfAny();
       }
     }
 

@@ -50,30 +50,9 @@ public class CompressUtil {
       throws IOException {
     File baseFile = new File(toFilePath);
     File file = new File(fromDirPath);
-    ZipOutputStream outZip = null;
-    try {
-      // ZIPファイル出力オブジェクト作成
-      outZip = new ZipOutputStream(new FileOutputStream(baseFile), Charset.forName(encoding));
+    try (ZipOutputStream outZip =
+        new ZipOutputStream(new FileOutputStream(baseFile), Charset.forName(encoding))) {
       archive(outZip, baseFile, file);
-    } finally {
-      // ZIPエントリクローズ
-      if (outZip != null) {
-        try {
-          outZip.closeEntry();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-        try {
-          outZip.flush();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-        try {
-          outZip.close();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
     }
   }
 
@@ -105,45 +84,20 @@ public class CompressUtil {
    */
   public void zipFileList(List<String> fromFileList, String filePath, String encoding)
       throws IOException {
-    ZipOutputStream outZip = null;
     File baseFile = new File(filePath);
-    try {
-      // ZIPファイル出力オブジェクト作成
-      outZip = new ZipOutputStream(new FileOutputStream(baseFile), Charset.forName(encoding));
-      // 圧縮ファイルリストのファイルを連続圧縮
+    try (ZipOutputStream outZip =
+        new ZipOutputStream(new FileOutputStream(baseFile), Charset.forName(encoding))) {
+      // Compress files in the list sequentially.
       for (int i = 0; i < fromFileList.size(); i++) {
-        // ファイルオブジェクト作成
         File file = new File(fromFileList.get(i));
         archive(outZip, file, file.getName());
-      }
-    } finally {
-      // ZIPエントリクローズ
-      if (outZip != null) {
-        try {
-          outZip.closeEntry();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-        try {
-          outZip.flush();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-        try {
-          outZip.close();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
       }
     }
   }
 
   /*
-   * ディレクトリ圧縮のための再帰処理。
-   *
-   * @param outZip ZipOutputStream
-   * @param baseFile File 保存先ファイル
-   * @param file File 圧縮したいファイル
+   * Recursive processing for directory compression.
+   * baseFile is the output ZIP file and targetFile is the file or directory to compress.
    */
   private void archive(ZipOutputStream outZip, File baseFile, File targetFile) throws IOException {
     if (targetFile.isDirectory()) {
@@ -154,7 +108,7 @@ public class CompressUtil {
           archive(outZip, baseFile, f);
         } else {
           if (!f.getAbsoluteFile().equals(baseFile)) {
-            // 圧縮処理
+            // Compress.
             archive(outZip, f, f.getAbsolutePath().replace(baseFile.getParent(), "").substring(1));
           }
         }
@@ -167,33 +121,33 @@ public class CompressUtil {
    *
    * @param outZip ZipOutputStream outputStream
    * @param targetFile The file you want to zip
-   * @parma entryName saved zip file name
+   * @param entryName saved zip file name
    */
   private void archive(ZipOutputStream outZip, File targetFile, String entryName)
       throws IOException {
-    // 圧縮レベル設定
+    // Set compression level.
     outZip.setLevel(5);
 
-    // ZIPエントリ作成
-    String entryNameForZipUtil = (targetFile.isDirectory()) ? entryName + "/" : entryName;
+    // Create ZIP entry.
+    String entryNameForZipUtil = targetFile.isDirectory() ? entryName + "/" : entryName;
     ZipEntry ze = new ZipEntry(entryNameForZipUtil);
     ze.setTime(targetFile.lastModified());
     outZip.putNextEntry(ze);
 
     if (!targetFile.isDirectory()) {
-      // 圧縮ファイル読み込みストリーム取得
+      // Get input stream for the file to compress.
       BufferedInputStream in = new BufferedInputStream(new FileInputStream(targetFile));
-      // 圧縮ファイルをZIPファイルに出力
+      // Write the file to the ZIP output.
       int readSize = 0;
-      // 読み込みバッファ
+      // Read buffer.
       byte[] buffer = new byte[1024];
       while ((readSize = in.read(buffer, 0, buffer.length)) != -1) {
         outZip.write(buffer, 0, readSize);
       }
-      // クローズ処理
+      // Close.
       in.close();
     }
-    // ZIPエントリクローズ
+    // Close ZIP entry.
     outZip.closeEntry();
   }
 
@@ -204,7 +158,7 @@ public class CompressUtil {
    *     Notice that this app mainly uses org.apache.tools.zip.ZipEntry.</p>
    */
   public void unzip(String fromFullFilePath, String toFullDirPath) throws IOException {
-    // unzipする
+    // Unzip.
     try (ZipFile zf = new ZipFile(fromFullFilePath);) {
 
       for (Enumeration<? extends java.util.zip.ZipEntry> e = zf.entries(); e.hasMoreElements();) {

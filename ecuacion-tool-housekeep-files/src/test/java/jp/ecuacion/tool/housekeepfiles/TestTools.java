@@ -15,12 +15,13 @@
  */
 package jp.ecuacion.tool.housekeepfiles;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 
 public class TestTools {
 
   //
-  // static importが面倒なので、test methodをここに定義しておく。
+  // Define test methods here to avoid cumbersome static imports.
   //
 
   public void assertTrue(boolean bl) {
@@ -31,7 +32,7 @@ public class TestTools {
     Assertions.assertFalse(bl);
   }
 
-  public void assertEquals(Object expected, Object actual) {
+  public void assertEquals(@Nullable Object expected, @Nullable Object actual) {
     Assertions.assertEquals(expected, actual);
   }
 
@@ -39,8 +40,8 @@ public class TestTools {
     Assertions.fail();
   }
 
-  // assertThat(..) は使いやすくしようがないので対象のクラスをコメントで記録しておく。。。
-  // assertThatを使う場合は、以下の方をimportしておく。
+  // assertThat(..) is not easy to simplify, so recording the target class in a comment.
+  // When using assertThat, import the following.
   // org.assertj.core.api.Assertions
 
 }
