@@ -19,10 +19,10 @@ import java.io.IOException;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.BeforeEach;
 
-@SuppressWarnings("null")
 public class TaskletTestTool extends TestTool {
 
-  protected HousekeepFilesTasklet action = null;
+  @SuppressWarnings("null")
+  protected HousekeepFilesTasklet action;
 
   protected static final String DEFAULT_PATH = "def_path";
 
