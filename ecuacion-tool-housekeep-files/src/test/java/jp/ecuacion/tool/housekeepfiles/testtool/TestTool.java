@@ -28,6 +28,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
@@ -40,6 +42,10 @@ import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTaskSftp;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import org.apache.commons.io.FileUtils;
+import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
+import org.apache.sshd.server.SshServer;
+import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
+import org.apache.sshd.sftp.server.SftpSubsystemFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -165,14 +171,62 @@ public class TestTool extends TestTools {
     }
   };
 
+  /** Hostname of the embedded SFTP server used in tests. */
+  protected static String SFTP_HOST = "localhost";
+
+  /** Port of the embedded SFTP server; assigned dynamically at startup. */
+  protected static int SFTP_PORT;
+
+  private static SshServer embeddedSftpServer;
   protected static Session session;
   protected ChannelSftp channel;
 
   protected static void beforeAllOnSftpTest() throws JSchException {
+    startEmbeddedSftpServer();
     sftpConnectSession();
   }
 
+  private static void startEmbeddedSftpServer() {
+    if (embeddedSftpServer != null) {
+      return;
+    }
+
+    try {
+      Path sftpRoot = Paths.get("target/sftp-root").toAbsolutePath();
+      // Pre-create parent directories so SFTP_ROOT_PATH mkdir succeeds.
+      Files.createDirectories(sftpRoot.resolve("share"));
+
+      embeddedSftpServer = SshServer.setUpDefaultServer();
+      embeddedSftpServer.setPort(0);
+      embeddedSftpServer.setKeyPairProvider(
+          new SimpleGeneratorHostKeyProvider(Paths.get("target/sftp-hostkey.ser")));
+      embeddedSftpServer.setPasswordAuthenticator(
+          (username, password, sess) ->
+              "test_user".equals(username) && "pass".equals(password));
+      embeddedSftpServer.setSubsystemFactories(List.of(new SftpSubsystemFactory()));
+      embeddedSftpServer.setFileSystemFactory(new VirtualFileSystemFactory(sftpRoot));
+      embeddedSftpServer.start();
+
+      SFTP_PORT = embeddedSftpServer.getPort();
+
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        try {
+          embeddedSftpServer.stop(true);
+        } catch (IOException e) {
+          // ignore on shutdown
+        }
+      }));
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   protected void beforeEachOnSftpTest() throws Exception {
+    if (session == null || !session.isConnected()) {
+      session = null;
+      sftpConnectSession();
+    }
     channel = connectChannelSftp(session);
 
     sftpRmAll(channel, SFTP_ROOT_PATH);
@@ -192,20 +246,13 @@ public class TestTool extends TestTools {
   }
 
   protected static void sftpConnectSession() throws JSchException {
-
-    String hostname = "resources.ecuacion.jp";
-    int port = 20022;
-    String userId = "test_user";
-    String password = "pass";
-
     if (session != null) {
       return;
     }
 
     final JSch jsch = new JSch();
-    // Configure session.
-    session = jsch.getSession(userId, hostname, port);
-    session.setPassword(password);
+    session = jsch.getSession("test_user", SFTP_HOST, SFTP_PORT);
+    session.setPassword("pass");
 
     Properties config = new java.util.Properties();
     config.put("StrictHostKeyChecking", "no");
@@ -219,16 +266,9 @@ public class TestTool extends TestTools {
    * assign session = null; sftpConnectSession(); at the end of the test.
    */
   protected static void sftpWrongConnectSession() throws JSchException {
-
-    String hostname = "resources.ecuacion.jp";
-    int port = 20022;
-    String userId = "test_user";
-    String password = "wrongPass";
-
     final JSch jsch = new JSch();
-    // Configure session.
-    session = jsch.getSession(userId, hostname, port);
-    session.setPassword(password);
+    session = jsch.getSession("test_user", SFTP_HOST, SFTP_PORT);
+    session.setPassword("wrongPass");
 
     Properties config = new java.util.Properties();
     config.put("StrictHostKeyChecking", "no");
@@ -351,6 +391,9 @@ public class TestTool extends TestTools {
     }
 
     LsEntry me = sftpLsSelfDetail(channel, path);
+    if (me == null) {
+      return;
+    }
     if (me.getAttrs().isDir()) {
       sftpRmDir(channel, path);
     } else {
