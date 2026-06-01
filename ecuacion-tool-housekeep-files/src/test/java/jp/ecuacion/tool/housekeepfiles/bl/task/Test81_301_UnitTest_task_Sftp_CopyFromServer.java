@@ -16,14 +16,12 @@
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.IOException;
-import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.BeforeEach;
 
-@SuppressWarnings("null")
 public class Test81_301_UnitTest_task_Sftp_CopyFromServer extends TestTool {
-  SftpCopyFromServer task = null;
-  HousekeepFilesTaskRecord taskRec = null;
+  @SuppressWarnings("null")
+  SftpCopyFromServer task;
 
   @BeforeEach
   public void before() throws IOException {
