@@ -19,8 +19,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
-import jp.ecuacion.tool.housekeepfiles.dto.form.DoNothingInConstructorForm;
-import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,11 +28,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Test for HousekeepFilesXmlDataChecker#checkTaskItem.
  */
-@SuppressWarnings("null")
 public class Test31_11_ExcelDataValidation_taskList_Check_CommonProcess extends TestTool {
-
-  DoNothingInConstructorForm form = null;
-  HousekeepFilesTaskRecord taskRec = null;
 
   @BeforeAll
   public static void beforeClass() throws IOException {
@@ -44,6 +38,7 @@ public class Test31_11_ExcelDataValidation_taskList_Check_CommonProcess extends 
   public void before() throws IOException {
   }
 
+  @SuppressWarnings("NullAway")
   @Test
   public void test01_checkTaskItem_required_null() {
     Violations violations = new Violations();
@@ -74,6 +69,7 @@ public class Test31_11_ExcelDataValidation_taskList_Check_CommonProcess extends 
     assertTrue(violations.getBusinessViolations().isEmpty());
   }
 
+  @SuppressWarnings("NullAway")
   @Test
   public void test11_checkTaskItem_prohibited_null() {
     Violations violations = new Violations();
@@ -101,6 +97,7 @@ public class Test31_11_ExcelDataValidation_taskList_Check_CommonProcess extends 
     assertEquals("MSG_ERR_TASK_PROHIBITED_CHECK", bvList.get(0).getMessageId());
   }
 
+  @SuppressWarnings("NullAway")
   @Test
   public void test21_checkTaskItem_arbitrary_null() {
     Violations violations = new Violations();

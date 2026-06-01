@@ -23,6 +23,7 @@ import jp.ecuacion.tool.housekeepfiles.dto.form.DoNothingInConstructorForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.testtool.TestTool;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,7 @@ import org.junit.jupiter.api.Test;
 public class Test31_12_ExcelDataValidation_taskList_Check_VerifyItemsCallCommonProcess extends TestTool {
 
   @SuppressWarnings("null")
-  DoNothingInConstructorForm form = null;
+  DoNothingInConstructorForm form;
 
   @BeforeAll
   public static void beforeClass() throws IOException {}
@@ -61,7 +62,7 @@ public class Test31_12_ExcelDataValidation_taskList_Check_VerifyItemsCallCommonP
     Move move = new Move() {
       @Override
       public void checkTaskItem(Violations violations, String taskId, TaskPtnEnum taskPtn,
-          TaskAttrCheckPtnEnum checkPtn, String itemTitle, Object itemValue) {
+          TaskAttrCheckPtnEnum checkPtn, String itemTitle, @Nullable Object itemValue) {
         counterObj.counter++;
       }
     };

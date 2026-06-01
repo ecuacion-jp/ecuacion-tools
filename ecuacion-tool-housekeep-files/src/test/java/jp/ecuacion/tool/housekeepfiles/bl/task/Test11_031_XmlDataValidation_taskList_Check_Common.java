@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 public class Test11_031_XmlDataValidation_taskList_Check_Common extends TestTool {
 
   @SuppressWarnings("null")
-  DoNothingInConstructorForm form = null;
+  DoNothingInConstructorForm form;
 
   @BeforeAll
   public static void beforeClass() throws IOException {}

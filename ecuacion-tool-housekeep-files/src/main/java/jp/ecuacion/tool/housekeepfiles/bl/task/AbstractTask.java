@@ -158,7 +158,7 @@ public abstract class AbstractTask {
   }
 
   void checkTaskItem(Violations violations, String taskId, TaskPtnEnum taskPtn,
-      TaskAttrCheckPtnEnum checkPtn, String itemTitle, Object itemValue) {
+      TaskAttrCheckPtnEnum checkPtn, String itemTitle, @Nullable Object itemValue) {
     String taskPtnName = (taskPtn == null) ? "" : taskPtn.toString();
     boolean isEmpty = itemValue == null || (itemValue instanceof String && itemValue.equals(""));
     if (checkPtn == REQUIRED && isEmpty) {
