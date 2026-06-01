@@ -173,6 +173,10 @@ public class TestTool extends TestTools {
   }
 
   protected void beforeEachOnSftpTest() throws Exception {
+    if (session == null || !session.isConnected()) {
+      session = null;
+      sftpConnectSession();
+    }
     channel = connectChannelSftp(session);
 
     sftpRmAll(channel, SFTP_ROOT_PATH);
@@ -351,6 +355,9 @@ public class TestTool extends TestTools {
     }
 
     LsEntry me = sftpLsSelfDetail(channel, path);
+    if (me == null) {
+      return;
+    }
     if (me.getAttrs().isDir()) {
       sftpRmDir(channel, path);
     } else {
