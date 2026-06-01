@@ -16,14 +16,16 @@
 package jp.ecuacion.tool.housekeepfiles.tasklet;
 
 import java.util.Map;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
+import java.util.Objects;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
-import org.springframework.batch.core.StepContribution;
+import org.jspecify.annotations.Nullable;
 import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
-import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
 /**
@@ -32,18 +34,19 @@ import org.springframework.stereotype.Component;
 @Component
 public class HousekeepFilesTasklet implements Tasklet {
   HousekeepFilesBlf blf = new HousekeepFilesBlf();
-  HousekeepFilesForm form = null;
+  @Nullable HousekeepFilesForm form;
 
   /**
-   * Executes housekeeping files. 
+   * Executes housekeeping files.
    */
+  @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
     Map<String, Object> paramMap = chunkContext.getStepContext().getJobParameters();
 
     String excelPath = (String) paramMap.get("excelPath");
 
-    execute(excelPath);
+    execute(Objects.requireNonNull(excelPath));
 
     return RepeatStatus.FINISHED;
   }
@@ -51,34 +54,41 @@ public class HousekeepFilesTasklet implements Tasklet {
   /**
    * Housekeeps files.
    */
-  public void execute(String excelFilePath) throws AppException, Exception {
+  @SuppressWarnings("unused")
+  public void execute(String excelFilePath) throws Exception {
 
-    // 第一引数をチェック
+    // Check the first argument.
     if (excelFilePath == null || excelFilePath.equals("")) {
-      throw new BizLogicAppException("MSG_ERR_PARAM_NULL_OR_EMPTY", "1st argument(excelFilePath)");
+      new Violations()
+          .add(new BusinessViolation("MSG_ERR_PARAM_NULL_OR_EMPTY", "1st argument(excelFilePath)"))
+          .throwIfAny();
 
     } else if (!excelFilePath.contains(".")) {
-      // 拡張子が存在しない
-      throw new BizLogicAppException("MSG_ERR_1ST_ARG_HAS_NO_EXTENSION", excelFilePath);
+      // No file extension found.
+      new Violations().add(new BusinessViolation("MSG_ERR_1ST_ARG_HAS_NO_EXTENSION", excelFilePath))
+          .throwIfAny();
     }
 
-    // 第一引数のパスに含まれるファイル名の拡張子によりパラメータの数を判断
+    Objects.requireNonNull(excelFilePath);
+
+    // Determine the number of parameters based on the file extension in the first argument path.
     String extension = excelFilePath.substring(excelFilePath.lastIndexOf("."));
 
     if (extension.equals(".xlsx")) {
       form = getFormFromExcel(excelFilePath);
 
     } else {
-      throw new BizLogicAppException("MSG_ERR_EXTENSION_NOT_EXPECTED", extension);
+      new Violations().add(new BusinessViolation("MSG_ERR_EXTENSION_NOT_EXPECTED", extension))
+          .throwIfAny();
     }
 
-    blf.execute(form);
+    blf.execute(Objects.requireNonNull(form));
   }
 
   /**
    * It's package scope for unit-test.
    */
-  HousekeepFilesForm getFormFromExcel(String excelPath) throws AppException {
+  HousekeepFilesForm getFormFromExcel(String excelPath) {
     return new HousekeepFilesForm(excelPath);
   }
 }

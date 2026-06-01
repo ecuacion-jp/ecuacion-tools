@@ -19,9 +19,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.util.poi.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
-import org.apache.poi.EncryptedDocumentException;
+import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
 
 /**
  * Reads info sheet of the settings excel.
@@ -34,16 +32,22 @@ public class ExcelInfoListReader extends StringOneLineHeaderExcelTableReader {
    * Constructs a new instance.
    */
   public ExcelInfoListReader() {
-    super("基礎情報設定", headerLabels, null, 1, null);
+    super("基礎情報設定", headerLabels);
   }
 
   /**
    * Returns excel data as map format.
    */
-  public Map<String, String> readToMap(String excelPath)
-      throws EncryptedDocumentException, IOException, AppException {
-    // 表の情報をlistの形で取得
-    List<List<String>> rowList = read(excelPath);
+  public Map<String, String> readToMap(String excelPath) throws IOException {
+    // Retrieve the table data as a list.
+    List<List<String>> rowList;
+    try {
+      rowList = read(excelPath);
+    } catch (IOException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
 
     Map<String, String> rtnMap = new HashMap<>();
     for (List<String> colList : rowList) {

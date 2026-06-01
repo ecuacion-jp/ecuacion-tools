@@ -17,9 +17,8 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.File;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.task.internal.CreateDirInterface;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
@@ -29,6 +28,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 /**
  * Provides create directory task.
  */
+@SuppressWarnings("NullAway")
 public class CreateDir extends AbstractTaskLocal implements CreateDirInterface {
 
   /**
@@ -44,33 +44,32 @@ public class CreateDir extends AbstractTaskLocal implements CreateDirInterface {
   }
 
   @Override
-  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList) {
-
-    taskDependentCheckCreateDir(exList, taskRec);
+  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
+    taskDependentCheckCreateDir(violations, taskRec);
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doTaskInternal(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
-      String srcPath, String destPath, List<AppException> warnList) throws Exception {
+      String srcPath, String destPath, List<BusinessViolation> warnList) throws Exception {
 
     File dest = new File(destPath);
 
-    // 作成対象ディレクトリが既に存在する場合
+    // If the directory to create already exists.
     if (dest.exists() && dest.isDirectory()) {
       treatDestPathExists(taskRec, destPath, warnList);
       return;
     }
-    
-    // 以下、作成対象ディレクトリが存在しない場合
 
-    // toPathがディレクトリでなくファイルとして存在する場合
+    // Below: when the directory to create does not exist.
+
+    // If toPath exists as a file rather than a directory.
     if (dest.exists() && !dest.isDirectory()) {
-      throw new BizLogicAppException("MSG_ERR_DEST_PATH_IS_FILE", taskRec.getTaskId(),
-          taskRec.getTaskName(), destPath);
+      new Violations().add(new BusinessViolation("MSG_ERR_DEST_PATH_IS_FILE",
+          taskRec.getTaskId(), taskRec.getTaskName(), destPath)).throwIfAny();
     }
 
-    // ファイル・ディレクトリとも存在しない場合。作成する
+    // Neither file nor directory exists. Create it.
     new File(destPath).mkdirs();
   }
 }

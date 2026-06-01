@@ -18,6 +18,7 @@ package jp.ecuacion.tool.housekeepfiles.dto.other;
 /**
  * Stores file info.
  */
+@SuppressWarnings("NullAway.Init")
 public class FileInfo {
   private String filePath;
   private boolean isDirectory;
@@ -27,6 +28,7 @@ public class FileInfo {
   /**
    * Constructs a new instance.
    */
+  @SuppressWarnings("null")
   public FileInfo() {
 
   }

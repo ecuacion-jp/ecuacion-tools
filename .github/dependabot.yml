@@ -1,0 +1,9 @@
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "0.0"  # Update when creating a new release branch
+    ignore:
+      - dependency-name: "jp.ecuacion:*"

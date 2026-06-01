@@ -25,6 +25,7 @@ import org.apache.commons.io.FileUtils;
 /**
  * Provides move task.
  */
+@SuppressWarnings("NullAway")
 public class Move extends AbstractTaskCopyOrMove {
 
   private DateTimeUtil dateUtil = new DateTimeUtil();
@@ -36,27 +37,30 @@ public class Move extends AbstractTaskCopyOrMove {
     taskPtn = TaskPtnEnum.MOVE;
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doSpecificTask(HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
       TaskPtnEnum taskPtn, boolean isFromDir, boolean isToDir) {
-    // 移動・コピーを実施
+    // Perform move/copy.
     File from = new File(fromPath);
     File to = new File(toPath);
     if (isFromDir) {
-      // 下のFileUtils.copyDirectoryと同じ理由で処理を少々変える
+      // Adjust processing for the same reason as FileUtils.copyDirectory below.
       String newToPath = FileUtil.concatFilePaths(to.getAbsolutePath(), from.getName());
-      // どうしてもロック状態を正しく取得できない場合があるため、どうしても削除できないものは無視する
+      // Because lock state cannot always be determined reliably, ignore items that cannot be
+      // deleted.
       try {
         FileUtils.moveDirectory(from, new File(newToPath));
       } catch (Exception e) {
-        dlog.debug("ファイルがロックされているためスキップします：" + from);
-        e.printStackTrace();
+        dlog.debug("Skipping because the file is locked: " + from);
+        dlog.warn(e);
       }
     } else {
-      // fromのファイルの期間が条件を満たすかを確認
+      // Check whether the from file's elapsed time satisfies the condition.
       if (dateUtil.hasDesignatedTermPassed(from.lastModified(), taskRec.getUnit(),
           taskRec.getValue())) {
-        // どうしてもロック状態を正しく取得できない場合があるため、どうしても削除できないものは無視する
+        // Because lock state cannot always be determined reliably, ignore items that cannot be
+        // deleted.
         try {
           if (isToDir) {
             FileUtils.moveFileToDirectory(from, to, true);
@@ -65,8 +69,8 @@ public class Move extends AbstractTaskCopyOrMove {
             FileUtils.moveFile(from, to);
           }
         } catch (Exception e) {
-          dlog.debug("ファイルがロックされているためスキップします：" + from);
-          e.printStackTrace();
+          dlog.debug("Skipping because the file is locked: " + from);
+          dlog.warn(e);
         }
       }
     }
