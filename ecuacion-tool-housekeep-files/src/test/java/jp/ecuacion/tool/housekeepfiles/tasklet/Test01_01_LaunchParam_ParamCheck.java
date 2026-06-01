@@ -23,7 +23,6 @@ import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("null")
 public class Test01_01_LaunchParam_ParamCheck extends TaskletTestTool {
 
   @BeforeEach
@@ -31,6 +30,7 @@ public class Test01_01_LaunchParam_ParamCheck extends TaskletTestTool {
     super.before();
     // Modified for testing.
     action = new HousekeepFilesTasklet() {
+      @SuppressWarnings({"NullAway", "null"})
       @Override
       protected HousekeepFilesForm getFormFromExcel(String excelFilePath) {
         // Do nothing.
@@ -47,6 +47,7 @@ public class Test01_01_LaunchParam_ParamCheck extends TaskletTestTool {
     };
   }
 
+  @SuppressWarnings({"NullAway", "null"})
   @Test
   public void test11_whenArgIsNull() {
     try {
