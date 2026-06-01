@@ -15,6 +15,7 @@
  */
 package jp.ecuacion.tool.housekeepfiles;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 
 public class TestTools {
@@ -31,7 +32,7 @@ public class TestTools {
     Assertions.assertFalse(bl);
   }
 
-  public void assertEquals(Object expected, Object actual) {
+  public void assertEquals(@Nullable Object expected, @Nullable Object actual) {
     Assertions.assertEquals(expected, actual);
   }
 

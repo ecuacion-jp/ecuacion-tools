@@ -27,12 +27,14 @@ import org.junit.jupiter.api.Test;
  * @author yosuke.tanaka@ecuacion.jp
  *
  */
-@SuppressWarnings("null")
 public class DateUtiHhasDesignatedTimePassed {
 
-  Calendar calLastModifiedTimestamp = null;
-  Calendar calCurrentTimestampMinusValue = null;
-  DateTimeUtil bl = null;
+  @SuppressWarnings("null")
+  Calendar calLastModifiedTimestamp;
+  @SuppressWarnings("null")
+  Calendar calCurrentTimestampMinusValue;
+  @SuppressWarnings("null")
+  DateTimeUtil bl;
 
   /** Static initialization for the test class. */
   @BeforeAll

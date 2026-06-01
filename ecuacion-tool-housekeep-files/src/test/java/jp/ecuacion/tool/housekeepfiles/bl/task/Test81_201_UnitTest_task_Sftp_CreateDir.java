@@ -34,24 +34,24 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("null")
+@SuppressWarnings("NullAway")
 public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
 
   public static boolean procCalledOnWarnListIsNotEmpty = false;
 
   @BeforeAll
-  private static void beforeAll() throws JSchException {
+  static void beforeAll() throws JSchException {
     beforeAllOnSftpTest();
   }
 
   @BeforeEach
-  private void beforeEach() throws Exception {
+  void beforeEach() throws Exception {
     procCalledOnWarnListIsNotEmpty = false;
     beforeEachOnSftpTest();
   }
 
   @AfterEach
-  private void afterach() throws Exception {
+  void afterEach() throws Exception {
     afterEachOnSftpTest();
   }
 
@@ -61,6 +61,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
   }
 
   private HousekeepFilesForm getForm(HousekeepFilesTaskRecord taskRec) {
+    @SuppressWarnings("null")
     HousekeepFilesAuthRecord authRec = new HousekeepFilesAuthRecord("resources.ecuacion.jp", "SFTP",
         "20022", "PASSWORD", "test_user", "pass", null);
 
