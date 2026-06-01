@@ -21,13 +21,14 @@ import org.junit.jupiter.api.BeforeEach;
 
 public class TaskletTestTool extends TestTool {
 
-  protected HousekeepFilesTasklet action = null;
+  @SuppressWarnings("null")
+  protected HousekeepFilesTasklet action;
 
   protected static final String DEFAULT_PATH = "def_path";
 
   @BeforeEach
   public void before() throws IOException {
-    // actionの生成
+    // Create action instance.
     action = new HousekeepFilesTasklet();
   }
 

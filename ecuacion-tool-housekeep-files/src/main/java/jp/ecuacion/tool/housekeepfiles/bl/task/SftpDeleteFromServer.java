@@ -17,17 +17,19 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import com.jcraft.jsch.ChannelSftp;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToSftpServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provides sftp delete from server task.
  */
+@SuppressWarnings("NullAway")
 public class SftpDeleteFromServer extends AbstractTaskSftp {
 
   /**
@@ -48,22 +50,22 @@ public class SftpDeleteFromServer extends AbstractTaskSftp {
   }
 
   @Override
-  public Boolean isDestPathLocal() {
+  public @Nullable Boolean isDestPathLocal() {
     return null;
   }
 
   @Override
-  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList) {
+  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
 
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doSpecificTask(ConnectionToRemoteServer connection,
-      HousekeepFilesTaskRecord taskRec, String fromPath, String toPath, List<AppException> warnList)
-      throws Exception {
+      HousekeepFilesTaskRecord taskRec, String fromPath, String toPath,
+      List<BusinessViolation> warnList) throws Exception {
     ChannelSftp sftp = ((ConnectionToSftpServer) connection).getSftpChannel();
-    // 指定のディレクトリがそもそも存在しない場合は作成する
+    // Create the specified directory if it does not exist.
     // makeRemoteDirs(connection, fromPath);
     sftp.rm(fromPath);
   }

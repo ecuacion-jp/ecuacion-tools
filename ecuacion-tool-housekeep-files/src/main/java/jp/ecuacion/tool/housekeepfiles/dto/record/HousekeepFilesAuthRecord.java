@@ -15,7 +15,6 @@
  */
 package jp.ecuacion.tool.housekeepfiles.dto.record;
 
-import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotEmpty;
@@ -23,13 +22,13 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.Arrays;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.tool.housekeepfiles.enums.AuthTypeEnum;
-import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
+import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 
 /**
  * Store Auth info.
  */
+@SuppressWarnings("NullAway.Init")
 public class HousekeepFilesAuthRecord extends StringExcelTableBean {
 
   @NotEmpty
@@ -59,7 +58,7 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
   private String keyPath;
 
   @Override
-  protected @Nonnull String[] getFieldNameArray() {
+  protected String[] getFieldNameArray() {
     return new String[] {"remoteServer", "protocol", "port", "authType", "userName", "password",
         "keyPath"};
   }
@@ -69,6 +68,7 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
    * 
    * @param colList colList
    */
+  @SuppressWarnings("null")
   public HousekeepFilesAuthRecord(List<String> colList) {
     super(colList);
   }
@@ -76,6 +76,7 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
   /**
    * only for unit test.
    */
+  @SuppressWarnings("null")
   public HousekeepFilesAuthRecord(String remoteServer, String protocol, String port,
       String authType, String userName, String password, String keyPath) {
 
@@ -112,7 +113,7 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
   }
 
   @Override
-  public void afterReading() throws AppException {
+  public void afterReading() {
 
   }
 }

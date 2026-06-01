@@ -3,15 +3,11 @@
  ## What is it?
 
  `ecuacion-tool-command-api` receives commands through web API and execute them in the installed server.
-
- ## System Requirements
-
- - JDK 21 or above.
- - Linux or mac OS supported.
+ Linux or mac OS supported.
 
  ## Documentation
 
- - [javadoc](https://javadoc.ecuacion.jp/apidocs/ecuacion-tool-command-api/)
+ - [javadoc](https://docs.ecuacion.jp/javadoc/apidocs/ecuacion-tool-command-api/)
 
  ## Installation
 

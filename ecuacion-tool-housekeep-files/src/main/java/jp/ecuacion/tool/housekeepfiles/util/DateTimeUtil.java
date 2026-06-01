@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * Provides utilities on date and time.
  */
+@SuppressWarnings("JavaUtilDate")
 public class DateTimeUtil {
 
   /**
@@ -82,22 +83,26 @@ public class DateTimeUtil {
    * Provides boolean whether designated time passes.
    */
   public boolean hasDesignatedTermPassed(long lastModified, int unit, int value) {
-    // * たとえば、日次で夜間に動くバッチ処理で、ファイルコピーと、3日後にそのコピーしたファイルを削除する処理があるとする。
-    // * その際、3日後にはファイルが消えてほしいのだが、普通の日時比較をすると、86400000*3ミリ秒経過したかどうか、 で判断してしまう。
-    //  * そうではなくて、日単位なら時刻は見ずに日だけで比較する、というロジック。
+    // For example, consider a nightly batch process that copies files and then deletes those
+    // copies after 3 days.
+    // The file should disappear after 3 days, but a naive datetime comparison would check whether
+    // 86400000*3 milliseconds have elapsed.
+    // Instead, the logic compares only the date part for day-unit granularity, ignoring the time
+    // component.
 
-    // fileのlastModifiedをもとに作成したCalendar
+    // Calendar built from the file's lastModified timestamp.
     Calendar calFileLastModified = Calendar.getInstance();
     calFileLastModified.setTimeInMillis(lastModified);
-    // 現在から指定の期間だけさかのぼった日時のCalendar。テストしやすくするため別メソッドからの受取とする
+    // Calendar representing the datetime that is the specified period before now.
+    // Received from a separate method to facilitate testing.
     Calendar calDesignatedTime = getCurrentCal();
 
-    // value = 0の場合は、必ず処理を行う、でよいので常にtrueを返す
+    // When value = 0, processing should always occur, so always return true.
     if (value == 0) {
       return true;
     }
 
-    // さかのぼる処理
+    // Roll back by the specified period.
     if (unit == Calendar.SECOND) {
       calDesignatedTime.add(Calendar.SECOND, -1 * value);
 
@@ -117,13 +122,15 @@ public class DateTimeUtil {
       calDesignatedTime.add(Calendar.YEAR, -1 * value);
     }
 
-    // たとえば日で比較するときは、時間は無関係で、日付が違えばよい。（24時間たっていなくてもよい）
-    // 24時間たってから、にしたいなら、24時間と指定する。
-    // calendarデータにはミリ秒までデータが入っているため、必要な分だけそれを固定値に置き換える
+    // For day-level comparison, the time is irrelevant — only the date must differ
+    // (less than 24 hours is acceptable).
+    // To require a full 24 hours to pass, specify 24 hours.
+    // Calendar data includes milliseconds, so replace the lower-precision fields with fixed
+    // values as needed.
     Date dateFileLastModified = makeUnusedCalendarUnitValToFixedVal(calFileLastModified, unit);
     Date dateDesignatedTime = makeUnusedCalendarUnitValToFixedVal(calDesignatedTime, unit);
 
-    // 比較した結果をreturn
+    // Return the comparison result.
     return (dateFileLastModified.getTime() > dateDesignatedTime.getTime()) ? false : true;
   }
 
@@ -137,7 +144,8 @@ public class DateTimeUtil {
   }
 
   /*
-   * calendarのままで判断しようとするとどうにもうまくいかず、ネットで見るとdateで比較する例があったのでdateを返すこととする。
+   * Comparing using Calendar directly proved unreliable; examples found online suggest comparing
+   * using Date, so this method returns a Date.
    */
   private Date makeUnusedCalendarUnitValToFixedVal(Calendar cal, int timeUnit) {
     final int year = cal.get(Calendar.YEAR);
@@ -154,7 +162,7 @@ public class DateTimeUtil {
         || timeUnit == Calendar.MINUTE) ? 0 : cal.get(Calendar.SECOND);
 
     Calendar rtnCal = Calendar.getInstance();
-    // ミリ秒を0にセット
+    // Set milliseconds to 0.
     rtnCal.clear();
 
     rtnCal.set(year, month, day, hour, minute, second);

@@ -1,9 +1,24 @@
+/*
+ * Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package jp.ecuacion.tool.housekeepdb.lang;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import jp.ecuacion.lib.core.util.PropertyFileUtil;
+import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 
 /**
  * Provides message IDs to internationalize excel settings file.
@@ -32,7 +47,7 @@ public class LangExcel {
    * @return message
    */
   public String get(String key) {
-    return PropertyFileUtil.getMessage(locale, key);
+    return PropertiesFileUtil.getMessage(locale, key);
   }
 
   /**
@@ -41,6 +56,7 @@ public class LangExcel {
    * @param headerLabelKeys headerLabelKeys
    * @return localized header labels
    */
+  @SuppressWarnings("null")
   public String[] getHeaderLabels(String[] headerLabelKeys) {
     List<String> list = Arrays.asList(headerLabelKeys).stream().map(key -> get(key)).toList();
     return list.toArray(new String[list.size()]);
@@ -64,6 +80,7 @@ public class LangExcel {
     public static final String DB_USER = "EXCEL_TABLE_HEADER_DB_USER";
     public static final String DB_PASSWORD = "EXCEL_TABLE_HEADER_DB_PASSWORD";
 
+    @SuppressWarnings("MutablePublicArray")
     public static final String[] HEADER_LABELS = new String[] {DB_CONNECTION_ID, DB_DRIVER_NAME,
         DB_CONNECTION_URL_PROTOCOL, DB_CONNECTION_URL_SERVER, DB_CONNECTION_URL_PORT,
         DB_CONNECTION_URL_DATABASE_NAME, DB_CONNECTION_URL_SCHEMA_NAME, DB_USER, DB_PASSWORD};
@@ -100,6 +117,7 @@ public class LangExcel {
     public static final String VALUE_SOFT_DELETE = "EXCEL_VALUE_SOFT_DELETE";
     public static final String VALUE_HARD_DELETE = "EXCEL_VALUE_HARD_DELETE";
 
+    @SuppressWarnings("MutablePublicArray")
     public static final String[] HEADER_LABELS = new String[] {TASK_ID,
         DbConnectionSettings.DB_CONNECTION_ID, SOFT_OR_HARD_DELETE,
         SOFT_OR_HARD_DELETE_INTERNAL_VALUE, TABLE_NAME, ID_COLUMN_NAME, ID_COLUMN_LITERAL_SYMBOL,
@@ -129,6 +147,7 @@ public class LangExcel {
     public static final String VALUE_RELATED_TABLE_PROCESS_PATTERN_CHECK_AND_SKIP_DELETE =
         "EXCEL_VALUE_RELATED_TABLE_PROCESS_PATTERN_CHECK_AND_SKIP_DELETE";
 
+    @SuppressWarnings("MutablePublicArray")
     public static final String[] HEADER_LABELS = new String[] {HousekeepDbSettings.TASK_ID,
         HousekeepDbSettings.SOFT_OR_HARD_DELETE_INTERNAL_VALUE, RELATED_TABLE_PROCESS_PATTERN,
         RELATED_TABLE_PROCESS_PATTERN_INTERNAL_VALUE, TARGET_TABLE_COLUMN_NAME, RELATED_TABLE_NAME,
@@ -149,6 +168,7 @@ public class LangExcel {
         "EXCEL_TABLE_HEADER_CONDITION_COLUMN_LITERAL_SYMBOL";
     public static final String CONDITION_COLUMN_VALUE = "EXCEL_TABLE_HEADER_CONDITION_COLUMN_VALUE";
 
+    @SuppressWarnings("MutablePublicArray")
     public static final String[] HEADER_LABELS = new String[] {HousekeepDbSettings.TASK_ID,
         CONDITION_COLUMN_NAME, CONDITION_COLUMN_LITERAL_SYMBOL, CONDITION_COLUMN_VALUE};
   }

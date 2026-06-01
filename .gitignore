@@ -140,3 +140,21 @@ products/
 
 # mac
 .DS_Store
+
+# vscode
+.vscode/
+
+<<<<<<< Updated upstream
+# claude
+.claude
+
+# allure
+.allure
+=======
+# allure
+.allure
+
+# claude
+.claude
+
+>>>>>>> Stashed changes

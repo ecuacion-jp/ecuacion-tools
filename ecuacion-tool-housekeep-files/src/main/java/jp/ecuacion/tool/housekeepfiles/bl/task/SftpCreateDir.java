@@ -19,19 +19,20 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.SftpException;
 import java.io.File;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.exception.checked.SingleAppException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToSftpServer;
 import jp.ecuacion.tool.housekeepfiles.bl.task.internal.CreateDirInterface;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provides sftp create directory task.
  */
+@SuppressWarnings("NullAway")
 public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterface {
 
   /**
@@ -47,7 +48,7 @@ public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterfac
   }
 
   @Override
-  public Boolean isSrcPathLocal() {
+  public @Nullable Boolean isSrcPathLocal() {
     return null;
   }
 
@@ -57,54 +58,54 @@ public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterfac
   }
 
   @Override
-  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec,
-      List<SingleAppException> exList) {
-    taskDependentCheckCreateDir(exList, taskRec);
+  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
+    taskDependentCheckCreateDir(violations, taskRec);
   }
 
+  @SuppressWarnings("null")
   @Override
   protected void doSpecificTask(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String srcPath, String destPath,
-      List<AppException> warnList) throws Exception {
+      List<BusinessViolation> warnList) throws Exception {
 
     ChannelSftp channel = ((ConnectionToSftpServer) connection).getSftpChannel();
 
-    // 作成対象ディレクトリが既に存在する場合
+    // If the directory to create already exists.
     if (remoteDirExists(channel, destPath)) {
       treatDestPathExists(taskRec, destPath, warnList);
       return;
     }
 
-    // 以下、作成対象ディレクトリが存在しない場合
+    // Below: when the directory to create does not exist.
 
-    // toPathがディレクトリでなくファイルとして存在する場合
+    // If toPath exists as a file rather than a directory.
     if (remoteFileExists(channel, destPath)) {
-      throw new BizLogicAppException("MSG_ERR_DEST_PATH_IS_FILE", taskRec.getTaskId(),
-          taskRec.getTaskName(), destPath);
+      new Violations().add(new BusinessViolation("MSG_ERR_DEST_PATH_IS_FILE",
+          taskRec.getTaskId(), taskRec.getTaskName(), destPath)).throwIfAny();
     }
 
-    // ファイル・ディレクトリとも存在しない場合。作成する
+    // Neither file nor directory exists. Create it.
     createDirRecursively(channel, taskRec, destPath);
   }
 
   private void createDirRecursively(ChannelSftp channel, HousekeepFilesTaskRecord taskRec,
-      String destPath) throws SftpException, BizLogicAppException {
+      String destPath) throws SftpException {
 
     String parentPath = new File(destPath).getParent();
 
     if (!remoteExists(channel, parentPath)) {
-      // 親が存在しない場合、さらに親のディレクトリを作成しに行く
+      // If the parent does not exist, recursively create the parent directory.
       createDirRecursively(channel, taskRec, parentPath);
     }
 
     if (remoteDirExists(channel, parentPath)) {
-      // 親ディレクトリが存在するなら、自ディレクトリを作成して終了
+      // If the parent directory exists, create the current directory and return.
       channel.mkdir(destPath);
 
     } else {
-      // 親パスがファイルの場合。エラー終了。
-      throw new BizLogicAppException("MSG_ERR_DEST_PATH_IS_FILE", taskRec.getTaskId(),
-          taskRec.getTaskName(), destPath);
+      // If the parent path is a file, terminate with an error.
+      new Violations().add(new BusinessViolation("MSG_ERR_DEST_PATH_IS_FILE",
+          taskRec.getTaskId(), taskRec.getTaskName(), destPath)).throwIfAny();
     }
   }
 }

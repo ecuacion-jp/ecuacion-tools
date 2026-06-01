@@ -16,44 +16,32 @@
 package jp.ecuacion.tool.housekeepfiles.util;
 
 import java.io.File;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 
 /**
  * Provides utilities.
  */
+@SuppressWarnings("NullAway")
 public class HkFileManipulateUtil {
 
   /**
    * Checks if overwritten files or directories exist.
    */
   public boolean checkIfToOverwrittenFileOrDirExists(HousekeepFilesTaskRecord taskRec,
-      String fromPath, String toPath) throws BizLogicAppException {
+      String fromPath, String toPath) {
 
     if (taskRec.getIsDestPathDir() == false) {
-      // toがファイルの場合
-      // extensionを考慮
+      // When the destination is a file.
+      // Taking file extension into account.
       // toPath = toPath + extension;
-      return (new File(toPath).exists()) ? true : false;
+      return new File(toPath).exists();
 
     } else {
-      // toがディレクトリの場合、そのディレクトリの中まで確認してチェックを行う
-      // fromがディレクトリかどうかでも処理を分ける。しかも、fromがディレクトリでも、zip指定があれば結局ファイルの扱いになるのでそれも分岐条件に入れる。
-      if (taskRec.getIsSrcPathDir() == true) {
-        // 結局、ここはfrom=ディレクトリ、to=ディレクトリ
-        // toの下のフォルダにfrom側のディレクトリ名があるかを確認。
-        return (new File(FileUtil.concatFilePaths(toPath, new File(fromPath).getName())).exists())
-            ? true
-            : false;
-
-      } else {
-        // ここは、from=ファイル、to=ディレクトリ
-        // fromPath = fromPath + extension;
-        return (new File(FileUtil.concatFilePaths(toPath, new File(fromPath).getName())).exists())
-            ? true
-            : false;
-      }
+      // When the destination is a directory, check inside that directory.
+      // Covers both from=directory and from=file cases: check whether a file/dir with the same
+      // name as the from entry exists under the to directory.
+      return new File(FileUtil.concatFilePaths(toPath, new File(fromPath).getName())).exists();
     }
   }
 

@@ -1,13 +1,26 @@
+/*
+ * Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package jp.ecuacion.tool.housekeepdb.bean;
 
 import jakarta.validation.constraints.NotEmpty;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
 
 /**
  * Stores database column and its value information to create condition clause.
  */
-public class ColumnAndValueInfoBean extends ColumnInfoBean
-    implements SqlConditionInterface {
+public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditionInterface {
 
   @NotEmpty
   private String value;
@@ -31,18 +44,17 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean
    * @param needsQuationMark needsQuationMark
    * @param value value
    */
-  public ColumnAndValueInfoBean(String column, String needsQuationMark, Object value)
-      throws BizLogicAppException {
+  public ColumnAndValueInfoBean(String column, String needsQuationMark, Object value) {
     super(column, needsQuationMark);
     this.value = getStringFromObject(value);
   }
 
   private String getStringFromObject(Object value) {
-    if (value instanceof String) {
-      return (String) value;
+    if (value instanceof String s) {
+      return s;
 
     } else {
-      // 数字やその他諸々を含め、一旦雑にこう書いてみる。問題起きたら適宜対処で。
+      // Roughly covers numbers and various other cases. Address any issues as they arise.
       return value.toString();
     }
   }
@@ -62,6 +74,7 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean
     return mark + value.toString() + mark;
   }
 
+  @Override
   public String getCondition() {
     return getColumn() + " = " + surroundWithQuotationMarks();
   }

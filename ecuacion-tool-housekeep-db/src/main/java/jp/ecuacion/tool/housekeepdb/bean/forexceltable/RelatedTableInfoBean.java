@@ -1,54 +1,64 @@
+/*
+ * Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 
-import static jp.ecuacion.lib.core.jakartavalidation.validator.enums.ConditionPattern.stringValueOfConditionPropertyPathIsEqualTo;
-import static jp.ecuacion.lib.core.jakartavalidation.validator.enums.ConditionPattern.valueOfConditionPropertyPathIsEmpty;
-
-import jakarta.annotation.Nonnull;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import java.util.List;
-import jp.ecuacion.lib.core.exception.checked.AppException;
-import jp.ecuacion.lib.core.exception.checked.BizLogicAppException;
-import jp.ecuacion.lib.core.jakartavalidation.validator.ConditionalEmpty;
-import jp.ecuacion.lib.core.jakartavalidation.validator.ConditionalNotEmpty;
+import jp.ecuacion.lib.validation.constraints.EmptyWhen;
+import jp.ecuacion.lib.validation.constraints.NotEmptyWhen;
+import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
-import jp.ecuacion.util.poi.excel.table.bean.StringExcelTableBean;
+import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 
 /**
  * Stores related tables settings.
  */
 // softDeleteColumn required for soft delete
-@ConditionalNotEmpty(propertyPath = "softDeleteColumn",
-    conditionPropertyPath = "isSoftDeleteInternalValue",
-    conditionPattern = stringValueOfConditionPropertyPathIsEqualTo,
+@NotEmptyWhen(propertyPath = "softDeleteColumn",
+    conditionPropertyPath = "isSoftDeleteInternalValue", conditionValue = ConditionValue.STRING,
     conditionValueString = HousekeepInfoBean.DELETE_KIND_SOFT)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty.
-@ConditionalEmpty(
+@EmptyWhen(
     propertyPath = {"softDeleteUpdateUserIdColumnNeedsQuotationMark",
         "softDeleteUpdateUserIdColumnValue"},
     conditionPropertyPath = "softDeleteUpdateUserIdColumn",
-    conditionPattern = valueOfConditionPropertyPathIsEmpty,
+    conditionValue = ConditionValue.EMPTY,
     notEmptyWhenConditionNotSatisfied = true)
 // fields related to soft delete must be null when isSoftDelete is hard
 // ("softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue" are
 // covered with the next @ConditionalEmpty)
-@ConditionalEmpty(
+@EmptyWhen(
     propertyPath = {"softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn"},
     conditionPropertyPath = "isSoftDeleteInternalValue",
-    conditionPattern = stringValueOfConditionPropertyPathIsEqualTo,
+    conditionValue = ConditionValue.STRING,
     conditionValueString = HousekeepInfoBean.DELETE_KIND_HARD)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty
-@ConditionalEmpty(
+@EmptyWhen(
     propertyPath = {"softDeleteUpdateUserIdColumnNeedsQuotationMark",
         "softDeleteUpdateUserIdColumnValue"},
     conditionPropertyPath = "softDeleteUpdateUserIdColumn",
-    conditionPattern = valueOfConditionPropertyPathIsEmpty,
+    conditionValue = ConditionValue.EMPTY,
     notEmptyWhenConditionNotSatisfied = true)
+@SuppressWarnings("NullAway.Init")
 public class RelatedTableInfoBean extends StringExcelTableBean {
 
   public static final String RELATED_TABLE_PROCESS_PATTERN_DELETE = "DELETE";
@@ -62,8 +72,10 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
   @NotEmpty
   @Pattern(regexp = "^" + HousekeepInfoBean.DELETE_KIND_HARD + "|"
       + HousekeepInfoBean.DELETE_KIND_SOFT + "$")
+  @SuppressWarnings("UnusedVariable")
   private String isSoftDeleteInternalValue;
   @NotEmpty
+  @SuppressWarnings("UnusedVariable")
   private String relatedTableProcessPattern;
   @NotEmpty
   @Pattern(regexp = "^" + RELATED_TABLE_PROCESS_PATTERN_DELETE + "|"
@@ -93,7 +105,7 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
   public static final String[] HEADER_LABEL_KEYS = LangExcel.RelatedTableSettings.HEADER_LABELS;
 
   @Override
-  protected @Nonnull String[] getFieldNameArray() {
+  protected String[] getFieldNameArray() {
     return new String[] {"taskId", "isSoftDeleteInternalValue", "relatedTableProcessPattern",
         "relatedTableProcessPatternInternalValue", "targetTableColumn", "relatedTable",
         "relatedTableIdColumn", "relatedTableIdColumnNeedsQuotationMark", "softDeleteColumn",
@@ -103,11 +115,11 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
 
   /**
    * Constructs a new instance.
-   * 
+   *
    * @param colList colList
-   * @throws BizLogicAppException BizLogicAppException
    */
-  public RelatedTableInfoBean(List<String> colList) throws BizLogicAppException {
+  @SuppressWarnings("null")
+  public RelatedTableInfoBean(List<String> colList) {
     super(colList);
   }
 
@@ -180,11 +192,11 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
   }
 
   @Override
-  public void afterReading() throws AppException {
+  public void afterReading() {
     constructColumnInfo();
   }
 
-  private void constructColumnInfo() throws BizLogicAppException {
+  private void constructColumnInfo() {
     relatedTableIdColumnInfo =
         new ColumnInfoBean(relatedTableIdColumn, relatedTableIdColumnNeedsQuotationMark);
 

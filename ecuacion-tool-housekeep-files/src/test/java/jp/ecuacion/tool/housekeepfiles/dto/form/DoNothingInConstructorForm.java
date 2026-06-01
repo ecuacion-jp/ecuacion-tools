@@ -15,10 +15,9 @@
  */
 package jp.ecuacion.tool.housekeepfiles.dto.form;
 
-import jp.ecuacion.lib.core.exception.checked.AppException;
-
 /**
- * テスト用の、コンストラクタでxmlファイルの読み込みをしないクラス。 xmlを読み込んだ結果を自由にこちらで作成してテストする目的で使用
+ * Test class that does not load XML files in the constructor.
+ * Used for building the data that would normally be loaded from XML and testing with it.
  *
  * @author yosuk_000
  *
@@ -26,9 +25,9 @@ import jp.ecuacion.lib.core.exception.checked.AppException;
 public class DoNothingInConstructorForm extends HousekeepFilesForm {
 
   /**
-   * 使いやすく、引数なしのコンストラクタを追加。
+   * Adds a no-arg constructor for convenience.
    */
-  public DoNothingInConstructorForm() throws AppException {
+  public DoNothingInConstructorForm() {
   }
-  
+
 }

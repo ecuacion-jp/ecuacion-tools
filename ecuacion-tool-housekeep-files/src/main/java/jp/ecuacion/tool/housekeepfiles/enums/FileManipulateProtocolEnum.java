@@ -22,7 +22,7 @@ public enum FileManipulateProtocolEnum {
 
   FTP("01"), SFTP("02");
 
-  private String code;
+  private final String code;
 
   private FileManipulateProtocolEnum(String code) {
     this.code = code;

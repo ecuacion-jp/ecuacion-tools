@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package jp.ecuacion.util.commandapi.web.controller;
 
 import java.io.File;
@@ -7,12 +22,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import jp.ecuacion.lib.core.exception.checked.AppException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
-import jp.ecuacion.lib.core.util.EmbeddedParameterUtil;
+import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -75,6 +90,8 @@ public class CommandApiController {
       throwException("scriptId '" + scriptId + "' not found.");
     }
 
+    Objects.requireNonNull(scriptFilePath);
+    
     // scriptFilePath input validation
     if (!Pattern.compile("^[a-zA-Z0-9/.\\-_\\$\\{\\}]*$").matcher(scriptFilePath).find()) {
       throwException("String script file path (" + scriptFilePath
@@ -117,16 +134,19 @@ public class CommandApiController {
 
   /**
    * Searches ${XXX} format (not $XXX) and replaces it to the environment valuable value.
-   * 
+   *
    * @param string any string
    * @return string with environment variables resolved
-   * @throws AppException AppException
    */
-  private String resolveEnvironmentVariables(String string) throws AppException {
+  private String resolveEnvironmentVariables(String string) {
     Function<String, String> func = (key) -> {
       return System.getenv(key);
     };
-    return EmbeddedParameterUtil.getParameterReplacedString(string, "${", "}", func);
+    try {
+      return EmbeddedVariableUtil.getVariableReplacedString(string, "${", "}", func);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private void throwException(String message) {
