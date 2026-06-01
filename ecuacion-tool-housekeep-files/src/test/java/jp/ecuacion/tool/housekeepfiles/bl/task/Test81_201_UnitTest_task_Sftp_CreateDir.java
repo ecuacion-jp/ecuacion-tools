@@ -62,8 +62,8 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
 
   private HousekeepFilesForm getForm(HousekeepFilesTaskRecord taskRec) {
     @SuppressWarnings("null")
-    HousekeepFilesAuthRecord authRec = new HousekeepFilesAuthRecord("resources.ecuacion.jp", "SFTP",
-        "20022", "PASSWORD", "test_user", "pass", null);
+    HousekeepFilesAuthRecord authRec = new HousekeepFilesAuthRecord(SFTP_HOST, "SFTP",
+        String.valueOf(SFTP_PORT), "PASSWORD", "test_user", "pass", null);
 
     HousekeepFilesForm form = new HousekeepFilesForm();
     form.getTaskInfoHdRec().recList.add(taskRec);
@@ -94,7 +94,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
   @Test
   public void test02_invalid_inputValidation_srcPath_notEmpty() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", "aPath", "TRUE", "7", "DAY", "7", "aPath",
+        "SFTP_CREATE_DIR", SFTP_HOST, "aPath", "TRUE", "7", "DAY", "7", "aPath",
         "TRUE", "FALSE", "IGNORE", null);
     HousekeepFilesForm form = getForm(rec);
 
@@ -113,7 +113,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
   public void test03_invalid_inputValidation_destPath_empty() throws Exception {
     HousekeepFilesTaskRecord rec =
         new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "SFTP_CREATE_DIR",
-            "resources.ecuacion.jp", null, null, null, null, null, null, null, null, null, null);
+            SFTP_HOST, null, null, null, null, null, null, null, null, null, null);
     HousekeepFilesForm form = getForm(rec);
 
     try {
@@ -130,7 +130,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
   @Test
   public void test11_invalid_inputValidation_taskDependent_isDestPathDir_false() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", null, null, null, null, null,
+        "SFTP_CREATE_DIR", SFTP_HOST, null, null, null, null, null,
         SFTP_ROOT_PATH + "/destPath", "FALSE", "FALSE", "IGNORE", null);
     HousekeepFilesForm form = getForm(rec);
 
@@ -149,7 +149,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
   public void test12_invalid_inputValidation_taskDependent_DoesOverwriteDestPath_true()
       throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", null, null, null, null, null,
+        "SFTP_CREATE_DIR", SFTP_HOST, null, null, null, null, null,
         FileUtil.concatFilePaths(SFTP_ROOT_PATH, "test-dir"), "TRUE", "TRUE", "IGNORE", null);
     HousekeepFilesForm form = getForm(rec);
 
@@ -169,7 +169,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     String dir = SFTP_ROOT_PATH + "/test-dir";
 
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", null, null, null, null, null, dir, "TRUE",
+        "SFTP_CREATE_DIR", SFTP_HOST, null, null, null, null, null, dir, "TRUE",
         "FALSE", "IGNORE", null);
     HousekeepFilesForm form = getForm(rec);
 
@@ -203,7 +203,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     String dir = SFTP_ROOT_PATH + "/test-dir";
 
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", null, null, null, null, null, dir, "TRUE",
+        "SFTP_CREATE_DIR", SFTP_HOST, null, null, null, null, null, dir, "TRUE",
         "FALSE", "WARN", null);
     HousekeepFilesForm form = getForm(rec);
 
@@ -237,7 +237,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     String dir = SFTP_ROOT_PATH + "/test-dir";
 
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", null, null, null, null, null, dir, "TRUE",
+        "SFTP_CREATE_DIR", SFTP_HOST, null, null, null, null, null, dir, "TRUE",
         "FALSE", "ERROR", null);
     HousekeepFilesForm form = getForm(rec);
 
@@ -259,7 +259,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     String filePath = SFTP_ROOT_PATH + "/testfile.txt";
 
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", null, null, null, null, null, filePath, "TRUE",
+        "SFTP_CREATE_DIR", SFTP_HOST, null, null, null, null, null, filePath, "TRUE",
         "FALSE", "IGNORE", null);
     HousekeepFilesForm form = getForm(rec);
 
@@ -282,7 +282,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     String filePath = SFTP_ROOT_PATH + "/testfile.txt";
 
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", null, null, null, null, null, filePath, "TRUE",
+        "SFTP_CREATE_DIR", SFTP_HOST, null, null, null, null, null, filePath, "TRUE",
         "FALSE", "WARN", null);
     HousekeepFilesForm form = getForm(rec);
 
@@ -305,7 +305,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     String filePath = SFTP_ROOT_PATH + "/testfile.txt";
 
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", null, null, null, null, null, filePath, "TRUE",
+        "SFTP_CREATE_DIR", SFTP_HOST, null, null, null, null, null, filePath, "TRUE",
         "FALSE", "ERROR", null);
     HousekeepFilesForm form = getForm(rec);
 
@@ -328,7 +328,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     String dir = SFTP_ROOT_PATH + "/test-dir";
 
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", null, null, null, null, null, dir, "TRUE",
+        "SFTP_CREATE_DIR", SFTP_HOST, null, null, null, null, null, dir, "TRUE",
         "FALSE", "ERROR", null);
     HousekeepFilesForm form = getForm(rec);
 
@@ -342,7 +342,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     String dir = SFTP_ROOT_PATH + "/test-dir/1/2/3";
 
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-        "SFTP_CREATE_DIR", "resources.ecuacion.jp", null, null, null, null, null, dir, "TRUE",
+        "SFTP_CREATE_DIR", SFTP_HOST, null, null, null, null, null, dir, "TRUE",
         "FALSE", "ERROR", null);
     HousekeepFilesForm form = getForm(rec);
 

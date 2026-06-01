@@ -346,7 +346,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
       return lsEntries.stream().toList();
 
     } catch (SftpException e) {
-      if ("No such file".equals(e.getMessage())) {
+      if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
         return new ArrayList<>();
 
       } else {
