@@ -109,7 +109,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   public AbstractTask task;
 
   @Override
-  protected String[] getFieldNameArray() {
+  protected @Nullable String[] getFieldNameArray() {
     return new String[] {"taskId", "taskName", null, "taskPtnEnumName", "remoteServer", "srcPath",
         "isSrcPathDirEnumName", "unitName", "value", "actionForNoSrcPathEnumName", "destPath",
         "isDestPathDirEnumName", "doesOverwriteDestPathEnumName", "actionForDestFileExistsEnumName",
