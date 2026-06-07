@@ -3,7 +3,11 @@ updates:
   - package-ecosystem: "maven"
     directory: "/"
     schedule:
-      interval: "weekly"
-    target-branch: "0.0"  # Update when creating a new release branch
+      interval: "monthly"
+    target-branch: "develop"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
     ignore:
-      - dependency-name: "jp.ecuacion:*"
+      - dependency-name: "jp.ecuacion.*:*"
