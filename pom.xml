@@ -30,8 +30,6 @@
 	</parent>
 	<properties>
 		<app.version>0.0.1-SNAPSHOT</app.version>
-		<!-- Disable non-NullAway ErrorProne checks. -->
-		<errorprone.extra.args>-XepDisableAllChecks</errorprone.extra.args>
 	</properties>
 
 	<modules>
