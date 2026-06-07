@@ -27,6 +27,7 @@ import jp.ecuacion.tool.housekeepdb.enums.TimestampKindEnum;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Stores housekeeping settings.
@@ -102,7 +103,7 @@ public class HousekeepInfoBean extends StringExcelTableBean {
   public static final String[] HEADER_LABEL_KEYS = LangExcel.HousekeepDbSettings.HEADER_LABELS;
 
   @Override
-  protected String[] getFieldNameArray() {
+  protected @Nullable String[] getFieldNameArray() {
     return new String[] {"taskId", "dbConnectionInfoId", "isSoftDelete",
         "isSoftDeleteInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark",
         "timestampColumn", "timestampColumnKind", "deleteTargetInDays", "softDeleteColumn",

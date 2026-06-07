@@ -21,6 +21,7 @@ import java.util.List;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Stores where clause settings.
@@ -41,7 +42,7 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
   public static final String[] HEADER_LABEL_KEYS = LangExcel.SearchConditionSettings.HEADER_LABELS;
 
   @Override
-  protected String[] getFieldNameArray() {
+  protected @Nullable String[] getFieldNameArray() {
     return new String[] {"taskId", "conditionColumn", "conditionColumnNeedsQuotationMark",
         "conditionColumnValue"};
   }
