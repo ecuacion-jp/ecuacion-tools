@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Stores database connection settings.
@@ -48,7 +49,7 @@ public class DbConnectionInfoBean extends StringExcelTableBean {
   public static final String[] HEADER_LABEL_KEYS = LangExcel.DbConnectionSettings.HEADER_LABELS;
 
   @Override
-  protected String[] getFieldNameArray() {
+  protected @Nullable String[] getFieldNameArray() {
     return new String[] {"id", "driverName", "protocol", "server", "port", "database", "schema",
         "username", "password"};
   }

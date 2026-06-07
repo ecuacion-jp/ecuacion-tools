@@ -38,7 +38,7 @@ public class Test31_11_ExcelDataValidation_taskList_Check_CommonProcess extends 
   public void before() throws IOException {
   }
 
-  @SuppressWarnings("NullAway")
+  @SuppressWarnings({"NullAway", "null"})
   @Test
   public void test01_checkTaskItem_required_null() {
     Violations violations = new Violations();
@@ -50,6 +50,7 @@ public class Test31_11_ExcelDataValidation_taskList_Check_CommonProcess extends 
     assertEquals("MSG_ERR_TASK_REQUIRED_CHECK", bvList.get(0).getMessageId());
   }
 
+  @SuppressWarnings("null")
   @Test
   public void test02_checkTaskItem_required_emptyString() {
     Violations violations = new Violations();
@@ -86,6 +87,7 @@ public class Test31_11_ExcelDataValidation_taskList_Check_CommonProcess extends 
     assertTrue(violations.getBusinessViolations().isEmpty());
   }
 
+  @SuppressWarnings("null")
   @Test
   public void test13_checkTaskItem_prohibited_normalString() {
     Violations violations = new Violations();

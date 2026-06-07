@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import jp.ecuacion.tool.housekeepfiles.enums.AuthTypeEnum;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Store Auth info.
@@ -58,7 +59,7 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
   private String keyPath;
 
   @Override
-  protected String[] getFieldNameArray() {
+  protected @Nullable String[] getFieldNameArray() {
     return new String[] {"remoteServer", "protocol", "port", "authType", "userName", "password",
         "keyPath"};
   }

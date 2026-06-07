@@ -16,6 +16,7 @@
 package jp.ecuacion.tool.housekeepfiles.tasklet;
 
 import java.io.IOException;
+import java.util.Objects;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
@@ -47,7 +48,7 @@ public class Test01_01_LaunchParam_ParamCheck extends TaskletTestTool {
     };
   }
 
-  @SuppressWarnings({"NullAway", "null"})
+  @SuppressWarnings("null")
   @Test
   public void test11_whenArgIsNull() {
     try {
@@ -56,8 +57,8 @@ public class Test01_01_LaunchParam_ParamCheck extends TaskletTestTool {
 
     } catch (Exception e) {
       assertTrue(e instanceof ViolationException);
-      BusinessViolation bv = ((ViolationException) e).getViolations()
-          .getBusinessViolations().iterator().next();
+      BusinessViolation bv =Objects.requireNonNull(
+          ((ViolationException) e).getViolations().getBusinessViolations().iterator().next());
       assertEquals("MSG_ERR_PARAM_NULL_OR_EMPTY", bv.getMessageId());
     }
   }
@@ -70,8 +71,8 @@ public class Test01_01_LaunchParam_ParamCheck extends TaskletTestTool {
 
     } catch (Exception e) {
       assertTrue(e instanceof ViolationException);
-      BusinessViolation bv = ((ViolationException) e).getViolations()
-          .getBusinessViolations().iterator().next();
+      BusinessViolation bv = Objects.requireNonNull(
+          ((ViolationException) e).getViolations().getBusinessViolations().iterator().next());
       assertEquals("MSG_ERR_PARAM_NULL_OR_EMPTY", bv.getMessageId());
     }
   }
