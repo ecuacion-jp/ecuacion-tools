@@ -20,6 +20,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Stores path info.
@@ -57,7 +58,7 @@ public class HousekeepFilesPathRecord extends StringExcelTableBean {
   }
 
   @Override
-  protected String[] getFieldNameArray() {
+  protected @Nullable String[] getFieldNameArray() {
     return new String[] {"key", "value"};
   }
 
