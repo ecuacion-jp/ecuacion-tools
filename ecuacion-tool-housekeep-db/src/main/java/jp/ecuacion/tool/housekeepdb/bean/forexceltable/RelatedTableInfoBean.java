@@ -26,6 +26,7 @@ import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Stores related tables settings.
@@ -105,7 +106,7 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
   public static final String[] HEADER_LABEL_KEYS = LangExcel.RelatedTableSettings.HEADER_LABELS;
 
   @Override
-  protected String[] getFieldNameArray() {
+  protected @Nullable String[] getFieldNameArray() {
     return new String[] {"taskId", "isSoftDeleteInternalValue", "relatedTableProcessPattern",
         "relatedTableProcessPatternInternalValue", "targetTableColumn", "relatedTable",
         "relatedTableIdColumn", "relatedTableIdColumnNeedsQuotationMark", "softDeleteColumn",
