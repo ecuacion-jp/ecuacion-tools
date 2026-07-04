@@ -25,6 +25,7 @@
 	<parent>
 		<groupId>jp.ecuacion.splib</groupId>
 		<artifactId>ecuacion-splib-parent</artifactId>
+		<!-- The version number is updated to the latest release in the build script. -->
 		<version>0.0.2-SNAPSHOT</version>
 		<relativePath>../ecuacion-splib</relativePath>
 	</parent>

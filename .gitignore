@@ -132,29 +132,17 @@ buildNumber.properties
 
 ### ecuacion ###
 
-# ecuacion-tool-code-generator-batch
-products/
-
 # checkstyle
 .checkstyle
 
 # mac
 .DS_Store
 
-# vscode
-.vscode/
-
-<<<<<<< Updated upstream
-# claude
-.claude
+# VSCode
+.vscode
 
 # allure
 .allure
-=======
-# allure
-.allure
 
-# claude
+# Claude Code
 .claude
-
->>>>>>> Stashed changes
