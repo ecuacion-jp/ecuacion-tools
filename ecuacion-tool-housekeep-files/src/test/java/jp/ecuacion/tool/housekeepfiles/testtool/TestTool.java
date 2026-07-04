@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -252,7 +253,7 @@ public class TestTool extends TestTools {
 
     final JSch jsch = new JSch();
     session = jsch.getSession("test_user", SFTP_HOST, SFTP_PORT);
-    session.setPassword("pass");
+    session.setPassword("pass".getBytes(StandardCharsets.UTF_8));
 
     Properties config = new java.util.Properties();
     config.put("StrictHostKeyChecking", "no");
@@ -268,7 +269,7 @@ public class TestTool extends TestTools {
   protected static void sftpWrongConnectSession() throws JSchException {
     final JSch jsch = new JSch();
     session = jsch.getSession("test_user", SFTP_HOST, SFTP_PORT);
-    session.setPassword("wrongPass");
+    session.setPassword("wrongPass".getBytes(StandardCharsets.UTF_8));
 
     Properties config = new java.util.Properties();
     config.put("StrictHostKeyChecking", "no");
