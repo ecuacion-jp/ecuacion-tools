@@ -23,7 +23,7 @@ This project follows the spirit of [Semantic Versioning](https://semver.org/). M
 
 ## Documentation
 
-- javadoc - See the `Documentation` section of the `README` in each module
+- [ecuacion-references](https://references.ecuacion.jp/ecuacion-references-tools/public/en/article?id=home) — Official reference documentation
 
 ## Download & Usage
 
