@@ -48,7 +48,7 @@ public class Test01_01_LaunchParam_ParamCheck extends TaskletTestTool {
     };
   }
 
-  @SuppressWarnings("null")
+  @SuppressWarnings({"NullAway", "null"})
   @Test
   public void test11_whenArgIsNull() {
     try {
