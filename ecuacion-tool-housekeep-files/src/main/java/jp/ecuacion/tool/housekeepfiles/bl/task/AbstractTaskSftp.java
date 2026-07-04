@@ -24,6 +24,7 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.SftpException;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -97,13 +98,16 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
         ssh.addIdentity(auth.getKeyPath());
 
       } else {
-        ssh.addIdentity(auth.getKeyPath(), auth.getPassword());
+        ssh.addIdentity(auth.getKeyPath(),
+            auth.getPassword().getBytes(StandardCharsets.UTF_8));
       }
     }
 
     Session sftpSession = ssh.getSession(username, remoteHost, port);
     sftpSession.setConfig(config);
-    sftpSession.setPassword(password);
+    if (password != null) {
+      sftpSession.setPassword(password.getBytes(StandardCharsets.UTF_8));
+    }
     sftpSession.connect();
 
     Channel channel = sftpSession.openChannel("sftp");
