@@ -84,6 +84,6 @@ jobs:
           tag_name: ${{ steps.tag.outputs.value }}
           files: |
             ecuacion-tools/ecuacion-tool-command-api/target/ecuacion-tool-command-api-*.war
-            ecuacion-tools/ecuacion-tool-housekeep-db/target/ecuacion-tool-housekeep-db-*.jar
-            ecuacion-tools/ecuacion-tool-housekeep-files/target/ecuacion-tool-housekeep-files-*.jar
+            ecuacion-tools/ecuacion-tool-housekeep-db/target/ecuacion-tool-housekeep-db-*[0-9].jar
+            ecuacion-tools/ecuacion-tool-housekeep-files/target/ecuacion-tool-housekeep-files-*[0-9].jar
           generate_release_notes: true
