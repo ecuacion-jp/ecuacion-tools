@@ -252,7 +252,7 @@ public class TestTool extends TestTools {
 
     final JSch jsch = new JSch();
     session = jsch.getSession("test_user", SFTP_HOST, SFTP_PORT);
-    session.setPassword("pass");
+    session.setPassword("pass".getBytes());
 
     Properties config = new java.util.Properties();
     config.put("StrictHostKeyChecking", "no");
@@ -268,7 +268,7 @@ public class TestTool extends TestTools {
   protected static void sftpWrongConnectSession() throws JSchException {
     final JSch jsch = new JSch();
     session = jsch.getSession("test_user", SFTP_HOST, SFTP_PORT);
-    session.setPassword("wrongPass");
+    session.setPassword("wrongPass".getBytes());
 
     Properties config = new java.util.Properties();
     config.put("StrictHostKeyChecking", "no");
