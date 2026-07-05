@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- Since logback-spring.xml is common to apps 
-     and by putting this file to tomcat's classpath, it influences other apps.
-     That's why this file is included in jar file. -->
 <!DOCTYPE xml>
 <configuration>
 
 	<!-- profile-independent properties -->
 	<include resource="logback-spring-profile-independent-properties.xml" />
-	<include resource="logback-spring-ecuacion-tool-command-api.xml" />
+
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<logger name="org.springframework" level="WARN" />
+	<logger name="jp.ecuacion" level="INFO" />
+
+	<root level="INFO">
+		<appender-ref ref="CONSOLE" />
+	</root>
 
 </configuration>
