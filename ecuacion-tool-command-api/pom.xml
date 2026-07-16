@@ -36,6 +36,23 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
+		<resources>
+			<!-- Enable filtering only for version.properties, so that @project.version@
+			     is replaced with this project's actual version at build time. Other
+			     resource files are intentionally excluded from filtering to avoid
+			     unintended substitution of "@...@" or "${...}" patterns they may contain. -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>version.properties</include>
+				</includes>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 	</build>
 
 	<dependencies>
