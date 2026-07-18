@@ -103,7 +103,7 @@ public class CommandApiController {
     // Obtain paramsString
     String paramsString = parameter == null ? "" : parameter.replaceAll(",", " ");
     dtlLogger
-        .info("parameter     : " + (paramsString.equals("") ? "(not specified)" : paramsString));
+        .info("parameter(s)  : " + (paramsString.equals("") ? "(not specified)" : paramsString));
 
     // Execute script
     List<String> commandList = new ArrayList<>();
