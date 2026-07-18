@@ -58,7 +58,8 @@ public class CommandApiController {
    * @param parameter parameter given to the script.
    *     multiple parameters are able to be passed as comma-separated values.<br>
    *     When you pass parameters like {@code parameter=param1,param2},
-   *     then {@code script.sh param1 param2} will be executed.
+   *     then {@code script.sh param1 param2} (or {@code script.bat param1 param2} on Windows)
+   *     will be executed.
    *     (parameters are splitted at "," and each csv element will be an parameter.)
    * @throws Exception Exception
    */
@@ -113,6 +114,13 @@ public class CommandApiController {
 
     // Execute script
     List<String> commandList = new ArrayList<>();
+    if (isWindows()) {
+      // Windows has no shebang mechanism, so the script is run via "cmd /c"
+      // instead of being executed directly (e.g. script.bat).
+      commandList.add("cmd.exe");
+      commandList.add("/c");
+    }
+
     commandList.add(scriptFile.getAbsolutePath());
     commandList.addAll(Arrays.asList(paramsString.split(" ")));
 
@@ -136,6 +144,10 @@ public class CommandApiController {
    * @param string any string
    * @return string with environment variables resolved
    */
+  private boolean isWindows() {
+    return System.getProperty("os.name", "").toLowerCase().contains("win");
+  }
+
   private String resolveEnvironmentVariables(String string) {
     Function<String, String> func = (key) -> {
       return System.getenv(key);
