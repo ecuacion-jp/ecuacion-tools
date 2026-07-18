@@ -14,54 +14,28 @@
  1. Download the war module from [here](https://maven-repo.ecuacion.jp/public/jp/ecuacion/tool/ecuacion-tool-command-api/).  
     (full url should be like 'https://maven-repo.ecuacion.jp/public/jp/ecuacion/tool/ecuacion-tool-command-api/14.3.0/ecuacion-tool-command-api-14.3.0.war')
 
- 1. Maybe you want change its filename to `ecuacion-tool-command-api.war` or `ecuacion-tool-command-api##14.3.0.war` (See '[parallel deployment](https://tomcat.apache.org/tomcat-10.0-doc/config/context.html#Parallel_deployment)' feature in Tomcat) to make the context string independent to the module version.
+ 1. Run it as a standalone executable war (recommended), or deploy it to an existing application server.
 
- 1. Deploy the war to some application server like Tomcat.
-
- 1. Add CLASSPATH environment variable to the application server. Set an accessible directory.  
-    If you use Tomcat, put `setenv.sh` script file to `${CATALINA_HOME}/bin` with the content below.
+    **Standalone (recommended)**
 
     ```bash
-    CLASSPATH=/path/to/classpath/directory
-    export CLASSPATH
+    java -jar ecuacion-tool-command-api-x.x.x.war
     ```
 
- 1. Create file `logback-spring-ecuacion-tool-command-api.xml` with the content below and put it to the CLASSPATH directory.  
-    (Change '/path/to/logs/directory' to any directory in your server)
-    ```xml
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE xml>
-    <configuration>
+    **Deploy to an existing Tomcat**
 
- 	   <!-- appenders -->
- 	   <property name="log-dir" value="/path/to/logs/directory" />
- 	   <property name="loglevel-spring" value="INFO" />
- 	   <include resource="logback-spring-appenders.xml" />
- 	   <include resource="logback-spring-appenders-local.xml" />
-
- 	   <!-- loggers -->
- 	   <property name="loglevel-jp.ecuacion" value="INFO" />
- 	   <property name="loglevel-security" value="INFO" />
- 	   <property name="loglevel-sql" value="INFO" />
- 	   <property name="loglevel-root" value="INFO" />
- 	   <include resource="logback-spring-loggers-for-local.xml" />
- 	   <include resource="logback-spring-loggers-web-for-local.xml" />
-
-    </configuration>
-    ```
-
- 1. Put a new file `ecuacion-tool-command-api.properties` to the CLASSPATH directory.  
+    Maybe you want to change its filename to `ecuacion-tool-command-api.war` or `ecuacion-tool-command-api##14.3.0.war` (See '[parallel deployment](https://tomcat.apache.org/tomcat-10.0-doc/config/context.html#Parallel_deployment)' feature in Tomcat) to make the context string independent to the module version, then deploy the war to Tomcat as usual.
 
  ## Getting Started
 
  ### Script Preparation
 
- 1. Add the content below to `ecuacion-tool-command-api.properties`. (change '/path/to/script/directory' to any directory in your serer)
+ 1. Register the script in `ecuacion-tool-command-api.properties`, placed next to the war (or in a `config` subdirectory alongside it — see [Configuration](#configuration) below for every supported location). Change '/path/to/script/directory' to any directory in your server.
 
-    ```bash
+    ```properties
     script.say-hello=/path/to/script/directory/sayHello.sh
     ```
- 1. Put a script named 'sayHello.sh' where the path specifies and set proper access privileges with the user the application server was started by.  
+ 1. Put a script named 'sayHello.sh' where the path specifies and set proper access privileges with the user the application was started by.  
     Any script content is fine, but for example as follows.
 
     ```bash
@@ -107,22 +81,14 @@
 
  * HTTP 403 / 404 : URL (http[s]://yourdomain.com/ecuacion-tool-command-api/api/public/executeScript) is wrong.
 
- * HTTP 400 : The script name specified by `scriptId=` is not defined in `ecuacion-tool-command-api.properties`.
+ * HTTP 400 :
 
- * HTTP 500 :  
+   - The `scriptId=` value doesn't match `^[a-zA-Z0-9.-_]*$`.
+   - The script name specified by `scriptId=` is not defined in `ecuacion-tool-command-api.properties`.
 
-   - `ecuacion-tool-command-api.properties` file not found on classpath.
+ * HTTP 500 :
 
-   ```json
-   {
-     "type": "about:blank",
-     "title": "Internal Server Error",
-     "status": 500,
-     "detail": "'ecuacion-tool-command-api.properties' not found on classpath.",
-     "instance": "/ecuacion-tool-command-api/api/public/executeScript"
-   }
-   ```
-
+   - The script file path registered for the `scriptId` doesn't match `^[a-zA-Z0-9.-_/${}]*$` (a misconfigured `ecuacion-tool-command-api.properties`).
    - Script file not found.
 
    ```json
@@ -152,4 +118,14 @@
  * script ID (`scriptId` URL parameter) defined in `ecuacion-tool-command-api.properties` is validated with regular expression `^[a-zA-Z0-9.-_]*$`.
 
  * script file path defined in `ecuacion-tool-command-api.properties` is validated with regular expression `^[a-zA-Z0-9.-_/${}]*$`.
+
+ ## Configuration
+
+ `ecuacion-tool-command-api.properties` is loaded the same way Spring Boot loads `application.properties` — it's merged in from any of these locations (highest priority first), instead of requiring a CLASSPATH directory:
+
+ 1. The path given by `-Dspring.config.location=...`
+ 1. `config/ecuacion-tool-command-api.properties`, in a `config` subdirectory next to the war
+ 1. `ecuacion-tool-command-api.properties`, right next to the war
+
+ The same applies to `application.properties` itself, so app-level settings (e.g. server port) can live alongside the script registrations.
  
