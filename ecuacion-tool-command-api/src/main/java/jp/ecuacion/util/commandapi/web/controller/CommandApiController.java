@@ -15,12 +15,17 @@
  */
 package jp.ecuacion.util.commandapi.web.controller;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import jp.ecuacion.lib.core.logging.DetailLogger;
@@ -120,13 +125,45 @@ public class CommandApiController {
       commandList.add("cmd.exe");
       commandList.add("/c");
     }
-
     commandList.add(scriptFile.getAbsolutePath());
     commandList.addAll(Arrays.asList(paramsString.split(" ")));
 
     Runtime runtime = Runtime.getRuntime();
     Process p = runtime.exec(commandList.toArray(new String[commandList.size()]));
     dtlLogger.info("command start : " + scriptFile.getAbsolutePath() + " " + paramsString);
+
+    // Read the script's standard output and standard error, and log them.
+    // Both streams are consumed concurrently (stderr on a separate thread)
+    // before waitFor(), since reading them one after another can deadlock
+    // the child process if the buffer of the not-yet-read stream fills up.
+    AtomicReference<IOException> stderrException = new AtomicReference<>();
+    Thread stderrThread = new Thread(() -> {
+      try (BufferedReader reader = new BufferedReader(
+          new InputStreamReader(p.getErrorStream(), Charset.defaultCharset()))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          dtlLogger.info("stderr        : " + line);
+        }
+      } catch (IOException e) {
+        stderrException.set(e);
+      }
+    });
+    stderrThread.start();
+
+    try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(p.getInputStream(), Charset.defaultCharset()))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        dtlLogger.info("stdout        : " + line);
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    stderrThread.join();
+    if (stderrException.get() != null) {
+      throw new RuntimeException(stderrException.get());
+    }
 
     // wait for the end of the process
     int rtn = p.waitFor();
