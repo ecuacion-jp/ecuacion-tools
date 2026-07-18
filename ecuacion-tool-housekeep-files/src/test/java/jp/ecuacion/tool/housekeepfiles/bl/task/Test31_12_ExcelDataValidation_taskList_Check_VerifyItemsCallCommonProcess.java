@@ -76,7 +76,7 @@ public class Test31_12_ExcelDataValidation_taskList_Check_VerifyItemsCallCommonP
     }
   }
 
-  class CounterForStub {
+  static class CounterForStub {
     public int counter = 0;
   }
 }

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<FindBugsFilter
+  xmlns="https://github.com/spotbugs/filter/3.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+
+  <!--
+    AbstractTask/AbstractTaskSftp declare connection/fromPath/destPath as @Nullable because the
+    parameters are shared across all task types (e.g. local tasks never receive a connection,
+    create-only tasks never receive a srcPath). For these concrete leaf task classes, the value
+    is always non-null at runtime: HousekeepFilesBl only invokes doTask() after check() has
+    verified the field is REQUIRED for this specific taskPtn, and connections are only omitted
+    for local tasks that never extend AbstractTaskSftp. SpotBugs cannot see that business-rule
+    guarantee and flags the unconditional dereference as a NonNull-contract violation.
+  -->
+  <Match>
+    <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE" />
+    <Class name="~jp\.ecuacion\.tool\.housekeepfiles\.bl\.task\.(AbstractTaskZip|CreateDir|CreateFile|Delete|SftpCopyFromServer|SftpCopyToServer|SftpCreateDir|SftpDeleteFromServer|SftpMoveFromServer|SftpMoveToServer)" />
+  </Match>
+
+</FindBugsFilter>

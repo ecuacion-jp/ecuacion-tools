@@ -102,7 +102,7 @@ public class TestTool extends TestTools {
     FileWriter fw = null;
     BufferedWriter bw = null;
     try {
-      fw = new FileWriter(file);
+      fw = new FileWriter(file, StandardCharsets.UTF_8);
       bw = new BufferedWriter(fw);
       bw.write(TEST_MSG);
     } finally {
@@ -122,7 +122,7 @@ public class TestTool extends TestTools {
     FileReader fr = null;
     BufferedReader br = null;
     try {
-      fr = new FileReader(file);
+      fr = new FileReader(file, StandardCharsets.UTF_8);
       br = new BufferedReader(fr);
       String str = br.readLine();
       assertTrue(str.equals("abc"));
@@ -327,7 +327,7 @@ public class TestTool extends TestTools {
 
   protected void sftpCreateFile(ChannelSftp channel, String filePath) {
     try {
-      channel.put(new ByteArrayInputStream("".getBytes()), filePath);
+      channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), filePath);
 
     } catch (Exception ex) {
       throw new RuntimeException(ex);
