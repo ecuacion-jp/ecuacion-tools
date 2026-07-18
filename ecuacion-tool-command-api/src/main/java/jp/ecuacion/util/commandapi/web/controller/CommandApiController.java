@@ -100,6 +100,12 @@ public class CommandApiController {
           "scriptFilePath '" + scriptFilePath + "' not found.");
     }
 
+    // Cause an error if scriptFilePath is not executable
+    if (!scriptFile.canExecute()) {
+      throwException(HttpStatus.INTERNAL_SERVER_ERROR,
+          "scriptId '" + scriptId + "' is not executable. Check file permission.");
+    }
+
     // Obtain paramsString
     String paramsString = parameter == null ? "" : parameter.replaceAll(",", " ");
     dtlLogger
