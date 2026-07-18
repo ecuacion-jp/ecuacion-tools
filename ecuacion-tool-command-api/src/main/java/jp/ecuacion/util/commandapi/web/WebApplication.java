@@ -15,9 +15,6 @@
  */
 package jp.ecuacion.util.commandapi.web;
 
-import java.util.Objects;
-import org.jspecify.annotations.Nullable;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
@@ -34,12 +31,14 @@ public class WebApplication extends SpringBootServletInitializer {
    * @param args args
    */
   public static void main(String[] args) {
-    SpringApplication.run(WebApplication.class, args);
+    new SpringApplicationBuilder(WebApplication.class)
+        .properties("spring.config.name=application,ecuacion-tool-command-api")
+        .run(args);
   }
 
   /** Required for deploying as a WAR to an existing Tomcat instance. */
   @Override
-  protected SpringApplicationBuilder configure(@Nullable SpringApplicationBuilder application) {
-    return Objects.requireNonNull(application).sources(WebApplication.class);
+  protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+    return application.sources(WebApplication.class);
   }
 }

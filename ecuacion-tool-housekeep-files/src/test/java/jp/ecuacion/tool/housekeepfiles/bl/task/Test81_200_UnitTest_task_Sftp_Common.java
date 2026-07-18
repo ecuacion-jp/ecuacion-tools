@@ -18,6 +18,7 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.JSchException;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -111,14 +112,14 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     try {
       channel.mkdir(SFTP_ROOT_PATH);
     } catch (Exception ex) {
-
+      // Already exists. No action needed.
     }
 
     // Create if not exists, skip if already exists.
     try {
       channel.mkdir(testRootPath);
     } catch (Exception ex) {
-
+      // Already exists. No action needed.
     }
   }
 
@@ -149,7 +150,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     String testRootpath = getTestRootPath();
     String testFilePath = testRootpath + "/testfile";
     createTestRootDir(testRootpath);
-    channel.put(new ByteArrayInputStream("".getBytes()), testFilePath);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), testFilePath);
 
     try {
       List<LsEntry> list = task.getRemoteAll(channel, testRootpath);
@@ -190,8 +191,8 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     String childFilePath2 = testRootPath + "/childFile2.txt";
     String childDirPath1 = testRootPath + "/childDir1";
     String childDirPath2 = testRootPath + "/childDir2";
-    channel.put(new ByteArrayInputStream("".getBytes()), childFilePath1);
-    channel.put(new ByteArrayInputStream("".getBytes()), childFilePath2);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), childFilePath1);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), childFilePath2);
     channel.mkdir(childDirPath1);
     channel.mkdir(childDirPath2);
 
@@ -218,7 +219,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
-    channel.put(new ByteArrayInputStream("".getBytes()), testFilePath);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), testFilePath);
 
     boolean bl = task.remoteExists(channel, testFilePath);
     assertEquals(true, bl);
@@ -250,7 +251,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
-    channel.put(new ByteArrayInputStream("".getBytes()), testFilePath);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), testFilePath);
 
     boolean bl = task.remoteDirExists(channel, testFilePath);
     assertEquals(false, bl);
@@ -282,7 +283,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
-    channel.put(new ByteArrayInputStream("".getBytes()), testFilePath);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), testFilePath);
 
     boolean bl = task.remoteFileExists(channel, testFilePath);
     assertEquals(true, bl);
@@ -316,7 +317,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
-    channel.put(new ByteArrayInputStream("".getBytes()), testFilePath);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), testFilePath);
 
     LsEntry entry = task.getRemoteDetail(channel, testFilePath);
     Objects.requireNonNull(entry);
@@ -349,7 +350,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
       fail();
 
     } catch (RuntimeException ex) {
-
+      // Expected exception. Test passes.
     }
   }
 
@@ -358,14 +359,14 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
-    channel.put(new ByteArrayInputStream("".getBytes()), testFilePath);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), testFilePath);
 
     try {
       task.getRemoteDirChildrenList(channel, testFilePath);
       fail();
 
     } catch (RuntimeException ex) {
-
+      // Expected exception. Test passes.
     }
 
     channel.rm(testFilePath);
@@ -390,7 +391,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     // Create children.
     String childFilePath1 = testRootPath + "/childFile1.txt";
     String childDirPath1 = testRootPath + "/childDir1";
-    channel.put(new ByteArrayInputStream("".getBytes()), childFilePath1);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), childFilePath1);
     channel.mkdir(childDirPath1);
 
     List<LsEntry> list = task.getRemoteDirChildrenList(channel, testRootPath);
@@ -412,7 +413,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
       fail();
 
     } catch (RuntimeException ex) {
-
+      // Expected exception. Test passes.
     }
   }
 
@@ -421,14 +422,14 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     String testRootPath = getTestRootPath();
     String testFilePath = testRootPath + "/testfile";
     createTestRootDir(testRootPath);
-    channel.put(new ByteArrayInputStream("".getBytes()), testFilePath);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), testFilePath);
 
     try {
       task.getRemoteDirChildrenNameList(channel, testFilePath);
       fail();
 
     } catch (RuntimeException ex) {
-
+      // Expected exception. Test passes.
     }
 
     channel.rm(testFilePath);
@@ -453,7 +454,7 @@ public class Test81_200_UnitTest_task_Sftp_Common extends TestTool {
     // Create children.
     String childFilePath1 = testRootPath + "/childFile1.txt";
     String childDirPath1 = testRootPath + "/childDir1";
-    channel.put(new ByteArrayInputStream("".getBytes()), childFilePath1);
+    channel.put(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), childFilePath1);
     channel.mkdir(childDirPath1);
 
     List<String> list = task.getRemoteDirChildrenNameList(channel, testRootPath);
