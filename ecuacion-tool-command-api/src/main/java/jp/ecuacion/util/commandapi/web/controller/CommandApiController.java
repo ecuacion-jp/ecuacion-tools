@@ -16,18 +16,16 @@
 package jp.ecuacion.util.commandapi.web.controller;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,20 +38,27 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 public class CommandApiController {
 
-  private static final String PROPERTIES_FILE = "ecuacion-tool-command-api.properties";
+  private Environment env;
   private DetailLogger dtlLogger = new DetailLogger(this);
+
+  /** 
+   * Constructs a new instance.
+   */
+  public CommandApiController(Environment env) {
+    this.env = env;
+  }
 
   /**
    * Execute the script specified by the URL parameters.
-   * 
-   * @param scriptId It's the key to the script file path defined 
+   *
+   * @param scriptId It's the key to the script file path defined
    *     in {@code ecuacion-tool-command-api.properties}.<br>
-   *     Since it's unsecure for API to be able to execute any scripts, 
+   *     Since it's unsecure for API to be able to execute any scripts,
    *     executable scripts from API must be pre-defined.
-   * @param parameter parameter given to the script. 
+   * @param parameter parameter given to the script.
    *     multiple parameters are able to be passed as comma-separated values.<br>
-   *     When you pass parameters like {@code parameter=param1,param2}, 
-   *     then {@code script.sh param1 param2} will be executed. 
+   *     When you pass parameters like {@code parameter=param1,param2},
+   *     then {@code script.sh param1 param2} will be executed.
    *     (parameters are splitted at "," and each csv element will be an parameter.)
    * @throws Exception Exception
    */
@@ -63,38 +68,24 @@ public class CommandApiController {
 
     dtlLogger.info("===== executeScript started =====");
 
-    // Obtain ecuacion-tool-command-api.properties from classpath
-    InputStream inClassPathResource = ClassLoader.getSystemResourceAsStream(PROPERTIES_FILE);
-    if (inClassPathResource == null) {
-      throwException("'" + PROPERTIES_FILE + "' not found on classpath.");
-    }
-
-    Properties inClassPathProperties = new Properties();
-    try {
-      inClassPathProperties.load(inClassPathResource);
-
-    } catch (IOException e) {
-      throwException("IOException occurred while reading '" + PROPERTIES_FILE + "'.");
-    }
-
     // scriptId input validation
     if (!Pattern.compile("^[a-zA-Z0-9.\\-_]*$").matcher(scriptId).find()) {
-      throwException(
+      throwException(HttpStatus.BAD_REQUEST,
           "String scriptId (" + scriptId + ") should consists of alphanumerics, '.', '-' and '_'.");
     }
 
     // Obtain scriptFilePath from scriptId
     dtlLogger.info("scriptId      : " + scriptId);
-    String scriptFilePath = inClassPathProperties.getProperty(scriptId);
+    String scriptFilePath = env.getProperty(scriptId);
     if (scriptFilePath == null) {
-      throwException("scriptId '" + scriptId + "' not found.");
+      throwException(HttpStatus.BAD_REQUEST, "scriptId '" + scriptId + "' not found.");
     }
 
     Objects.requireNonNull(scriptFilePath);
-    
+
     // scriptFilePath input validation
     if (!Pattern.compile("^[a-zA-Z0-9/.\\-_\\$\\{\\}]*$").matcher(scriptFilePath).find()) {
-      throwException("String script file path (" + scriptFilePath
+      throwException(HttpStatus.INTERNAL_SERVER_ERROR, "String script file path (" + scriptFilePath
           + ") should consists of alphanumerics, '.', '-', '_', '/', '$', '{', '}'.");
     }
 
@@ -105,7 +96,8 @@ public class CommandApiController {
     dtlLogger.info("scriptFilePath: " + scriptFilePath);
     File scriptFile = new File(scriptFilePath);
     if (!scriptFile.exists()) {
-      throwException("scriptFilePath '" + scriptFilePath + "' not found.");
+      throwException(HttpStatus.INTERNAL_SERVER_ERROR,
+          "scriptFilePath '" + scriptFilePath + "' not found.");
     }
 
     // Obtain paramsString
@@ -149,7 +141,7 @@ public class CommandApiController {
     }
   }
 
-  private void throwException(String message) {
-    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, message);
+  private void throwException(HttpStatus status, String message) {
+    throw new ResponseStatusException(status, message);
   }
 }
