@@ -146,7 +146,7 @@ class CommandApiControllerTest {
   @AutoConfigureMockMvc
   class WhenSecureModeWithMissingApiKeyFile {
 
-    @SuppressWarnings("null")
+    @SuppressWarnings({"NullAway.Init", "null"})
     private static Path missingFilePath;
 
     @DynamicPropertySource
