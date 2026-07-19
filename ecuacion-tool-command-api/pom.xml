@@ -70,5 +70,13 @@
 			<artifactId>ecuacion-splib-rest</artifactId>
 		</dependency>
 
+		<!-- test: MockMvc test autoconfiguration, split out of spring-boot-test-autoconfigure
+		     since Spring Boot 4. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 </project>
