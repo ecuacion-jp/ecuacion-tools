@@ -45,11 +45,15 @@ jobs:
 
       - name: Resolve tag
         id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "value=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "value=$INPUT_TAG" >> "$GITHUB_OUTPUT"
           else
-            echo "value=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "value=$REF_NAME" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: actions/setup-java@v5
@@ -72,7 +76,9 @@ jobs:
 
       - name: Set version
         working-directory: ecuacion-tools
-        run: mvn versions:set -DnewVersion=${{ steps.tag.outputs.value }} -DgenerateBackupPoms=false
+        env:
+          NEW_VERSION: ${{ steps.tag.outputs.value }}
+        run: mvn versions:set -DnewVersion="$NEW_VERSION" -DgenerateBackupPoms=false
 
       - name: Build
         working-directory: ecuacion-tools
