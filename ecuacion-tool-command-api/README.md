@@ -47,13 +47,25 @@
 
  ### Execute Script through ecuacion-tool-command-api
 
- 1. Access URL below and the script `sayHello.sh` is executed.
+ By default, GET access is disabled and POST requests require a shared-secret `apiKey`. See [Access Control](#access-control) below to configure either option.
+
+ 1. **POST with `apiKey` (recommended for production)**
+
+    Register the shared secret in a file and point `jp.ecuacion.tool.command-api.api-key-file-path` at it (see [Configuration](#configuration)), then:
+
+    ```bash
+    curl -X POST "http[s]://yourdomain.com/ecuacion-tool-command-api/api/public/executeScript" \
+         --data-urlencode "scriptId=script.say-hello" \
+         --data-urlencode "apiKey=your-shared-secret"
+    ```
+
+ 1. **GET (only when `jp.ecuacion.tool.command-api.allow-insecure-access=true`, e.g. trusted internal networks)**
 
     ```URL
     http[s]://yourdomain.com/ecuacion-tool-command-api/api/public/executeScript?scriptId=script.say-hello
     ```
 
-    Now you'll get the execution result.
+    Either way, you'll get the same execution result.
 
  ## Specification
 
@@ -79,7 +91,9 @@
 
  ### Response Status and Return Code
 
- * HTTP 403 / 404 : URL (http[s]://yourdomain.com/ecuacion-tool-command-api/api/public/executeScript) is wrong.
+ * HTTP 403 / 404 : URL (http[s]://yourdomain.com/ecuacion-tool-command-api/api/public/executeScript) is wrong, or a GET request arrived while `jp.ecuacion.tool.command-api.allow-insecure-access` is not `true` (see [Access Control](#access-control)).
+
+ * HTTP 401 : A POST request's `apiKey` was missing, unreadable on the server side, or didn't match (see [Access Control](#access-control)). All of these causes are intentionally reported identically (so a caller can't distinguish a server misconfiguration from a wrong key); check the server-side log to tell them apart.
 
  * HTTP 400 :
 
@@ -119,7 +133,27 @@
 
  * script file path defined in `ecuacion-tool-command-api.properties` is validated with regular expression `^[a-zA-Z0-9.-_/${}]*$`.
 
+ * By default, GET access to `executeScript` is disabled and POST access requires a matching `apiKey`. `apiKey` is a simple shared secret compared against a file placed on the server — it is **not** an asymmetric (public/private) key pair, and the client-supplied value is never treated as a private key. See [Access Control](#access-control).
+
  ## Configuration
+
+ ### Access Control
+
+ Two properties in `application.properties` control access to `executeScript` (they are intentionally **not** set in the shipped `application.properties`, so that leaving them unconfigured is logged as a warning at startup rather than silently defaulting):
+
+ | Property | Type | Description |
+ | --- | --- | --- |
+ | `jp.ecuacion.tool.command-api.allow-insecure-access` | boolean | `true`: GET requests are allowed, and POST requests skip `apiKey` verification. Intended for trusted internal networks only. `false` (default when unset): GET is rejected (403), and POST requires a valid `apiKey`. |
+ | `jp.ecuacion.tool.command-api.api-key-file-path` | String | Path to a file containing the shared secret compared against the `apiKey` POST parameter. Supports `${ENV_VAR}` resolution, same as script paths. |
+
+ Example:
+
+ ```properties
+ jp.ecuacion.tool.command-api.allow-insecure-access=false
+ jp.ecuacion.tool.command-api.api-key-file-path=${HOME}/secrets/command-api-key.txt
+ ```
+
+ The api-key file's content is read (and trailing whitespace/newlines trimmed) on every request, so the key can be rotated by replacing the file's content without restarting the app.
 
  `ecuacion-tool-command-api.properties` is loaded the same way Spring Boot loads `application.properties` — it's merged in from any of these locations (highest priority first), instead of requiring a CLASSPATH directory:
 
