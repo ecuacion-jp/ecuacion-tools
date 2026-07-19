@@ -20,6 +20,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,9 +34,11 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
+import org.jspecify.annotations.Nullable;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -43,14 +49,29 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 public class CommandApiController {
 
+  private static final String PROP_ALLOW_INSECURE_ACCESS =
+      "jp.ecuacion.tool.command-api.allow-insecure-access";
+  private static final String PROP_API_KEY_FILE_PATH =
+      "jp.ecuacion.tool.command-api.api-key-file-path";
+
   private Environment env;
   private DetailLogger dtlLogger = new DetailLogger(this);
+  private final boolean allowInsecureAccess;
 
-  /** 
+  /**
    * Constructs a new instance.
    */
   public CommandApiController(Environment env) {
     this.env = env;
+
+    if (!env.containsProperty(PROP_ALLOW_INSECURE_ACCESS)) {
+      dtlLogger.warn("'" + PROP_ALLOW_INSECURE_ACCESS + "' is not configured. Falling back to "
+          + "the secure default (false): GET access is disabled and POST requests require a "
+          + "valid 'apiKey'. Set this property explicitly to silence this warning.");
+    }
+
+    this.allowInsecureAccess =
+        env.getProperty(PROP_ALLOW_INSECURE_ACCESS, Boolean.class, false);
   }
 
   /**
@@ -69,8 +90,49 @@ public class CommandApiController {
    * @throws Exception Exception
    */
   @GetMapping("api/public/executeScript")
-  public Map<String, String> executeCommand(@RequestParam String scriptId,
+  public Map<String, String> executeCommandByGet(@RequestParam String scriptId,
       @RequestParam(required = false) String parameter) throws Exception {
+
+    if (!allowInsecureAccess) {
+      throwException(HttpStatus.FORBIDDEN, "GET access is disabled. Set '"
+          + PROP_ALLOW_INSECURE_ACCESS + "=true' to allow it, or use POST with 'apiKey'.");
+    }
+
+    return executeCommand(scriptId, parameter);
+  }
+
+  /**
+   * Execute the script specified by the request parameters.
+   *
+   * @param scriptId It's the key to the script file path defined
+   *     in {@code ecuacion-tool-command-api.properties}.<br>
+   *     Since it's unsecure for API to be able to execute any scripts,
+   *     executable scripts from API must be pre-defined.
+   * @param parameter parameter given to the script.
+   *     multiple parameters are able to be passed as comma-separated values.<br>
+   *     When you pass parameters like {@code parameter=param1,param2},
+   *     then {@code script.sh param1 param2} (or {@code script.bat param1 param2} on Windows)
+   *     will be executed.
+   *     (parameters are splitted at "," and each csv element will be an parameter.)
+   * @param apiKey the shared secret compared against the file specified by
+   *     {@code jp.ecuacion.tool.command-api.api-key-file-path}.
+   *     Required unless {@code jp.ecuacion.tool.command-api.allow-insecure-access=true}.
+   * @throws Exception Exception
+   */
+  @PostMapping("api/public/executeScript")
+  public Map<String, String> executeCommandByPost(@RequestParam String scriptId,
+      @RequestParam(required = false) String parameter,
+      @RequestParam(required = false) String apiKey) throws Exception {
+
+    if (!allowInsecureAccess) {
+      verifyApiKey(apiKey);
+    }
+
+    return executeCommand(scriptId, parameter);
+  }
+
+  private Map<String, String> executeCommand(String scriptId, String parameter)
+      throws Exception {
 
     dtlLogger.info("===== executeScript started =====");
 
@@ -175,16 +237,16 @@ public class CommandApiController {
     return Map.of("returnCode", Integer.toString(rtn));
   }
 
+  private boolean isWindows() {
+    return System.getProperty("os.name", "").toLowerCase().contains("win");
+  }
+
   /**
    * Searches ${XXX} format (not $XXX) and replaces it to the environment valuable value.
    *
    * @param string any string
    * @return string with environment variables resolved
    */
-  private boolean isWindows() {
-    return System.getProperty("os.name", "").toLowerCase().contains("win");
-  }
-
   private String resolveEnvironmentVariables(String string) {
     Function<String, String> func = (key) -> {
       return System.getenv(key);
@@ -198,5 +260,51 @@ public class CommandApiController {
 
   private void throwException(HttpStatus status, String message) {
     throw new ResponseStatusException(status, message);
+  }
+
+  /**
+   * Verifies the {@code apiKey} request parameter against the shared secret file specified by
+   * {@code jp.ecuacion.tool.command-api.api-key-file-path}.
+   *
+   * <p>All failure causes (missing parameter, missing configuration, unreadable file, or a
+   * mismatched value) return the same generic client-facing message so that a caller cannot
+   * distinguish a server misconfiguration from a wrong key. Details are logged server-side
+   * only.</p>
+   *
+   * @param apiKey the value supplied by the client, possibly {@code null}
+   */
+  private void verifyApiKey(@Nullable String apiKey) {
+    if (apiKey == null || apiKey.isEmpty()) {
+      dtlLogger.warn("apiKey parameter was not supplied on a POST request "
+          + "while " + PROP_ALLOW_INSECURE_ACCESS + "=false.");
+      throwException(HttpStatus.UNAUTHORIZED, "Invalid or missing apiKey.");
+    }
+
+    String apiKeyFilePath = env.getProperty(PROP_API_KEY_FILE_PATH);
+    if (apiKeyFilePath == null || apiKeyFilePath.isEmpty()) {
+      dtlLogger.warn("'" + PROP_API_KEY_FILE_PATH + "' is not configured "
+          + "while " + PROP_ALLOW_INSECURE_ACCESS + "=false. All POST requests are rejected.");
+      throwException(HttpStatus.UNAUTHORIZED, "Invalid or missing apiKey.");
+    }
+
+    String resolvedPath = resolveEnvironmentVariables(Objects.requireNonNull(apiKeyFilePath));
+    String expectedApiKey;
+    try {
+      expectedApiKey = Files.readString(Path.of(resolvedPath), StandardCharsets.UTF_8).strip();
+    } catch (IOException e) {
+      dtlLogger.warn("Failed to read api-key file '" + resolvedPath + "': " + e.getMessage());
+      throwException(HttpStatus.UNAUTHORIZED, "Invalid or missing apiKey.");
+      return;
+    }
+
+    // MessageDigest.isEqual() is used instead of String.equals() to avoid a timing attack.
+    boolean matches = MessageDigest.isEqual(
+        Objects.requireNonNull(apiKey).getBytes(StandardCharsets.UTF_8),
+        expectedApiKey.getBytes(StandardCharsets.UTF_8));
+
+    if (!matches) {
+      dtlLogger.warn("apiKey mismatch on POST request.");
+      throwException(HttpStatus.UNAUTHORIZED, "Invalid or missing apiKey.");
+    }
   }
 }
