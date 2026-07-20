@@ -28,4 +28,13 @@ public class Constants {
   public static final String ENV_VAR_TIMESTAMP = "TIMESTAMP";
   public static final String ENV_VAR_HOSTNAME = "HOSTNAME";
 
+  /**
+   * Set to {@code false} (in {@code application.properties} / 
+   * {@code application_profile.properties}
+   * or as a JVM {@code -D} system property) to disable SFTP host key verification, e.g. for quick
+   * local trials. Never disable it against a production or otherwise untrusted network.
+   */
+  public static final String PROP_SFTP_STRICT_HOST_KEY_CHECKING =
+      "jp.ecuacion.tool.housekeep-files.sftp.strict-host-key-checking";
+
 }

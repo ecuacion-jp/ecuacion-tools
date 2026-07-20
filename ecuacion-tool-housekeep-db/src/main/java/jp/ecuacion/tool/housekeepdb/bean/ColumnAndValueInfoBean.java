@@ -65,13 +65,21 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditi
 
   /**
    * Adds quotation mark at the both side of the string if isNeedsQuotationMark() == true.
-   * 
+   *
+   * <p>When quoted, a single quote in the value is escaped by doubling it (the standard SQL
+   *     string-literal escape, valid for PostgreSQL under the default
+   *     {@code standard_conforming_strings=on}), so that values round-tripped from the database
+   *     (e.g. an id read back via {@code ResultSet} and re-embedded in a follow-up query) cannot
+   *     break out of the literal and inject SQL.</p>
+   *
    * @return String
    */
   public String surroundWithQuotationMarks() {
-    String mark = isNeedsQuotationMark() ? "'" : "";
+    if (!isNeedsQuotationMark()) {
+      return value.toString();
+    }
 
-    return mark + value.toString() + mark;
+    return "'" + value.toString().replace("'", "''") + "'";
   }
 
   @Override
