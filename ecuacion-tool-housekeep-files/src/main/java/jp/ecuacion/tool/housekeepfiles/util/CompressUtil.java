@@ -153,22 +153,48 @@ public class CompressUtil {
 
   /**
    * Provides {@code unzip} function.
-   * 
+   *
    * <p>This method uses java.util.zip.ZipEntry considering backward compatibility.
    *     Notice that this app mainly uses org.apache.tools.zip.ZipEntry.</p>
+   *
+   * @throws IOException if a zip entry's name would resolve to a path outside
+   *     {@code toFullDirPath} (a "zip slip" entry, e.g. containing {@code ../}), or on any other
+   *     I/O failure.
    */
   public void unzip(String fromFullFilePath, String toFullDirPath) throws IOException {
+    File baseDir = new File(toFullDirPath);
+    // Trailing separator so a sibling directory sharing the base dir's name as a prefix
+    // (e.g. "/out" vs "/out-evil") is not mistaken for a path inside it.
+    String baseDirCanonicalPath = baseDir.getCanonicalPath() + File.separator;
+
     // Unzip.
     try (ZipFile zf = new ZipFile(fromFullFilePath);) {
 
       for (Enumeration<? extends java.util.zip.ZipEntry> e = zf.entries(); e.hasMoreElements();) {
         java.util.zip.ZipEntry ze = e.nextElement();
+
+        // Resolve the entry against the base directory and verify the resolved (canonical) path
+        // stays within it. Without this check, a malicious entry name such as "../../etc/cron.d/x"
+        // could write outside toFullDirPath (a.k.a. "zip slip").
+        File destFile = new File(baseDir, ze.getName());
+        String destCanonicalPath = destFile.getCanonicalPath();
+        if (!destCanonicalPath.equals(baseDir.getCanonicalPath())
+            && !destCanonicalPath.startsWith(baseDirCanonicalPath)) {
+          throw new IOException(
+              "Zip entry is outside of the target directory (zip slip): " + ze.getName());
+        }
+
         if (ze.isDirectory()) {
-          new File(toFullDirPath + ze.getName()).mkdirs();
+          destFile.mkdirs();
 
         } else {
+          File parentDir = destFile.getParentFile();
+          if (parentDir != null) {
+            parentDir.mkdirs();
+          }
+
           try (InputStream input = zf.getInputStream(ze);
-              FileOutputStream output = new FileOutputStream(toFullDirPath + ze.getName())) {
+              FileOutputStream output = new FileOutputStream(destFile)) {
 
             byte[] buf = new byte[256];
             int len;

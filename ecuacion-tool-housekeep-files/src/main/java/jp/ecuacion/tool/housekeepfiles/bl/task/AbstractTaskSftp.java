@@ -37,6 +37,7 @@ import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToSftpServer;
+import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
@@ -88,11 +89,29 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     final int port = auth.getPort();
 
     java.util.Properties config = new java.util.Properties();
-    config.put("StrictHostKeyChecking", "no");
+
+    JSch ssh = new JSch();
+
+    // Verify the server's host key against the standard OpenSSH known_hosts file to prevent
+    // man-in-the-middle attacks. The host key must be registered beforehand (e.g. via a manual
+    // "ssh" connection or "ssh-keyscan"); connections to unknown hosts will fail by design.
+    // Set Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING=false to disable this check, e.g. for
+    // quick local trials against a throwaway server. Never disable it against a production or
+    // otherwise untrusted network.
+    if ("false"
+        .equalsIgnoreCase(System.getProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING))) {
+      dlog.warn("'" + Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING + "=false' is set. SFTP host "
+          + "key verification is disabled, which allows man-in-the-middle attacks to go "
+          + "undetected. This should never be used other than for quick, throwaway local trials.");
+      config.put("StrictHostKeyChecking", "no");
+
+    } else {
+      config.put("StrictHostKeyChecking", "yes");
+      ssh.setKnownHosts(System.getProperty("user.home") + "/.ssh/known_hosts");
+    }
 
     addAuthTypeToConfig(auth.getAuthType(), config);
 
-    JSch ssh = new JSch();
     if (auth.getAuthType() == AuthTypeEnum.KEY) {
       if (auth.getPassword() == null) {
         ssh.addIdentity(auth.getKeyPath());

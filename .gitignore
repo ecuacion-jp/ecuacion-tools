@@ -132,6 +132,11 @@ buildNumber.properties
 
 ### ecuacion ###
 
+# local env settings
+ecuacion-tool-command-api/src/envs/
+ecuacion-tool-housekeep-db/src/envs/
+ecuacion-tool-housekeep-files/src/envs/
+
 # checkstyle
 .checkstyle
 
