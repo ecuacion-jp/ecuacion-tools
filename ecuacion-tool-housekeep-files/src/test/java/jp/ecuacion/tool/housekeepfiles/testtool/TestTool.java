@@ -40,6 +40,7 @@ import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.TestTools;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTaskSftp;
+import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import org.apache.commons.io.FileUtils;
@@ -183,6 +184,11 @@ public class TestTool extends TestTools {
   protected ChannelSftp channel;
 
   protected static void beforeAllOnSftpTest() throws JSchException {
+    // The embedded server below is a throwaway instance freshly started per test run, so its host
+    // key can never be pre-registered in ~/.ssh/known_hosts. Disable the production code's strict
+    // host key check, which is otherwise on by default for exactly this kind of accidental
+    // weakening.
+    System.setProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING, "false");
     startEmbeddedSftpServer();
     sftpConnectSession();
   }
@@ -241,6 +247,7 @@ public class TestTool extends TestTools {
   }
 
   protected static void afterAllOnSftpTest() {
+    System.clearProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING);
 //    if (session != null) {
 //      session.disconnect();
 //    }
