@@ -1,5 +1,12 @@
-{"properties": [{
-  "name": "app.scripts-properties-path",
-  "type": "java.lang.String",
-  "description": "A description for 'app.scripts-properties-path'"
-}]}
+{"properties": [
+  {
+    "name": "jp.ecuacion.tool.command-api.allow-insecure-access",
+    "type": "java.lang.Boolean",
+    "description": "When true, GET requests to executeScript are allowed and POST requests skip apiKey verification (intended for trusted internal networks). Defaults to false (secure) when unset; leaving it unset is logged as a warning at startup."
+  },
+  {
+    "name": "jp.ecuacion.tool.command-api.api-key-file-path",
+    "type": "java.lang.String",
+    "description": "Path to the file containing the shared secret compared against the 'apiKey' POST parameter of executeScript. Supports ${ENV_VAR} resolution."
+  }
+]}
