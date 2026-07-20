@@ -20,10 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -35,7 +31,8 @@ import java.util.regex.Pattern;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import org.jspecify.annotations.Nullable;
-import org.springframework.core.env.Environment;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.PropertySource;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,31 +48,49 @@ public class CommandApiController {
 
   private static final String PROP_ALLOW_INSECURE_ACCESS =
       "jp.ecuacion.tool.command-api.allow-insecure-access";
-  private static final String PROP_API_KEY_FILE_PATH =
-      "jp.ecuacion.tool.command-api.api-key-file-path";
 
-  private Environment env;
+  /**
+   * A substring unique to the {@link PropertySource} name Spring Boot assigns to a config file
+   * loaded via {@code spring.config.name} (see {@code WebApplication}) — e.g. {@code "Config
+   * resource 'class path resource [ecuacion-tool-command-api.properties]' via location
+   * 'optional:classpath:/'"}. Used to resolve {@code scriptId} only from this dedicated file,
+   * not from the full merged {@link Environment} 
+   * (which also includes {@code application.properties},
+   * JVM system properties, and OS environment variables) — otherwise a client-supplied
+   * {@code scriptId} could coincidentally match an unrelated property/env var (e.g. {@code HOME},
+   * {@code AWS_SECRET_ACCESS_KEY}) and leak its value via the "not found" error response.
+   */
+  private static final String SCRIPT_PROPERTIES_SOURCE_NAME_MARKER =
+      "[ecuacion-tool-command-api.properties]";
+
+  private ConfigurableEnvironment env;
   private DetailLogger dtlLogger = new DetailLogger(this);
   private final boolean allowInsecureAccess;
 
   /**
    * Constructs a new instance.
    */
-  public CommandApiController(Environment env) {
+  public CommandApiController(ConfigurableEnvironment env) {
     this.env = env;
 
     if (!env.containsProperty(PROP_ALLOW_INSECURE_ACCESS)) {
       dtlLogger.warn("'" + PROP_ALLOW_INSECURE_ACCESS + "' is not configured. Falling back to "
-          + "the secure default (false): GET access is disabled and POST requests require a "
-          + "valid 'apiKey'. Set this property explicitly to silence this warning.");
+          + "the secure default (false): the api/public/executeScript GET endpoint (no API key "
+          + "needed) is disabled; use api/key/executeScript with a valid 'X-Api-Key' header "
+          + "instead. Set this property explicitly to silence this warning.");
     }
 
-    this.allowInsecureAccess =
-        env.getProperty(PROP_ALLOW_INSECURE_ACCESS, Boolean.class, false);
+    this.allowInsecureAccess = env.getProperty(PROP_ALLOW_INSECURE_ACCESS, Boolean.class, false);
   }
 
   /**
-   * Execute the script specified by the URL parameters.
+   * Execute the script specified by the URL parameters, without requiring an API key.
+   *
+   * <p>Only reachable when {@code jp.ecuacion.tool.command-api.allow-insecure-access=true}
+   *     (default {@code false}) — this exists purely as a manual-testing convenience (e.g. from
+   *     a browser or a bare {@code curl}, without having to set a header), not for production
+   *     use. For programmatic / production access, use
+   *     {@link #executeCommandByPost} on {@code api/key/executeScript} instead.</p>
    *
    * @param scriptId It's the key to the script file path defined
    *     in {@code ecuacion-tool-command-api.properties}.<br>
@@ -94,8 +109,10 @@ public class CommandApiController {
       @RequestParam(required = false) String parameter) throws Exception {
 
     if (!allowInsecureAccess) {
-      throwException(HttpStatus.FORBIDDEN, "GET access is disabled. Set '"
-          + PROP_ALLOW_INSECURE_ACCESS + "=true' to allow it, or use POST with 'apiKey'.");
+      throwException(HttpStatus.FORBIDDEN,
+          "GET access is disabled. Set '" + PROP_ALLOW_INSECURE_ACCESS
+              + "=true' to allow it, or use POST on "
+              + "api/key/executeScript with a valid 'X-Api-Key' header.");
     }
 
     return executeCommand(scriptId, parameter);
@@ -103,6 +120,12 @@ public class CommandApiController {
 
   /**
    * Execute the script specified by the request parameters.
+   *
+   * <p>Mapped under {@code api/key/**}, so ecuacion-splib-rest's
+   *     {@code SplibApiKeyAuthenticationFilter} requires a valid {@code X-Api-Key} header
+   *     (checked against the application-registered
+   *     {@code SplibApiKeyExpectedValueProvider} bean) before this method is ever invoked; there
+   *     is nothing left for this method itself to verify.</p>
    *
    * @param scriptId It's the key to the script file path defined
    *     in {@code ecuacion-tool-command-api.properties}.<br>
@@ -114,25 +137,16 @@ public class CommandApiController {
    *     then {@code script.sh param1 param2} (or {@code script.bat param1 param2} on Windows)
    *     will be executed.
    *     (parameters are splitted at "," and each csv element will be an parameter.)
-   * @param apiKey the shared secret compared against the file specified by
-   *     {@code jp.ecuacion.tool.command-api.api-key-file-path}.
-   *     Required unless {@code jp.ecuacion.tool.command-api.allow-insecure-access=true}.
    * @throws Exception Exception
    */
-  @PostMapping("api/public/executeScript")
+  @PostMapping("api/key/executeScript")
   public Map<String, String> executeCommandByPost(@RequestParam String scriptId,
-      @RequestParam(required = false) String parameter,
-      @RequestParam(required = false) String apiKey) throws Exception {
-
-    if (!allowInsecureAccess) {
-      verifyApiKey(apiKey);
-    }
+      @RequestParam(required = false) String parameter) throws Exception {
 
     return executeCommand(scriptId, parameter);
   }
 
-  private Map<String, String> executeCommand(String scriptId, String parameter)
-      throws Exception {
+  private Map<String, String> executeCommand(String scriptId, String parameter) throws Exception {
 
     dtlLogger.info("===== executeScript started =====");
 
@@ -144,7 +158,7 @@ public class CommandApiController {
 
     // Obtain scriptFilePath from scriptId
     dtlLogger.info("scriptId      : " + scriptId);
-    String scriptFilePath = env.getProperty(scriptId);
+    String scriptFilePath = resolveScriptFilePath(scriptId);
     if (scriptFilePath == null) {
       throwException(HttpStatus.BAD_REQUEST, "scriptId '" + scriptId + "' not found.");
     }
@@ -179,6 +193,17 @@ public class CommandApiController {
     dtlLogger
         .info("parameter(s)  : " + (paramsString.equals("") ? "(not specified)" : paramsString));
 
+    // paramsString input validation.
+    // On Windows the script is run via "cmd.exe /c", which re-parses metacharacters
+    // (e.g. '&', '|', '<', '>', '^', '%', quotes) within each argument of the command line,
+    // allowing argument injection into cmd.exe itself. Restricting to a safe character
+    // whitelist prevents that. The same restriction is applied on all platforms so behavior
+    // does not depend on which OS the server happens to run on.
+    if (!Pattern.compile("^[a-zA-Z0-9 ./:_=@\\-]*$").matcher(paramsString).find()) {
+      throwException(HttpStatus.BAD_REQUEST, "String parameter (" + paramsString
+          + ") should consists of alphanumerics, ' ', '.', '/', ':', '=', '@', '-' and '_'.");
+    }
+
     // Execute script
     List<String> commandList = new ArrayList<>();
     if (isWindows()) {
@@ -200,8 +225,8 @@ public class CommandApiController {
     // the child process if the buffer of the not-yet-read stream fills up.
     AtomicReference<IOException> stderrException = new AtomicReference<>();
     Thread stderrThread = new Thread(() -> {
-      try (BufferedReader reader = new BufferedReader(
-          new InputStreamReader(p.getErrorStream(), Charset.defaultCharset()))) {
+      try (BufferedReader reader =
+          new BufferedReader(new InputStreamReader(p.getErrorStream(), Charset.defaultCharset()))) {
         String line;
         while ((line = reader.readLine()) != null) {
           dtlLogger.info("stderr        : " + line);
@@ -212,8 +237,8 @@ public class CommandApiController {
     });
     stderrThread.start();
 
-    try (BufferedReader reader = new BufferedReader(
-        new InputStreamReader(p.getInputStream(), Charset.defaultCharset()))) {
+    try (BufferedReader reader =
+        new BufferedReader(new InputStreamReader(p.getInputStream(), Charset.defaultCharset()))) {
       String line;
       while ((line = reader.readLine()) != null) {
         dtlLogger.info("stdout        : " + line);
@@ -242,6 +267,37 @@ public class CommandApiController {
   }
 
   /**
+   * Resolves {@code scriptId} to a script file path, consulting only the {@link PropertySource}s
+   * backed by {@code ecuacion-tool-command-api.properties} (see
+   * {@link #SCRIPT_PROPERTIES_SOURCE_NAME_MARKER}) rather than the full merged
+   * {@link org.springframework.core.env.Environment}.
+   *
+   * <p>Iterates {@code env.getPropertySources()} in priority order so that, if the file is
+   * present at more than one of Spring Boot's search locations (e.g. bundled on the classpath
+   * and also dropped in {@code ./config/} next to the deployed jar/war for an ops override),
+   * the higher-priority one wins — matching how {@code spring.config.name} multi-location
+   * resolution already behaves for every other property.</p>
+   *
+   * @param scriptId the client-supplied script identifier
+   * @return the configured script file path, or {@code null} if no matching, dedicated
+   *     property source defines {@code scriptId}
+   */
+  private @Nullable String resolveScriptFilePath(String scriptId) {
+    for (PropertySource<?> source : env.getPropertySources()) {
+      if (!source.getName().contains(SCRIPT_PROPERTIES_SOURCE_NAME_MARKER)) {
+        continue;
+      }
+
+      Object value = source.getProperty(scriptId);
+      if (value != null) {
+        return value.toString();
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Searches ${XXX} format (not $XXX) and replaces it to the environment valuable value.
    *
    * @param string any string
@@ -260,51 +316,5 @@ public class CommandApiController {
 
   private void throwException(HttpStatus status, String message) {
     throw new ResponseStatusException(status, message);
-  }
-
-  /**
-   * Verifies the {@code apiKey} request parameter against the shared secret file specified by
-   * {@code jp.ecuacion.tool.command-api.api-key-file-path}.
-   *
-   * <p>All failure causes (missing parameter, missing configuration, unreadable file, or a
-   * mismatched value) return the same generic client-facing message so that a caller cannot
-   * distinguish a server misconfiguration from a wrong key. Details are logged server-side
-   * only.</p>
-   *
-   * @param apiKey the value supplied by the client, possibly {@code null}
-   */
-  private void verifyApiKey(@Nullable String apiKey) {
-    if (apiKey == null || apiKey.isEmpty()) {
-      dtlLogger.warn("apiKey parameter was not supplied on a POST request "
-          + "while " + PROP_ALLOW_INSECURE_ACCESS + "=false.");
-      throwException(HttpStatus.UNAUTHORIZED, "Invalid or missing apiKey.");
-    }
-
-    String apiKeyFilePath = env.getProperty(PROP_API_KEY_FILE_PATH);
-    if (apiKeyFilePath == null || apiKeyFilePath.isEmpty()) {
-      dtlLogger.warn("'" + PROP_API_KEY_FILE_PATH + "' is not configured "
-          + "while " + PROP_ALLOW_INSECURE_ACCESS + "=false. All POST requests are rejected.");
-      throwException(HttpStatus.UNAUTHORIZED, "Invalid or missing apiKey.");
-    }
-
-    String resolvedPath = resolveEnvironmentVariables(Objects.requireNonNull(apiKeyFilePath));
-    String expectedApiKey;
-    try {
-      expectedApiKey = Files.readString(Path.of(resolvedPath), StandardCharsets.UTF_8).strip();
-    } catch (IOException e) {
-      dtlLogger.warn("Failed to read api-key file '" + resolvedPath + "': " + e.getMessage());
-      throwException(HttpStatus.UNAUTHORIZED, "Invalid or missing apiKey.");
-      return;
-    }
-
-    // MessageDigest.isEqual() is used instead of String.equals() to avoid a timing attack.
-    boolean matches = MessageDigest.isEqual(
-        Objects.requireNonNull(apiKey).getBytes(StandardCharsets.UTF_8),
-        expectedApiKey.getBytes(StandardCharsets.UTF_8));
-
-    if (!matches) {
-      dtlLogger.warn("apiKey mismatch on POST request.");
-      throwException(HttpStatus.UNAUTHORIZED, "Invalid or missing apiKey.");
-    }
   }
 }

@@ -15,6 +15,7 @@
  */
 package jp.ecuacion.util.commandapi.web.config;
 
+import jp.ecuacion.splib.rest.apikey.SplibApiKeyExpectedValueProvider;
 import jp.ecuacion.splib.rest.config.SplibRestSecurityConfig;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -26,4 +27,13 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 @EnableWebSecurity
 public class AppRestSecurityConfig extends SplibRestSecurityConfig {
 
+  /**
+   * Constructs a new instance.
+   *
+   * @param apiKeyExpectedValueProvider backs {@code api/key/executeScript} authentication; see
+   *     {@link CommandApiKeyProvider}
+   */
+  public AppRestSecurityConfig(SplibApiKeyExpectedValueProvider apiKeyExpectedValueProvider) {
+    super(apiKeyExpectedValueProvider);
+  }
 }

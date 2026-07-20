@@ -47,19 +47,19 @@
 
  ### Execute Script through ecuacion-tool-command-api
 
- By default, GET access is disabled and POST requests require a shared-secret `apiKey`. See [Access Control](#access-control) below to configure either option.
+ By default, the POST endpoint always requires an `X-Api-Key` header, and the GET endpoint is disabled entirely. See [Access Control](#access-control) below to configure the GET convenience endpoint.
 
- 1. **POST with `apiKey` (recommended for production)**
+ 1. **POST with `X-Api-Key` header (recommended for production; always requires the key, regardless of `allow-insecure-access`)**
 
     Register the shared secret in a file and point `jp.ecuacion.tool.command-api.api-key-file-path` at it (see [Configuration](#configuration)), then:
 
     ```bash
-    curl -X POST "http[s]://yourdomain.com/ecuacion-tool-command-api/api/public/executeScript" \
-         --data-urlencode "scriptId=script.say-hello" \
-         --data-urlencode "apiKey=your-shared-secret"
+    curl -X POST "http[s]://yourdomain.com/ecuacion-tool-command-api/api/key/executeScript" \
+         -H "X-Api-Key: your-shared-secret" \
+         --data-urlencode "scriptId=script.say-hello"
     ```
 
- 1. **GET (only when `jp.ecuacion.tool.command-api.allow-insecure-access=true`, e.g. trusted internal networks)**
+ 1. **GET, no key needed (only when `jp.ecuacion.tool.command-api.allow-insecure-access=true`, e.g. trusted internal networks or manual testing)**
 
     ```URL
     http[s]://yourdomain.com/ecuacion-tool-command-api/api/public/executeScript?scriptId=script.say-hello
@@ -91,9 +91,9 @@
 
  ### Response Status and Return Code
 
- * HTTP 403 / 404 : URL (http[s]://yourdomain.com/ecuacion-tool-command-api/api/public/executeScript) is wrong, or a GET request arrived while `jp.ecuacion.tool.command-api.allow-insecure-access` is not `true` (see [Access Control](#access-control)).
+ * HTTP 403 / 404 : URL is wrong, or a GET request to `api/public/executeScript` arrived while `jp.ecuacion.tool.command-api.allow-insecure-access` is not `true` (see [Access Control](#access-control)).
 
- * HTTP 401 : A POST request's `apiKey` was missing, unreadable on the server side, or didn't match (see [Access Control](#access-control)). All of these causes are intentionally reported identically (so a caller can't distinguish a server misconfiguration from a wrong key); check the server-side log to tell them apart.
+ * HTTP 401 : A POST request to `api/key/executeScript` was missing the `X-Api-Key` header, the header didn't match, or the api-key file was unreadable / unconfigured on the server side. This is enforced by ecuacion-splib-rest before the request ever reaches this application's code; see its `SplibApiKeyAuthenticationFilter`. All of these causes are intentionally reported identically (so a caller can't distinguish a server misconfiguration from a wrong key); check the server-side log to tell them apart.
 
  * HTTP 400 :
 
@@ -111,7 +111,7 @@
      "title": "Internal Server Error",
      "status": 500,
      "detail": "scriptFilePath '/path/to/script/directory/sayHello.sh' not found.",
-     "instance": "/ecuacion-tool-command-api/api/public/executeScript"
+     "instance": "/ecuacion-tool-command-api/api/key/executeScript"
    }
    ```
 
@@ -133,7 +133,7 @@
 
  * script file path defined in `ecuacion-tool-command-api.properties` is validated with regular expression `^[a-zA-Z0-9.-_/${}]*$`.
 
- * By default, GET access to `executeScript` is disabled and POST access requires a matching `apiKey`. `apiKey` is a simple shared secret compared against a file placed on the server — it is **not** an asymmetric (public/private) key pair, and the client-supplied value is never treated as a private key. See [Access Control](#access-control).
+ * POST access to `executeScript` (`api/key/executeScript`) always requires a matching `X-Api-Key` header, regardless of `allow-insecure-access`; GET access (`api/public/executeScript`, no key needed) is disabled unless `allow-insecure-access=true`. The key is a simple shared secret compared against a file placed on the server — it is **not** an asymmetric (public/private) key pair, and the client-supplied value is never treated as a private key. See [Access Control](#access-control).
 
  ## Configuration
 
@@ -143,8 +143,8 @@
 
  | Property | Type | Description |
  | --- | --- | --- |
- | `jp.ecuacion.tool.command-api.allow-insecure-access` | boolean | `true`: GET requests are allowed, and POST requests skip `apiKey` verification. Intended for trusted internal networks only. `false` (default when unset): GET is rejected (403), and POST requires a valid `apiKey`. |
- | `jp.ecuacion.tool.command-api.api-key-file-path` | String | Path to a file containing the shared secret compared against the `apiKey` POST parameter. Supports `${ENV_VAR}` resolution, same as script paths. |
+ | `jp.ecuacion.tool.command-api.allow-insecure-access` | boolean | `true`: GET requests to `api/public/executeScript` are allowed, with no key needed. Intended for trusted internal networks or manual testing only. `false` (default when unset): GET is rejected (403). Either way, POST to `api/key/executeScript` always requires a valid `X-Api-Key` header — this flag never weakens it. |
+ | `jp.ecuacion.tool.command-api.api-key-file-path` | String | Path to a file containing the shared secret compared against the `X-Api-Key` header on `api/key/executeScript` requests. Supports `${ENV_VAR}` resolution, same as script paths. |
 
  Example:
 
