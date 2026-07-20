@@ -20,12 +20,15 @@ import java.util.Objects;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
+import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.jspecify.annotations.Nullable;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 /**
@@ -34,7 +37,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class HousekeepFilesTasklet implements Tasklet {
   HousekeepFilesBlf blf = new HousekeepFilesBlf();
-  @Nullable HousekeepFilesForm form;
+  @Nullable
+  HousekeepFilesForm form;
+
+  // Not set when this tasklet is instantiated directly (e.g. in tests) instead of through Spring.
+  @Autowired(required = false)
+  @Nullable
+  Environment env;
 
   /**
    * Executes housekeeping files.
@@ -56,6 +65,17 @@ public class HousekeepFilesTasklet implements Tasklet {
    */
   @SuppressWarnings("unused")
   public void execute(String excelFilePath) throws Exception {
+
+    // AbstractTaskSftp is instantiated by reflection outside of Spring's DI, so it cannot read
+    // this property from the Environment directly. Bridge it through a JVM system property here,
+    // which also makes values set in application.properties / application_profile.properties
+    // effective, not only "-D" arguments. Left untouched when this tasklet is instantiated
+    // directly without Spring (e.g. in tests), in which case only "-D" is honored.
+    if (env != null && Objects.requireNonNull(env)
+        .containsProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING)) {
+      System.setProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING, Objects.requireNonNull(
+          Objects.requireNonNull(env).getProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING)));
+    }
 
     // Check the first argument.
     if (excelFilePath == null || excelFilePath.equals("")) {
