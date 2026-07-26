@@ -33,8 +33,10 @@
  1. Register the script in `ecuacion-tool-command-api.properties`, placed next to the war (or in a `config` subdirectory alongside it — see [Configuration](#configuration) below for every supported location). Change '/path/to/script/directory' to any directory in your server.
 
     ```properties
-    script.say-hello=/path/to/script/directory/sayHello.sh
+    script.say-hello=GET:/path/to/script/directory/sayHello.sh
     ```
+
+    The `GET:` prefix here allows this script to also be called via GET on `api/key/executeScript` (handy for trying it out from a browser once you have an API key set up). See [Access Control](#access-control) for the full prefix rules — you can drop it and the script defaults to POST only.
  1. Put a script named 'sayHello.sh' where the path specifies and set proper access privileges with the user the application was started by.  
     Any script content is fine, but for example as follows.
 
@@ -47,9 +49,9 @@
 
  ### Execute Script through ecuacion-tool-command-api
 
- By default, the POST endpoint always requires an `X-Api-Key` header, and the GET endpoint is disabled entirely. See [Access Control](#access-control) below to configure the GET convenience endpoint.
+ By default, `api/key/executeScript` always requires an `X-Api-Key` header, and only accepts POST unless the script's own definition opts into GET (see [Access Control](#access-control)). The no-key `api/public/executeScript` GET endpoint is disabled entirely by default.
 
- 1. **POST with `X-Api-Key` header (recommended for production; always requires the key, regardless of `allow-insecure-access`)**
+ 1. **`api/key/executeScript` with `X-Api-Key` header (recommended for production; always requires the key, regardless of `api-key-required`)**
 
     Register the shared secret in a file and point `jp.ecuacion.tool.command-api.api-key-file-path` at it (see [Configuration](#configuration)), then:
 
@@ -59,11 +61,20 @@
          --data-urlencode "scriptId=script.say-hello"
     ```
 
- 1. **GET, no key needed (only when `jp.ecuacion.tool.command-api.allow-insecure-access=true`, e.g. trusted internal networks or manual testing)**
+    If `script.say-hello` is registered with a `GET:` or `ALL:` prefix (as in the [Getting Started](#getting-started) example above), the same call also works as GET:
+
+    ```bash
+    curl "http[s]://yourdomain.com/ecuacion-tool-command-api/api/key/executeScript?scriptId=script.say-hello" \
+         -H "X-Api-Key: your-shared-secret"
+    ```
+
+ 1. **`api/public/executeScript`, no key needed (only when `jp.ecuacion.tool.command-api.api-key-required=false`, e.g. trusted internal networks or manual testing)**
 
     ```URL
     http[s]://yourdomain.com/ecuacion-tool-command-api/api/public/executeScript?scriptId=script.say-hello
     ```
+
+    This one is always GET, for every registered script, regardless of its `GET:`/`POST:`/`ALL:` prefix — see [Access Control](#access-control).
 
     Either way, you'll get the same execution result.
 
@@ -91,9 +102,9 @@
 
  ### Response Status and Return Code
 
- * HTTP 403 / 404 : URL is wrong, or a GET request to `api/public/executeScript` arrived while `jp.ecuacion.tool.command-api.allow-insecure-access` is not `true` (see [Access Control](#access-control)).
+ * HTTP 403 / 404 : URL is wrong, a GET request to `api/public/executeScript` arrived while `jp.ecuacion.tool.command-api.api-key-required` is not `false`, or a request to `api/key/executeScript` used an HTTP method the script's definition doesn't allow (see [Access Control](#access-control)).
 
- * HTTP 401 : A POST request to `api/key/executeScript` was missing the `X-Api-Key` header, the header didn't match, or the api-key file was unreadable / unconfigured on the server side. This is enforced by ecuacion-splib-rest before the request ever reaches this application's code; see its `SplibApiKeyAuthenticationFilter`. All of these causes are intentionally reported identically (so a caller can't distinguish a server misconfiguration from a wrong key); check the server-side log to tell them apart.
+ * HTTP 401 : A GET or POST request to `api/key/executeScript` was missing the `X-Api-Key` header, the header didn't match, or the api-key file was unreadable / unconfigured on the server side. This is enforced by ecuacion-splib-rest before the request ever reaches this application's code; see its `SplibApiKeyAuthenticationFilter`. All of these causes are intentionally reported identically (so a caller can't distinguish a server misconfiguration from a wrong key); check the server-side log to tell them apart.
 
  * HTTP 400 :
 
@@ -131,9 +142,11 @@
 
  * script ID (`scriptId` URL parameter) defined in `ecuacion-tool-command-api.properties` is validated with regular expression `^[a-zA-Z0-9.-_]*$`.
 
- * script file path defined in `ecuacion-tool-command-api.properties` is validated with regular expression `^[a-zA-Z0-9.-_/${}]*$`.
+ * script file path defined in `ecuacion-tool-command-api.properties` is validated with regular expression `^[a-zA-Z0-9.-_/${}]*$` (after stripping the optional `GET:`/`POST:`/`ALL:` prefix described below).
 
- * POST access to `executeScript` (`api/key/executeScript`) always requires a matching `X-Api-Key` header, regardless of `allow-insecure-access`; GET access (`api/public/executeScript`, no key needed) is disabled unless `allow-insecure-access=true`. The key is a simple shared secret compared against a file placed on the server — it is **not** an asymmetric (public/private) key pair, and the client-supplied value is never treated as a private key. See [Access Control](#access-control).
+ * `api/key/executeScript` always requires a matching `X-Api-Key` header, regardless of `api-key-required` — that flag only ever controls whether the separate no-key `api/public/executeScript` endpoint is reachable at all, it never weakens `api/key/executeScript`. The key is a simple shared secret compared against a file placed on the server — it is **not** an asymmetric (public/private) key pair, and the client-supplied value is never treated as a private key. See [Access Control](#access-control).
+
+ * Which HTTP method(s) `api/key/executeScript` accepts for a given script is controlled per-script (see [Access Control](#access-control)) — it defaults to POST only, so exposing a script over GET is an explicit opt-in, not something granted automatically just by having a valid key.
 
  ## Configuration
 
@@ -143,17 +156,43 @@
 
  | Property | Type | Description |
  | --- | --- | --- |
- | `jp.ecuacion.tool.command-api.allow-insecure-access` | boolean | `true`: GET requests to `api/public/executeScript` are allowed, with no key needed. Intended for trusted internal networks or manual testing only. `false` (default when unset): GET is rejected (403). Either way, POST to `api/key/executeScript` always requires a valid `X-Api-Key` header — this flag never weakens it. |
- | `jp.ecuacion.tool.command-api.api-key-file-path` | String | Path to a file containing the shared secret compared against the `X-Api-Key` header on `api/key/executeScript` requests. Supports `${ENV_VAR}` resolution, same as script paths. |
+ | `jp.ecuacion.tool.command-api.api-key-required` | boolean | `true` (default when unset): the no-key `api/public/executeScript` GET endpoint is disabled (403). `false`: it's enabled, reachable via GET with no key, for every registered script regardless of its `GET:`/`POST:`/`ALL:` prefix. Intended for trusted internal networks or manual testing only. Either way, `api/key/executeScript` always requires a valid `X-Api-Key` header — this flag never weakens it. |
+ | `jp.ecuacion.tool.command-api.api-key-file-path` | String | Path to a file containing the shared secret(s) compared against the `X-Api-Key` header on `api/key/executeScript` requests. One key per line; a request is accepted if it matches any line. Supports `${ENV_VAR}` resolution, same as script paths. |
 
  Example:
 
  ```properties
- jp.ecuacion.tool.command-api.allow-insecure-access=false
+ jp.ecuacion.tool.command-api.api-key-required=true
  jp.ecuacion.tool.command-api.api-key-file-path=${HOME}/secrets/command-api-key.txt
  ```
 
- The api-key file's content is read (and trailing whitespace/newlines trimmed) on every request, so the key can be rotated by replacing the file's content without restarting the app.
+ Independently, each script registered in `ecuacion-tool-command-api.properties` can declare which HTTP method(s) `api/key/executeScript` accepts for it, via an optional, case-insensitive prefix on its path value:
+
+ | Prefix | Methods allowed on `api/key/executeScript` |
+ | --- | --- |
+ | *(none)* | POST only (default — existing script definitions keep working unchanged) |
+ | `POST:` | POST only (same as no prefix, just explicit) |
+ | `GET:` | GET only |
+ | `ALL:` | GET and POST |
+
+ ```properties
+ # POST only (default)
+ script.deploy=/path/to/script/directory/deploy.sh
+
+ # Also reachable via GET on api/key/executeScript — for read-only scripts
+ script.say-hello=GET:/path/to/script/directory/sayHello.sh
+ ```
+
+ This is deliberately independent of `api-key-required`: it only ever governs the authenticated `api/key/executeScript` endpoint. The no-key `api/public/executeScript` endpoint, when enabled, stays GET-only and unconditionally reachable for every script — it is a consciously-accepted-risk convenience endpoint, not something that needs per-script tuning.
+
+ The api-key file may contain more than one key, one per line (blank lines are ignored); a request is accepted if it presents any of them. This is useful when each caller is issued its own key — a single leaked or retired key can then be dropped by deleting its line, without having to rotate everyone else's. Example:
+
+ ```text
+ caller-a-s3cr3t-key
+ caller-b-s3cr3t-key
+ ```
+
+ The file's content is read fresh on every request rather than cached, so keys can be added, removed, or rotated by editing the file's content without restarting the app.
 
  `ecuacion-tool-command-api.properties` is loaded the same way Spring Boot loads `application.properties` — it's merged in from any of these locations (highest priority first), instead of requiring a CLASSPATH directory:
 
