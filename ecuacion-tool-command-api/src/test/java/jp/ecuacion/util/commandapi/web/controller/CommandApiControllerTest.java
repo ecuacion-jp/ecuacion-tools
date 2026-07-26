@@ -46,7 +46,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Tests access control added to {@link CommandApiController}: the {@code api-key-required} gated
- * {@code api/public/executeScript} GET endpoint, and the always-key-required
+ * {@code api/public/executeScript} GET/POST endpoints, and the always-key-required
  * {@code api/key/executeScript} GET/POST endpoints (authenticated by ecuacion-splib-rest's
  * {@link SplibApiKeyAuthenticationFilter} via
  * {@link jp.ecuacion.util.commandapi.web.config.CommandApiKeyProvider}), including the per-script
@@ -138,6 +138,31 @@ class CommandApiControllerTest {
     }
   }
 
+  private static Path createStdoutAndStderrScript() {
+    try {
+      Path dir = Files.createTempDirectory("command-api-test-script");
+      Path script = dir.resolve("stdoutAndStderr.sh");
+      Files.writeString(script, "#!/bin/bash\necho out-line\necho err-line >&2\n");
+      script.toFile().setExecutable(true);
+      return script;
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  /** Registers a script that writes to both stdout and stderr, one line each. */
+  private static class StdoutAndStderrScriptPropertySourceInitializer
+      extends AbstractScriptPropertySourceInitializer {
+
+    static final String STDOUT_AND_STDERR_SCRIPT_ID = "script.stdout-and-stderr";
+
+    @SuppressWarnings("null")
+    @Override
+    Map<String, String> scriptDefinitions() {
+      return Map.of(STDOUT_AND_STDERR_SCRIPT_ID, "ALL:" + createStdoutAndStderrScript());
+    }
+  }
+
   private static Path createApiKeyFile(String content) {
     try {
       Path dir = Files.createTempDirectory("command-api-test-key");
@@ -209,7 +234,9 @@ class CommandApiControllerTest {
       mockMvc
           .perform(post("/api/key/executeScript").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
-          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
+          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"))
+          .andExpect(jsonPath("$.stdout").value("hello"))
+          .andExpect(jsonPath("$.stderr").value(""));
     }
 
     @Test
@@ -300,16 +327,19 @@ class CommandApiControllerTest {
   }
 
   /**
-   * {@code api-key-required=false}: GET on {@code api/public/executeScript} is allowed. POST to
-   * {@code api/key/executeScript} must still require a valid {@code X-Api-Key} regardless — this
-   * flag only ever adds the GET convenience endpoint, it never weakens
-   * {@code api/key/executeScript}. No api-key file is configured in this class, so every POST
-   * here is necessarily unauthorized.
+   * {@code api-key-required=false} enables both {@code GET} and {@code POST} on
+   * {@code api/public/executeScript}; which of the two a given script accepts is governed by the
+   * exact same {@code GET:} / {@code POST:} / {@code ALL:} declaration as
+   * {@code api/key/executeScript} (see {@link WhenScriptDeclaresAnAllowedMethod}) — the only
+   * difference from that endpoint is that no {@code X-Api-Key} is required here.
+   * {@code api/key/executeScript} itself is untouched by this flag and must still require a
+   * valid {@code X-Api-Key} regardless. No api-key file is configured in this class, so every
+   * request there is necessarily unauthorized.
    */
   @Nested
   @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
   @AutoConfigureMockMvc
-  @ContextConfiguration(initializers = ScriptPropertySourceInitializer.class)
+  @ContextConfiguration(initializers = MethodRestrictedScriptPropertySourceInitializer.class)
   class WhenApiKeyIsNotRequired {
 
     @DynamicPropertySource
@@ -321,9 +351,37 @@ class CommandApiControllerTest {
     private MockMvc mockMvc;
 
     @Test
-    void getSucceeds() throws Exception {
+    void getOnGetOnlyScriptSucceeds() throws Exception {
+      mockMvc.perform(get("/api/public/executeScript").param("scriptId", GET_ONLY_SCRIPT_ID))
+          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"))
+          .andExpect(jsonPath("$.stdout").value("hello"))
+          .andExpect(jsonPath("$.stderr").value(""));
+    }
+
+    @Test
+    void getOnPostOnlyScriptIsForbidden() throws Exception {
       mockMvc.perform(get("/api/public/executeScript").param("scriptId", SCRIPT_ID))
+          .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void postOnPostOnlyScriptSucceeds() throws Exception {
+      mockMvc.perform(post("/api/public/executeScript").param("scriptId", SCRIPT_ID))
           .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
+    }
+
+    @Test
+    void postOnGetOnlyScriptIsForbidden() throws Exception {
+      mockMvc.perform(post("/api/public/executeScript").param("scriptId", GET_ONLY_SCRIPT_ID))
+          .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getAndPostOnAllMethodsScriptSucceed() throws Exception {
+      mockMvc.perform(get("/api/public/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID))
+          .andExpect(status().isOk());
+      mockMvc.perform(post("/api/public/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID))
+          .andExpect(status().isOk());
     }
 
     @Test
@@ -335,8 +393,8 @@ class CommandApiControllerTest {
     @Test
     void getWithAllowlistedParameterSucceeds() throws Exception {
       mockMvc
-          .perform(get("/api/public/executeScript").param("scriptId", SCRIPT_ID).param("parameter",
-              "param1,param2"))
+          .perform(get("/api/public/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID)
+              .param("parameter", "param1,param2"))
           .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
     }
 
@@ -365,7 +423,7 @@ class CommandApiControllerTest {
 
     @Test
     void getWithShellMetacharacterInParameterIsRejected() throws Exception {
-      mockMvc.perform(get("/api/public/executeScript").param("scriptId", SCRIPT_ID)
+      mockMvc.perform(get("/api/public/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID)
           .param("parameter", "param1 & calc.exe")).andExpect(status().isBadRequest());
     }
   }
@@ -485,6 +543,32 @@ class CommandApiControllerTest {
           .perform(post("/api/key/executeScript").param("scriptId", MIXED_CASE_ALL_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk());
+    }
+  }
+
+  /** Verifies stdout and stderr are captured into separate response fields, not merged. */
+  @Nested
+  @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+  @AutoConfigureMockMvc
+  @ContextConfiguration(initializers = StdoutAndStderrScriptPropertySourceInitializer.class)
+  class WhenScriptWritesToStdoutAndStderr {
+
+    @DynamicPropertySource
+    static void properties(DynamicPropertyRegistry registry) {
+      registry.add(API_KEY_REQUIRED_PROP, () -> "false");
+    }
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    void stdoutAndStderrAreCapturedSeparately() throws Exception {
+      mockMvc
+          .perform(get("/api/public/executeScript").param("scriptId",
+              StdoutAndStderrScriptPropertySourceInitializer.STDOUT_AND_STDERR_SCRIPT_ID))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.stdout").value("out-line"))
+          .andExpect(jsonPath("$.stderr").value("err-line"));
     }
   }
 }

@@ -70,12 +70,12 @@ public class CommandApiService {
       "[ecuacion-tool-command-api.properties]";
 
   /**
-   * Which HTTP method(s) a script definition allows on {@code api/key/executeScript}, expressed
-   * by an optional {@code GET:} / {@code POST:} / {@code ALL:} prefix on the script definition's
-   * value (case-insensitive); no prefix means {@link #POST}. Never consulted for
-   * {@code api/public/executeScript}, which — once enabled by {@code api-key-required=false} — is
-   * always reachable via GET regardless of a script's declared method, since it is a
-   * consciously-accepted-risk convenience endpoint covering every registered script alike.
+   * Which HTTP method(s) a script definition allows on {@code executeScript}, expressed by an
+   * optional {@code GET:} / {@code POST:} / {@code ALL:} prefix on the script definition's value
+   * (case-insensitive); no prefix means {@link #POST}. Enforced identically on both
+   * {@code api/key/executeScript} and {@code api/public/executeScript} (once the latter is
+   * enabled via {@code api-key-required=false}) — the two endpoints differ only in whether an
+   * {@code X-Api-Key} is required, not in which methods a script accepts.
    */
   private enum AllowedHttpMethod {
     GET, POST, ALL;
@@ -116,12 +116,15 @@ public class CommandApiService {
    *
    * <p>Only reachable when {@code jp.ecuacion.tool.command-api.api-key-required=false} (default
    *     {@code true}) — this exists purely as a manual-testing convenience (e.g. from a browser
-   *     or a bare {@code curl}, without having to set a header), not for production use. Every
-   *     registered script is reachable via GET here regardless of its declared allowed method,
-   *     since enabling this endpoint at all is already an explicit, deployment-wide acceptance of
-   *     that risk. For programmatic / production access, use {@link #executeScriptByKey} instead.
-   *     </p>
+   *     or a bare {@code curl}, without having to set a header), not for production use. Once
+   *     enabled, which scripts accept {@code requestMethod} here follows the exact same
+   *     {@code GET:} / {@code POST:} / {@code ALL:} declaration as {@link #executeScriptByKey}
+   *     (see {@link AllowedHttpMethod}) — this endpoint differs from that one only in requiring
+   *     no {@code X-Api-Key}. For production access, use {@link #executeScriptByKey} instead.</p>
    *
+   * @param requestMethod the HTTP method the request arrived on ({@code GET} or {@code POST}),
+   *     checked against the script's declared {@code GET:} / {@code POST:} / {@code ALL:} prefix
+   *     in {@code ecuacion-tool-command-api.properties}; no prefix means {@code POST} only.
    * @param scriptId It's the key to the script file path defined
    *     in {@code ecuacion-tool-command-api.properties}.<br>
    *     Since it's unsecure for API to be able to execute any scripts,
@@ -134,17 +137,17 @@ public class CommandApiService {
    *     (parameters are splitted at "," and each csv element will be an parameter.)
    * @throws Exception Exception
    */
-  public Map<String, String> executeScriptWithoutApiKey(String scriptId,
+  public Map<String, String> executeScriptWithoutApiKey(HttpMethod requestMethod, String scriptId,
       @Nullable String parameter) throws Exception {
 
     if (apiKeyRequired) {
       throwException(HttpStatus.FORBIDDEN,
-          "GET access is disabled. Set '" + PROP_API_KEY_REQUIRED
+          "Access without an API key is disabled. Set '" + PROP_API_KEY_REQUIRED
               + "=false' to allow it, or use api/key/executeScript "
               + "with a valid 'X-Api-Key' header.");
     }
 
-    return executeScript(null, scriptId, parameter);
+    return executeScript(requestMethod, scriptId, parameter);
   }
 
   /**
@@ -173,15 +176,15 @@ public class CommandApiService {
   /**
    * Resolve the script by {@code scriptId} and execute it with the given parameter.
    *
-   * @param requestMethod the HTTP method the request arrived on, used to enforce a script's
-   *     declared {@link AllowedHttpMethod}; {@code null} skips that check entirely (used by
-   *     {@link #executeScriptWithoutApiKey}, which is unconditionally GET-reachable for every
-   *     script once enabled — see its javadoc).
+   * @param requestMethod the HTTP method the request arrived on, checked against the script's
+   *     declared {@link AllowedHttpMethod} (see {@link #resolveScriptDefinition}); the same rule
+   *     applies regardless of whether the caller came in via {@link #executeScriptWithoutApiKey}
+   *     or {@link #executeScriptByKey}.
    * @param scriptId see {@link #executeScriptByKey}
    * @param parameter see {@link #executeScriptByKey}
    * @throws Exception Exception
    */
-  private Map<String, String> executeScript(@Nullable HttpMethod requestMethod, String scriptId,
+  private Map<String, String> executeScript(HttpMethod requestMethod, String scriptId,
       @Nullable String parameter) throws Exception {
 
     dtlLogger.info("===== executeScript started =====");
@@ -201,10 +204,10 @@ public class CommandApiService {
 
     Objects.requireNonNull(scriptDefinition);
 
-    if (requestMethod != null && !scriptDefinition.allowedMethod().accepts(requestMethod)) {
+    if (!scriptDefinition.allowedMethod().accepts(requestMethod)) {
       throwException(HttpStatus.FORBIDDEN,
           "scriptId '" + scriptId + "' does not allow " + requestMethod
-              + " access on api/key/executeScript. Add a matching 'GET:' / 'POST:' / 'ALL:' "
+              + " access. Add a matching 'GET:' / 'POST:' / 'ALL:' "
               + "prefix to its definition in ecuacion-tool-command-api.properties to allow it.");
     }
 
@@ -264,10 +267,11 @@ public class CommandApiService {
     Process p = runtime.exec(commandList.toArray(new String[commandList.size()]));
     dtlLogger.info("command start : " + scriptFile.getAbsolutePath() + " " + paramsString);
 
-    // Read the script's standard output and standard error, and log them.
-    // Both streams are consumed concurrently (stderr on a separate thread)
+    // Read the script's standard output and standard error, logging them and collecting them
+    // for the response. Both streams are consumed concurrently (stderr on a separate thread)
     // before waitFor(), since reading them one after another can deadlock
     // the child process if the buffer of the not-yet-read stream fills up.
+    List<String> stderrLines = new ArrayList<>();
     AtomicReference<IOException> stderrException = new AtomicReference<>();
     Thread stderrThread = new Thread(() -> {
       try (BufferedReader reader =
@@ -275,6 +279,7 @@ public class CommandApiService {
         String line;
         while ((line = reader.readLine()) != null) {
           dtlLogger.info("stderr        : " + line);
+          stderrLines.add(line);
         }
       } catch (IOException e) {
         stderrException.set(e);
@@ -282,16 +287,20 @@ public class CommandApiService {
     });
     stderrThread.start();
 
+    List<String> stdoutLines = new ArrayList<>();
     try (BufferedReader reader =
         new BufferedReader(new InputStreamReader(p.getInputStream(), Charset.defaultCharset()))) {
       String line;
       while ((line = reader.readLine()) != null) {
         dtlLogger.info("stdout        : " + line);
+        stdoutLines.add(line);
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
 
+    // stderrThread only ever writes stderrLines, and always completes (join() below) before
+    // stderrLines is read after this point, so no further synchronization is needed.
     stderrThread.join();
     if (stderrException.get() != null) {
       throw new RuntimeException(stderrException.get());
@@ -303,8 +312,11 @@ public class CommandApiService {
 
     dtlLogger.info("command end   : return code: " + rtn);
 
-    // Return "return code" in a json format
-    return Map.of("returnCode", Integer.toString(rtn));
+    // Return the return code plus the script's captured output in a json format.
+    return Map.of(
+        "returnCode", Integer.toString(rtn),
+        "stdout", String.join(System.lineSeparator(), stdoutLines),
+        "stderr", String.join(System.lineSeparator(), stderrLines));
   }
 
   private boolean isWindows() {
