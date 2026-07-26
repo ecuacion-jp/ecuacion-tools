@@ -39,15 +39,17 @@ public class CommandApiController {
   }
 
   /**
-   * Execute the script specified by the URL parameters, without requiring an API key.
+   * Execute the script specified by the URL parameters, via GET, without requiring an API key.
    *
    * <p>Only reachable when {@code jp.ecuacion.tool.command-api.api-key-required=false} (default
    *     {@code true}) — this exists purely as a manual-testing convenience (e.g. from a browser
-   *     or a bare {@code curl}, without having to set a header), not for production use. Every
-   *     registered script is reachable via GET here regardless of its declared allowed method,
-   *     since enabling this endpoint at all is already an explicit, deployment-wide acceptance of
-   *     that risk. For programmatic / production access, use {@link #executeCommandByKeyGet} or
-   *     {@link #executeCommandByKeyPost} on {@code api/key/executeScript} instead.</p>
+   *     or a bare {@code curl}, without having to set a header), not for production use. Whether
+   *     a given script accepts GET here follows the same {@code GET:} / {@code POST:} /
+   *     {@code ALL:} declaration as {@code api/key/executeScript} (see
+   *     {@code CommandApiService}); scripts with no prefix, or an explicit {@code POST:} prefix,
+   *     reject GET here too — see {@link #executeCommandByPost}. For programmatic / production
+   *     access, use {@link #executeCommandByKeyGet} or {@link #executeCommandByKeyPost} on
+   *     {@code api/key/executeScript} instead.</p>
    *
    * @param scriptId It's the key to the script file path defined
    *     in {@code ecuacion-tool-command-api.properties}.<br>
@@ -65,7 +67,26 @@ public class CommandApiController {
   public Map<String, String> executeCommandByGet(@RequestParam String scriptId,
       @RequestParam(required = false) String parameter) throws Exception {
 
-    return commandApiService.executeScriptWithoutApiKey(scriptId, parameter);
+    return commandApiService.executeScriptWithoutApiKey(HttpMethod.GET, scriptId, parameter);
+  }
+
+  /**
+   * Execute the script specified by the URL parameters, via POST, without requiring an API key.
+   *
+   * <p>See {@link #executeCommandByGet} for when this endpoint is reachable and why it exists.
+   *     Whether a given script accepts POST here follows the same {@code GET:} / {@code POST:} /
+   *     {@code ALL:} declaration as {@code api/key/executeScript}; scripts with an explicit
+   *     {@code GET:} prefix reject POST here.</p>
+   *
+   * @param scriptId see {@link #executeCommandByGet}
+   * @param parameter see {@link #executeCommandByGet}
+   * @throws Exception Exception
+   */
+  @PostMapping("api/public/executeScript")
+  public Map<String, String> executeCommandByPost(@RequestParam String scriptId,
+      @RequestParam(required = false) String parameter) throws Exception {
+
+    return commandApiService.executeScriptWithoutApiKey(HttpMethod.POST, scriptId, parameter);
   }
 
   /**
