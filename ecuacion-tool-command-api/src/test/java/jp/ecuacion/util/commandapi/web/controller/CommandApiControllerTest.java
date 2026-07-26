@@ -81,7 +81,7 @@ class CommandApiControllerTest {
 
   /**
    * Registers script definitions under a {@code PropertySource} name matching
-   * {@code CommandApiController.SCRIPT_PROPERTIES_SOURCE_NAME_MARKER}, so they resolve the same
+   * {@code CommandApiService.SCRIPT_PROPERTIES_SOURCE_NAME_MARKER}, so they resolve the same
    * way real {@code ecuacion-tool-command-api.properties} entries would — as opposed to
    * {@code @DynamicPropertySource}, whose "Dynamic Test Properties" source does not match that
    * filter. The other test-only properties ({@code api-key-required}, {@code api-key-file-path})
