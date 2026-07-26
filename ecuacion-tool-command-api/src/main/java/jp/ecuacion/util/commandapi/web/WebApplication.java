@@ -24,21 +24,31 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
  */
 @SpringBootApplication
 public class WebApplication extends SpringBootServletInitializer {
-  
+
+  /**
+   * Additional config file name (besides the default {@code application}) that {@code
+   * CommandApiService} relies on to resolve {@code scriptId} definitions from a dedicated {@link
+   * org.springframework.core.env.PropertySource}. Must be applied on every startup path
+   * ({@link #main} and {@link #configure}) so script registration also works when the WAR is
+   * deployed to an existing Tomcat instance, not just when launched standalone.
+   */
+  private static final String SPRING_CONFIG_NAME =
+      "spring.config.name=application,ecuacion-tool-command-api";
+
   /**
    * Provides main method.
-   * 
+   *
    * @param args args
    */
   public static void main(String[] args) {
     new SpringApplicationBuilder(WebApplication.class)
-        .properties("spring.config.name=application,ecuacion-tool-command-api")
+        .properties(SPRING_CONFIG_NAME)
         .run(args);
   }
 
   /** Required for deploying as a WAR to an existing Tomcat instance. */
   @Override
   protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-    return application.sources(WebApplication.class);
+    return application.sources(WebApplication.class).properties(SPRING_CONFIG_NAME);
   }
 }
