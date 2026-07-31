@@ -82,8 +82,8 @@ public class CommandApiService {
 
     boolean accepts(HttpMethod method) {
       return switch (this) {
-        case GET -> method == HttpMethod.GET;
-        case POST -> method == HttpMethod.POST;
+        case GET -> method.equals(HttpMethod.GET);
+        case POST -> method.equals(HttpMethod.POST);
         case ALL -> true;
       };
     }
@@ -320,7 +320,7 @@ public class CommandApiService {
   }
 
   private boolean isWindows() {
-    return System.getProperty("os.name", "").toLowerCase().contains("win");
+    return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
   }
 
   /**
