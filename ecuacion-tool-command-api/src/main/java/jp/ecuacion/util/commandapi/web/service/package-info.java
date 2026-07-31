@@ -13,26 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jp.ecuacion.util.commandapi.web.controller;
-
-import java.util.Map;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Returns OK always as long as it's alive.
+ * Provides services for the command API web application.
  */
-@RestController
-public class AliveCheckController {
+@NullMarked
+package jp.ecuacion.util.commandapi.web.service;
 
-  /**
-   * Returns OK always as long as it's alive.
-   * 
-   * @return returnCode map
-   * @throws Exception Exception
-   */
-  @GetMapping("api/public/aliveCheck")
-  public Map<String, String> aliveCheck() throws Exception {
-    return Map.of("returnCode", "0");
-  }
-}
+import org.jspecify.annotations.NullMarked;
