@@ -192,12 +192,17 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     sftpCreateDir(channel, dir);
     sftpCreateFile(channel, testFilePath);
     LsEntry self = sftpLsSelfDetail(channel, dir);
-    String timeBefore = self.getAttrs().getAtimeString();
+    // mtime (not atime) is compared: a mere directory listing during the existence check inside
+    // SftpCreateDir can bump atime on filesystems using relatime semantics, which made this
+    // assertion flaky around whole-second boundaries even though nothing was actually modified.
+    // mtime only changes when directory entries are added/removed, so it reliably proves IGNORE
+    // mode made no change.
+    String timeBefore = self.getAttrs().getMtimeString();
 
     new HousekeepFilesBlf(bl).execute(form);
 
     self = sftpLsSelfDetail(channel, dir);
-    String timeAfter = self.getAttrs().getAtimeString();
+    String timeAfter = self.getAttrs().getMtimeString();
     assertEquals(timeBefore, timeAfter);
     assertTrue(sftpExists(channel, testFilePath));
 
@@ -226,12 +231,14 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     sftpCreateDir(channel, dir);
     sftpCreateFile(channel, testFilePath);
     LsEntry self = sftpLsSelfDetail(channel, dir);
-    String timeBefore = self.getAttrs().getAtimeString();
+    // See test21's comment: mtime is compared instead of atime to avoid flakiness from the
+    // existence-check's directory listing bumping atime.
+    String timeBefore = self.getAttrs().getMtimeString();
 
     new HousekeepFilesBlf(bl).execute(form);
 
     self = sftpLsSelfDetail(channel, dir);
-    String timeAfter = self.getAttrs().getAtimeString();
+    String timeAfter = self.getAttrs().getMtimeString();
     assertEquals(timeBefore, timeAfter);
     assertTrue(sftpExists(channel, testFilePath));
 
