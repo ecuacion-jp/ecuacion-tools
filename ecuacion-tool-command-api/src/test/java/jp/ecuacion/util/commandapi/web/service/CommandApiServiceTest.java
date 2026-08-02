@@ -85,7 +85,10 @@ class CommandApiServiceTest {
   @Test
   void constructorThrowsWhenApiKeyRequiredButNoApiKeyFilePathConfigured() {
     // api-key-required is left unset (defaults to true), and api-key-file-path is unset too,
-    // so no scriptId could ever be executed through either endpoint.
+    // so no scriptId could ever be executed through either endpoint. Relies on no
+    // CommandApiKeyFileLocator.DEFAULT_FILE_NAME file existing under the test JVM's working
+    // directory or its "config" subdirectory; see CommandApiKeyFileLocatorTest for the
+    // default-location fallback behavior itself.
     MockEnvironment env = new MockEnvironment();
     env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
         Map.of(SCRIPT_ID, "ALL:/tmp/unused.sh")));
