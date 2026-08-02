@@ -25,6 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import jp.ecuacion.splib.rest.apikey.SplibApiKeyComparisonMode;
+import jp.ecuacion.splib.rest.apikey.SplibApiKeyExpectedValue;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 
@@ -88,9 +90,56 @@ class CommandApiKeyProviderTest {
     env.setProperty(PROP_API_KEY_FILE_PATH, file.toString());
     CommandApiKeyProvider provider = new CommandApiKeyProvider(env);
 
-    Collection<String> keys = provider.getExpectedValues(null, "any-key");
+    Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
 
-    assertEquals(List.of("key-one", "key-two"), keys);
+    assertEquals(
+        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.PLAIN),
+            new SplibApiKeyExpectedValue("key-two", SplibApiKeyComparisonMode.PLAIN)),
+        keys);
+  }
+
+  @Test
+  void comparisonModeBcryptAppliesToEveryKey() {
+    Path file = createApiKeyFile("key-one\nkey-two\n");
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty(PROP_API_KEY_FILE_PATH, file.toString());
+    env.setProperty(CommandApiKeyProvider.PROP_API_KEY_COMPARISON_MODE, "BCRYPT");
+    CommandApiKeyProvider provider = new CommandApiKeyProvider(env);
+
+    Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
+
+    assertEquals(
+        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.BCRYPT),
+            new SplibApiKeyExpectedValue("key-two", SplibApiKeyComparisonMode.BCRYPT)),
+        keys);
+  }
+
+  @Test
+  void comparisonModeIsCaseInsensitive() {
+    Path file = createApiKeyFile("key-one\n");
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty(PROP_API_KEY_FILE_PATH, file.toString());
+    env.setProperty(CommandApiKeyProvider.PROP_API_KEY_COMPARISON_MODE, "bcrypt");
+    CommandApiKeyProvider provider = new CommandApiKeyProvider(env);
+
+    Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
+
+    assertEquals(
+        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.BCRYPT)), keys);
+  }
+
+  @Test
+  void comparisonModeUnrecognizedValueFallsBackToPlain() {
+    Path file = createApiKeyFile("key-one\n");
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty(PROP_API_KEY_FILE_PATH, file.toString());
+    env.setProperty(CommandApiKeyProvider.PROP_API_KEY_COMPARISON_MODE, "not-a-real-mode");
+    CommandApiKeyProvider provider = new CommandApiKeyProvider(env);
+
+    Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
+
+    assertEquals(
+        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.PLAIN)), keys);
   }
 
   @Test
@@ -100,7 +149,7 @@ class CommandApiKeyProviderTest {
     env.setProperty(PROP_API_KEY_FILE_PATH, file.toString());
     CommandApiKeyProvider provider = new CommandApiKeyProvider(env);
 
-    Collection<String> keys = provider.getExpectedValues(null, "any-key");
+    Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
 
     assertEquals(List.of(), keys);
   }
