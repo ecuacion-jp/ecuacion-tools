@@ -21,7 +21,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import jp.ecuacion.lib.core.logging.DetailLogger;
+import jp.ecuacion.splib.rest.apikey.SplibApiKeyComparisonMode;
+import jp.ecuacion.splib.rest.apikey.SplibApiKeyExpectedValue;
 import jp.ecuacion.splib.rest.apikey.SplibApiKeyExpectedValueProvider;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.env.Environment;
@@ -36,9 +39,22 @@ import org.springframework.stereotype.Component;
  *     issued per caller) can be revoked by deleting their line without invalidating the others.
  *     {@code apiKeyId} is ignored: any key present in the file is accepted regardless of which
  *     one was presented.</p>
+ *
+ * <p>Every key in the file is compared the same way, controlled by
+ *     {@value #PROP_API_KEY_COMPARISON_MODE} (default {@link SplibApiKeyComparisonMode#PLAIN}):
+ *     either every line is a plain-text key, or every line is a bcrypt hash. Mixing the two
+ *     within one file is not supported — the mode applies to the whole file, not per line.</p>
  */
 @Component
 public class CommandApiKeyProvider implements SplibApiKeyExpectedValueProvider {
+
+  /**
+   * Selects how every key in the api-key file is compared: {@code PLAIN} or {@code BCRYPT} (see
+   * {@link SplibApiKeyComparisonMode}). Defaults to {@code PLAIN} when unset. An unrecognized
+   * value is logged as a warning at read time and treated as {@code PLAIN}.
+   */
+  public static final String PROP_API_KEY_COMPARISON_MODE =
+      "jp.ecuacion.tool.command-api.api-key-comparison-mode";
 
   private final Environment env;
   private final DetailLogger dtlLogger = new DetailLogger(this);
@@ -55,9 +71,10 @@ public class CommandApiKeyProvider implements SplibApiKeyExpectedValueProvider {
    * caching it, so that rotating keys only requires replacing the file's contents — no
    * application restart needed.
    */
+  @SuppressWarnings("null")
   @Override
-  public @Nullable Collection<String> getExpectedValues(@Nullable String apiKeyId,
-      String presentedApiKey) {
+  public @Nullable Collection<SplibApiKeyExpectedValue> getExpectedValues(
+      @Nullable String apiKeyId, String presentedApiKey) {
     Path resolvedPath = CommandApiKeyFileLocator.resolve(env);
     if (resolvedPath == null) {
       dtlLogger.warn("'" + CommandApiKeyFileLocator.PROP_API_KEY_FILE_PATH + "' is not "
@@ -75,6 +92,28 @@ public class CommandApiKeyProvider implements SplibApiKeyExpectedValueProvider {
       return null;
     }
 
-    return keys.stream().map(String::strip).filter(line -> !line.isEmpty()).toList();
+    SplibApiKeyComparisonMode mode = resolveComparisonMode();
+
+    return keys.stream().map(String::strip).filter(line -> !line.isEmpty())
+        .map(key -> new SplibApiKeyExpectedValue(key, mode)).toList();
+  }
+
+  /**
+   * Resolves {@value #PROP_API_KEY_COMPARISON_MODE} to the {@link SplibApiKeyComparisonMode}
+   * applied to every key in the file, defaulting to {@code PLAIN} when unset or unrecognized.
+   */
+  private SplibApiKeyComparisonMode resolveComparisonMode() {
+    String rawValue = env.getProperty(PROP_API_KEY_COMPARISON_MODE);
+    if (rawValue == null || rawValue.isBlank()) {
+      return SplibApiKeyComparisonMode.PLAIN;
+    }
+
+    try {
+      return SplibApiKeyComparisonMode.valueOf(rawValue.strip().toUpperCase(Locale.ROOT));
+    } catch (IllegalArgumentException e) {
+      dtlLogger.warn("'" + PROP_API_KEY_COMPARISON_MODE + "' has an unrecognized value '"
+          + rawValue + "'. Falling back to PLAIN. Valid values: PLAIN, BCRYPT.");
+      return SplibApiKeyComparisonMode.PLAIN;
+    }
   }
 }
