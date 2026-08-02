@@ -157,7 +157,7 @@
  | Property | Type | Description |
  | --- | --- | --- |
  | `jp.ecuacion.tool.command-api.api-key-required` | boolean | `true` (default when unset): the no-key `api/public/executeScript` GET endpoint is disabled (403). `false`: it's enabled, reachable via GET with no key, for every registered script regardless of its `GET:`/`POST:`/`ALL:` prefix. Intended for trusted internal networks or manual testing only. Either way, `api/key/executeScript` always requires a valid `X-Api-Key` header — this flag never weakens it. |
- | `jp.ecuacion.tool.command-api.api-key-file-path` | String | Path to a file containing the shared secret(s) compared against the `X-Api-Key` header on `api/key/executeScript` requests. One key per line; a request is accepted if it matches any line. Supports `${ENV_VAR}` resolution, same as script paths. Optional — see below for the default when unset. |
+ | `jp.ecuacion.tool.command-api.api-key-file-path` | String | Path to a file containing the shared secret(s) compared against the `X-Api-Key` header on `api/key/executeScript` requests. One key per line; a request is accepted if it matches any line. Blank lines are skipped, and lines starting with `#` are treated as comments and skipped too — handy for labeling which key belongs to which caller. Supports `${ENV_VAR}` resolution, same as script paths. Optional — see below for the default when unset. |
 
  Example:
 

@@ -143,6 +143,35 @@ class CommandApiKeyProviderTest {
   }
 
   @Test
+  void commentLinesAreSkipped() {
+    Path file = createApiKeyFile(
+        "# key for company A\nkey-one\n\n# key for company B\nkey-two\n");
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty(PROP_API_KEY_FILE_PATH, file.toString());
+    CommandApiKeyProvider provider = new CommandApiKeyProvider(env);
+
+    Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
+
+    assertEquals(
+        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.PLAIN),
+            new SplibApiKeyExpectedValue("key-two", SplibApiKeyComparisonMode.PLAIN)),
+        keys);
+  }
+
+  @Test
+  void commentLineIndentedWithLeadingWhitespaceIsStillSkipped() {
+    Path file = createApiKeyFile("  # indented comment\nkey-one\n");
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty(PROP_API_KEY_FILE_PATH, file.toString());
+    CommandApiKeyProvider provider = new CommandApiKeyProvider(env);
+
+    Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
+
+    assertEquals(
+        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.PLAIN)), keys);
+  }
+
+  @Test
   void blankFileReturnsEmptyList() {
     Path file = createApiKeyFile("\n\n  \n");
     MockEnvironment env = new MockEnvironment();
