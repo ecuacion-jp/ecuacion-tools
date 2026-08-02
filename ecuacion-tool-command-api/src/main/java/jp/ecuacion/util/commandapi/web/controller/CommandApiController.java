@@ -55,9 +55,9 @@ public class CommandApiController {
    *     in {@code ecuacion-tool-command-api.properties}.<br>
    *     Since it's unsecure for API to be able to execute any scripts,
    *     executable scripts from API must be pre-defined.
-   * @param parameter parameter given to the script.
+   * @param parameters parameters given to the script.
    *     multiple parameters are able to be passed as comma-separated values.<br>
-   *     When you pass parameters like {@code parameter=param1,param2},
+   *     When you pass parameters like {@code parameters=param1,param2},
    *     then {@code script.sh param1 param2} (or {@code script.bat param1 param2} on Windows)
    *     will be executed.
    *     (parameters are splitted at "," and each csv element will be an parameter.)
@@ -65,9 +65,9 @@ public class CommandApiController {
    */
   @GetMapping("api/public/executeScript")
   public Map<String, String> executeCommandByGet(@RequestParam String scriptId,
-      @RequestParam(required = false) String parameter) throws Exception {
+      @RequestParam(required = false) String parameters) throws Exception {
 
-    return commandApiService.executeScriptWithoutApiKey(HttpMethod.GET, scriptId, parameter);
+    return commandApiService.executeScriptWithoutApiKey(HttpMethod.GET, scriptId, parameters);
   }
 
   /**
@@ -79,14 +79,14 @@ public class CommandApiController {
    *     {@code GET:} prefix reject POST here.</p>
    *
    * @param scriptId see {@link #executeCommandByGet}
-   * @param parameter see {@link #executeCommandByGet}
+   * @param parameters see {@link #executeCommandByGet}
    * @throws Exception Exception
    */
   @PostMapping("api/public/executeScript")
   public Map<String, String> executeCommandByPost(@RequestParam String scriptId,
-      @RequestParam(required = false) String parameter) throws Exception {
+      @RequestParam(required = false) String parameters) throws Exception {
 
-    return commandApiService.executeScriptWithoutApiKey(HttpMethod.POST, scriptId, parameter);
+    return commandApiService.executeScriptWithoutApiKey(HttpMethod.POST, scriptId, parameters);
   }
 
   /**
@@ -102,14 +102,14 @@ public class CommandApiController {
    *     reject GET here even with a valid key.</p>
    *
    * @param scriptId see {@link #executeCommandByGet}
-   * @param parameter see {@link #executeCommandByGet}
+   * @param parameters see {@link #executeCommandByGet}
    * @throws Exception Exception
    */
   @GetMapping("api/key/executeScript")
   public Map<String, String> executeCommandByKeyGet(@RequestParam String scriptId,
-      @RequestParam(required = false) String parameter) throws Exception {
+      @RequestParam(required = false) String parameters) throws Exception {
 
-    return commandApiService.executeScriptByKey(HttpMethod.GET, scriptId, parameter);
+    return commandApiService.executeScriptByKey(HttpMethod.GET, scriptId, parameters);
   }
 
   /**
@@ -127,9 +127,9 @@ public class CommandApiController {
    *     in {@code ecuacion-tool-command-api.properties}.<br>
    *     Since it's unsecure for API to be able to execute any scripts,
    *     executable scripts from API must be pre-defined.
-   * @param parameter parameter given to the script.
+   * @param parameters parameters given to the script.
    *     multiple parameters are able to be passed as comma-separated values.<br>
-   *     When you pass parameters like {@code parameter=param1,param2},
+   *     When you pass parameters like {@code parameters=param1,param2},
    *     then {@code script.sh param1 param2} (or {@code script.bat param1 param2} on Windows)
    *     will be executed.
    *     (parameters are splitted at "," and each csv element will be an parameter.)
@@ -137,8 +137,8 @@ public class CommandApiController {
    */
   @PostMapping("api/key/executeScript")
   public Map<String, String> executeCommandByKeyPost(@RequestParam String scriptId,
-      @RequestParam(required = false) String parameter) throws Exception {
+      @RequestParam(required = false) String parameters) throws Exception {
 
-    return commandApiService.executeScriptByKey(HttpMethod.POST, scriptId, parameter);
+    return commandApiService.executeScriptByKey(HttpMethod.POST, scriptId, parameters);
   }
 }

@@ -165,16 +165,16 @@ public class CommandApiService {
    *     in {@code ecuacion-tool-command-api.properties}.<br>
    *     Since it's unsecure for API to be able to execute any scripts,
    *     executable scripts from API must be pre-defined.
-   * @param parameter parameter given to the script.
+   * @param parameters parameters given to the script.
    *     multiple parameters are able to be passed as comma-separated values.<br>
-   *     When you pass parameters like {@code parameter=param1,param2},
+   *     When you pass parameters like {@code parameters=param1,param2},
    *     then {@code script.sh param1 param2} (or {@code script.bat param1 param2} on Windows)
    *     will be executed.
    *     (parameters are splitted at "," and each csv element will be an parameter.)
    * @throws Exception Exception
    */
   public Map<String, String> executeScriptWithoutApiKey(HttpMethod requestMethod, String scriptId,
-      @Nullable String parameter) throws Exception {
+      @Nullable String parameters) throws Exception {
 
     if (apiKeyRequired) {
       throwException(HttpStatus.FORBIDDEN,
@@ -183,7 +183,7 @@ public class CommandApiService {
               + "with a valid 'X-Api-Key' header.");
     }
 
-    return executeScript(requestMethod, scriptId, parameter);
+    return executeScript(requestMethod, scriptId, parameters);
   }
 
   /**
@@ -200,28 +200,28 @@ public class CommandApiService {
    *     checked against the script's declared {@code GET:} / {@code POST:} / {@code ALL:} prefix
    *     in {@code ecuacion-tool-command-api.properties}; no prefix means {@code POST} only.
    * @param scriptId see {@link #executeScriptWithoutApiKey}
-   * @param parameter see {@link #executeScriptWithoutApiKey}
+   * @param parameters see {@link #executeScriptWithoutApiKey}
    * @throws Exception Exception
    */
   public Map<String, String> executeScriptByKey(HttpMethod requestMethod, String scriptId,
-      @Nullable String parameter) throws Exception {
+      @Nullable String parameters) throws Exception {
 
-    return executeScript(requestMethod, scriptId, parameter);
+    return executeScript(requestMethod, scriptId, parameters);
   }
 
   /**
-   * Resolve the script by {@code scriptId} and execute it with the given parameter.
+   * Resolve the script by {@code scriptId} and execute it with the given parameters.
    *
    * @param requestMethod the HTTP method the request arrived on, checked against the script's
    *     declared {@link AllowedHttpMethod} (see {@link #resolveScriptDefinition}); the same rule
    *     applies regardless of whether the caller came in via {@link #executeScriptWithoutApiKey}
    *     or {@link #executeScriptByKey}.
    * @param scriptId see {@link #executeScriptByKey}
-   * @param parameter see {@link #executeScriptByKey}
+   * @param parameters see {@link #executeScriptByKey}
    * @throws Exception Exception
    */
   private Map<String, String> executeScript(HttpMethod requestMethod, String scriptId,
-      @Nullable String parameter) throws Exception {
+      @Nullable String parameters) throws Exception {
 
     dtlLogger.info("===== executeScript started =====");
 
@@ -273,7 +273,7 @@ public class CommandApiService {
     }
 
     // Obtain paramsString
-    String paramsString = parameter == null ? "" : parameter.replaceAll(",", " ");
+    String paramsString = parameters == null ? "" : parameters.replaceAll(",", " ");
     dtlLogger
         .info("parameter(s)  : " + (paramsString.equals("") ? "(not specified)" : paramsString));
 
@@ -284,7 +284,7 @@ public class CommandApiService {
     // whitelist prevents that. The same restriction is applied on all platforms so behavior
     // does not depend on which OS the server happens to run on.
     if (!Pattern.compile("^[a-zA-Z0-9 ./:_=@\\-]*$").matcher(paramsString).find()) {
-      throwException(HttpStatus.BAD_REQUEST, "String parameter (" + paramsString
+      throwException(HttpStatus.BAD_REQUEST, "String parameters (" + paramsString
           + ") should consists of alphanumerics, ' ', '.', '/', ':', '=', '@', '-' and '_'.");
     }
 

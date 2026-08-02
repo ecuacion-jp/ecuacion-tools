@@ -385,7 +385,7 @@ class CommandApiControllerTest {
     void getWithAllowlistedParameterSucceeds() throws Exception {
       mockMvc
           .perform(get("/api/public/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID)
-              .param("parameter", "param1,param2"))
+              .param("parameters", "param1,param2"))
           .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
     }
 
@@ -415,7 +415,7 @@ class CommandApiControllerTest {
     @Test
     void getWithShellMetacharacterInParameterIsRejected() throws Exception {
       mockMvc.perform(get("/api/public/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID)
-          .param("parameter", "param1 & calc.exe")).andExpect(status().isBadRequest());
+          .param("parameters", "param1 & calc.exe")).andExpect(status().isBadRequest());
     }
   }
 
