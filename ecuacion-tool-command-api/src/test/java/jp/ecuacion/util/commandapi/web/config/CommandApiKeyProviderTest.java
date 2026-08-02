@@ -53,6 +53,9 @@ class CommandApiKeyProviderTest {
 
   @Test
   void propertyNotConfiguredReturnsNull() {
+    // Relies on no CommandApiKeyFileLocator.DEFAULT_FILE_NAME file existing under the test JVM's
+    // working directory or its "config" subdirectory; see CommandApiKeyFileLocatorTest for the
+    // default-location fallback behavior itself.
     CommandApiKeyProvider provider = new CommandApiKeyProvider(new MockEnvironment());
 
     assertNull(provider.getExpectedValues(null, "any-key"));
