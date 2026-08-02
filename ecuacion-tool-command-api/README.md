@@ -157,7 +157,7 @@
  | Property | Type | Description |
  | --- | --- | --- |
  | `jp.ecuacion.tool.command-api.api-key-required` | boolean | `true` (default when unset): the no-key `api/public/executeScript` GET endpoint is disabled (403). `false`: it's enabled, reachable via GET with no key, for every registered script regardless of its `GET:`/`POST:`/`ALL:` prefix. Intended for trusted internal networks or manual testing only. Either way, `api/key/executeScript` always requires a valid `X-Api-Key` header — this flag never weakens it. |
- | `jp.ecuacion.tool.command-api.api-key-file-path` | String | Path to a file containing the shared secret(s) compared against the `X-Api-Key` header on `api/key/executeScript` requests. One key per line; a request is accepted if it matches any line. Supports `${ENV_VAR}` resolution, same as script paths. |
+ | `jp.ecuacion.tool.command-api.api-key-file-path` | String | Path to a file containing the shared secret(s) compared against the `X-Api-Key` header on `api/key/executeScript` requests. One key per line; a request is accepted if it matches any line. Supports `${ENV_VAR}` resolution, same as script paths. Optional — see below for the default when unset. |
 
  Example:
 
@@ -165,6 +165,8 @@
  jp.ecuacion.tool.command-api.api-key-required=true
  jp.ecuacion.tool.command-api.api-key-file-path=${HOME}/secrets/command-api-key.txt
  ```
+
+ If `api-key-file-path` is left unconfigured, a file named `ecuacion-tool-command-api-key.txt` is looked for next to the war — checking `config/ecuacion-tool-command-api-key.txt` first, then `ecuacion-tool-command-api-key.txt` right next to the war — the same two of the three locations `ecuacion-tool-command-api.properties` itself supports (see further below). This is a convenient zero-config default for casual/local use; for production, prefer setting `api-key-file-path` explicitly to a path outside the deployment directory (e.g. a secrets volume, or a location with tighter file permissions), so the key isn't bundled, backed up, or overwritten alongside the app.
 
  Independently, each script registered in `ecuacion-tool-command-api.properties` can declare which HTTP method(s) `api/key/executeScript` accepts for it, via an optional, case-insensitive prefix on its path value:
 
