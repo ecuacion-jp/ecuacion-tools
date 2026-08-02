@@ -77,7 +77,8 @@ class CommandApiServiceTest {
     IllegalStateException ex =
         assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
 
-    assertTrue(ex.getMessage().contains("ecuacion-tool-command-api.properties"));
+    assertTrue(
+        Objects.requireNonNull(ex.getMessage()).contains("ecuacion-tool-command-api.properties"));
   }
 
   @SuppressWarnings("null")
@@ -92,7 +93,7 @@ class CommandApiServiceTest {
     IllegalStateException ex =
         assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
 
-    assertTrue(ex.getMessage().contains("api-key-file-path"));
+    assertTrue(Objects.requireNonNull(ex.getMessage()).contains("api-key-file-path"));
   }
 
   private static Path createExecutableScript(String scriptBody) {
