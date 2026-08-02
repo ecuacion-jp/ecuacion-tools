@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<!--
+  PREREQUISITE: The following directory must exist on the server before deployment.
+  If it does not exist, Tomcat will fail to deploy with an IllegalArgumentException.
+  (Creating the app-specific directory below with "mkdir -p" also creates its
+  ${catalina.base}/app-conf parent as a side effect, so in practice only one command
+  is needed.)
+
+    ${catalina.base}/app-conf/ecuacion-tool-command-api/
+      (e.g. /usr/local/tomcat/app-conf/ecuacion-tool-command-api/)
+
+  Place environment-specific config files (application.properties,
+  ecuacion-tool-command-api.properties, logback-spring.xml, etc.) there.
+
+  ${catalina.base}/app-conf/ is also mounted below, so when only this one WAR is
+  deployed on the Tomcat instance, files may instead be placed directly under
+  app-conf/ without the app-specific subdirectory. A file present in both is
+  resolved from the app-specific directory first (see the PreResources order below).
+-->
+<Context>
+	<Resources>
+		<PreResources className="org.apache.catalina.webresources.DirResourceSet"
+				base="${catalina.base}/app-conf/ecuacion-tool-command-api"
+				webAppMount="/WEB-INF/classes"
+				readOnly="true"/>
+		<PreResources className="org.apache.catalina.webresources.DirResourceSet"
+				base="${catalina.base}/app-conf"
+				webAppMount="/WEB-INF/classes"
+				readOnly="true"/>
+	</Resources>
+</Context>
