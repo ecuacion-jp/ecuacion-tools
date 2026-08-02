@@ -18,6 +18,7 @@ package jp.ecuacion.util.commandapi.web.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -54,11 +55,44 @@ class CommandApiServiceTest {
       "Config resource 'class path resource [ecuacion-tool-command-api.properties]' "
           + "via location 'test'";
 
+  @SuppressWarnings("null")
   private static CommandApiService newService(String scriptDefinitionValue) {
     MockEnvironment env = new MockEnvironment();
     env.getPropertySources().addFirst(
         new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME, Map.of(SCRIPT_ID, scriptDefinitionValue)));
+    // Only script resolution/execution is under test here (via executeScriptByKey, which never
+    // consults this flag), so api-key-required is turned off purely to satisfy the constructor's
+    // fail-fast check that api-key-file-path be set whenever it's left true.
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
     return new CommandApiService(env);
+  }
+
+  @Test
+  void constructorThrowsWhenScriptPropertiesFileIsAbsent() {
+    // No PropertySource matching SCRIPT_PROPERTIES_SOURCE_NAME_MARKER is registered at all,
+    // simulating ecuacion-tool-command-api.properties missing entirely.
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+
+    IllegalStateException ex =
+        assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
+
+    assertTrue(ex.getMessage().contains("ecuacion-tool-command-api.properties"));
+  }
+
+  @SuppressWarnings("null")
+  @Test
+  void constructorThrowsWhenApiKeyRequiredButNoApiKeyFilePathConfigured() {
+    // api-key-required is left unset (defaults to true), and api-key-file-path is unset too,
+    // so no scriptId could ever be executed through either endpoint.
+    MockEnvironment env = new MockEnvironment();
+    env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
+        Map.of(SCRIPT_ID, "ALL:/tmp/unused.sh")));
+
+    IllegalStateException ex =
+        assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
+
+    assertTrue(ex.getMessage().contains("api-key-file-path"));
   }
 
   private static Path createExecutableScript(String scriptBody) {
@@ -93,6 +127,11 @@ class CommandApiServiceTest {
         () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
 
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+    // The whole point of this message is to tell the caller *why* it failed (a missing file,
+    // as opposed to e.g. a permission problem) and *which* path was missing — both need to
+    // actually be in the message, not just a generic "something went wrong".
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains("not found"));
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains(missing.toString()));
   }
 
   @Test
@@ -130,8 +169,39 @@ class CommandApiServiceTest {
     CommandApiService service =
         newService("ALL:${THIS_ENV_VAR_SHOULD_NOT_EXIST_XYZ123}/script.sh");
 
-    assertThrows(RuntimeException.class,
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
         () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+    assertTrue(Objects.requireNonNull(ex.getReason())
+        .contains("THIS_ENV_VAR_SHOULD_NOT_EXIST_XYZ123"));
+  }
+
+  @Test
+  void malformedEnvironmentVariablePlaceholderInScriptFilePathThrows() {
+    // "${" with no closing "}" is a malformed placeholder, distinct from a well-formed
+    // placeholder naming a variable that just isn't set (the case above).
+    CommandApiService service = newService("ALL:${UNCLOSED/script.sh");
+
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+  }
+
+  @Test
+  void scriptPathPointingToADirectoryFailsToStart() throws IOException {
+    // A directory passes both exists() and canExecute() (its executable bit means
+    // "traversable", not "runnable"), so this can only be caught once Runtime.exec() itself
+    // rejects it — verifying that failure is reported clearly rather than as a generic error.
+    Path dir = Files.createTempDirectory("command-api-service-test-dir-as-script");
+    CommandApiService service = newService("ALL:" + dir);
+
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains("Failed to start"));
   }
 
   @Test
