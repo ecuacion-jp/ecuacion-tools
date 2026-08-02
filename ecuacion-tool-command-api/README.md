@@ -115,13 +115,16 @@
 
    - The script file path registered for the `scriptId` doesn't match `^[a-zA-Z0-9.-_/${}]*$` (a misconfigured `ecuacion-tool-command-api.properties`).
    - Script file not found.
+   - Script file is not executable, fails to start, or an `${ENV_VAR}` in its registered path can't be resolved.
+
+   None of these responses include the actual resolved file path, environment variable name, or other server-side detail — only `scriptId` and a pointer to check the server log, so a caller (who may only hold a valid `X-Api-Key`, or, when `api-key-required=false`, may be unauthenticated) can't use them to map out the server's filesystem layout. The full detail is logged server-side.
 
    ```json
    {
      "type": "about:blank",
      "title": "Internal Server Error",
      "status": 500,
-     "detail": "scriptFilePath '/path/to/script/directory/sayHello.sh' not found.",
+     "detail": "scriptFilePath for scriptId 'say-hello' was not found. See the server log for details.",
      "instance": "/ecuacion-tool-command-api/api/key/executeScript"
    }
    ```

@@ -226,7 +226,7 @@ public class CommandApiService {
     dtlLogger.info("===== executeScript started =====");
 
     // scriptId input validation
-    if (!Pattern.compile("^[a-zA-Z0-9.\\-_]*$").matcher(scriptId).find()) {
+    if (!Pattern.compile("^[a-zA-Z0-9.\\-_]*$").matcher(scriptId).matches()) {
       throwException(HttpStatus.BAD_REQUEST,
           "String scriptId (" + scriptId + ") should consists of alphanumerics, '.', '-' and '_'.");
     }
@@ -250,9 +250,12 @@ public class CommandApiService {
     String scriptFilePath = scriptDefinition.scriptFilePath();
 
     // scriptFilePath input validation
-    if (!Pattern.compile("^[a-zA-Z0-9/.\\-_\\$\\{\\}]*$").matcher(scriptFilePath).find()) {
-      throwException(HttpStatus.INTERNAL_SERVER_ERROR, "String script file path (" + scriptFilePath
-          + ") should consists of alphanumerics, '.', '-', '_', '/', '$', '{', '}'.");
+    if (!Pattern.compile("^[a-zA-Z0-9/.\\-_\\$\\{\\}]*$").matcher(scriptFilePath).matches()) {
+      throwServerConfigError(
+          "scriptId '" + scriptId + "': registered script file path (" + scriptFilePath
+              + ") should consists of alphanumerics, '.', '-', '_', '/', '$', '{', '}'.",
+          "scriptId '" + scriptId + "' has an invalid script file path registered. "
+              + "See the server log for details.");
     }
 
     // Resolve environment variables
@@ -262,8 +265,9 @@ public class CommandApiService {
     dtlLogger.info("scriptFilePath: " + scriptFilePath);
     File scriptFile = new File(scriptFilePath);
     if (!scriptFile.exists()) {
-      throwException(HttpStatus.INTERNAL_SERVER_ERROR,
-          "scriptFilePath '" + scriptFilePath + "' not found.");
+      throwServerConfigError("scriptFilePath '" + scriptFilePath + "' not found. (scriptId '"
+          + scriptId + "')", "scriptFilePath for scriptId '" + scriptId
+              + "' was not found. See the server log for details.");
     }
 
     // Cause an error if scriptFilePath is not executable
@@ -283,7 +287,7 @@ public class CommandApiService {
     // allowing argument injection into cmd.exe itself. Restricting to a safe character
     // whitelist prevents that. The same restriction is applied on all platforms so behavior
     // does not depend on which OS the server happens to run on.
-    if (!Pattern.compile("^[a-zA-Z0-9 ./:_=@\\-]*$").matcher(paramsString).find()) {
+    if (!Pattern.compile("^[a-zA-Z0-9 ./:_=@\\-]*$").matcher(paramsString).matches()) {
       throwException(HttpStatus.BAD_REQUEST, "String parameters (" + paramsString
           + ") should consists of alphanumerics, ' ', '.', '/', ':', '=', '@', '-' and '_'.");
     }
@@ -308,9 +312,10 @@ public class CommandApiService {
       // start it (e.g. missing/invalid shebang interpreter, scriptFile is actually a directory,
       // or a permission check finer-grained than canExecute()'s) — a config/environment problem
       // on the server, not a client-caused error.
-      throw newResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+      throw serverConfigError(
           "Failed to start scriptId '" + scriptId + "' (" + scriptFile.getAbsolutePath() + "): "
-              + e.getMessage());
+              + e.getMessage(),
+          "Failed to start scriptId '" + scriptId + "'. See the server log for details.");
     }
     dtlLogger.info("command start : " + scriptFile.getAbsolutePath() + " " + paramsString);
 
@@ -461,9 +466,11 @@ public class CommandApiService {
       // Thrown for a malformed "${...}" (unmatched braces) or a referenced environment
       // variable that isn't set — both are a misconfigured script.<id> entry in
       // ecuacion-tool-command-api.properties, not a client-caused error.
-      throw newResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+      throw serverConfigError(
           "Failed to resolve environment variable(s) for scriptId '" + scriptId + "' ("
-              + string + "): " + describeViolations(e));
+              + string + "): " + describeViolations(e),
+          "Failed to resolve environment variable(s) for scriptId '" + scriptId
+              + "'. See the server log for details.");
     }
   }
 
@@ -495,6 +502,37 @@ public class CommandApiService {
    */
   private ResponseStatusException newResponseStatusException(HttpStatus status, String message) {
     return new ResponseStatusException(status, message);
+  }
+
+  /**
+   * Builds (without throwing) a {@link ResponseStatusException} reporting a server-side
+   * config/environment problem (always {@link HttpStatus#INTERNAL_SERVER_ERROR}), for a failure
+   * whose full detail (e.g. a resolved absolute file path, or which environment variable is
+   * missing) must not reach the client — such detail would leak server-side filesystem layout to
+   * whoever holds a valid API key (or, when {@code api-key-required=false}, to anyone).
+   *
+   * <p>{@code logDetail} is logged here directly (at ERROR) so an operator can still diagnose the
+   * failure from the server log; {@code clientMessage} is what the API caller actually receives,
+   * and must not itself contain any such detail.</p>
+   *
+   * @param logDetail the full failure detail, logged server-side only
+   * @param clientMessage the detail message set on the returned exception, safe to expose to the
+   *     API caller
+   */
+  private ResponseStatusException serverConfigError(String logDetail, String clientMessage) {
+    dtlLogger.error(logDetail);
+    return newResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, clientMessage);
+  }
+
+  /**
+   * Throws the {@link ResponseStatusException} {@link #serverConfigError} builds. See that
+   * method's javadoc.
+   *
+   * @param logDetail see {@link #serverConfigError}
+   * @param clientMessage see {@link #serverConfigError}
+   */
+  private void throwServerConfigError(String logDetail, String clientMessage) {
+    throw serverConfigError(logDetail, clientMessage);
   }
 
   /**
