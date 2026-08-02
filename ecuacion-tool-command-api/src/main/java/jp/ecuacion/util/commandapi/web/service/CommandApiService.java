@@ -29,8 +29,11 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
+import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
@@ -50,6 +53,10 @@ public class CommandApiService {
 
   private static final String PROP_API_KEY_REQUIRED =
       "jp.ecuacion.tool.command-api.api-key-required";
+
+  /** Keep this literal in sync with {@code CommandApiKeyProvider.PROP_API_KEY_FILE_PATH}. */
+  private static final String PROP_API_KEY_FILE_PATH =
+      "jp.ecuacion.tool.command-api.api-key-file-path";
 
   private static final String PREFIX_GET = "GET:";
   private static final String PREFIX_POST = "POST:";
@@ -97,9 +104,23 @@ public class CommandApiService {
 
   /**
    * Constructs a new instance.
+   *
+   * @throws IllegalStateException if {@code ecuacion-tool-command-api.properties} is missing
+   *     altogether (no scriptId could ever be resolved), or if {@code api-key-required} is true
+   *     (explicitly or by default) while {@code api-key-file-path} is unset (no scriptId could
+   *     ever be executed through either endpoint) — both states leave this module unable to do
+   *     anything useful, so startup is failed fast rather than deferring to a per-request error.
    */
   public CommandApiService(ConfigurableEnvironment env) {
     this.env = env;
+
+    if (env.getPropertySources().stream()
+        .noneMatch(source -> source.getName().contains(SCRIPT_PROPERTIES_SOURCE_NAME_MARKER))) {
+      throw new IllegalStateException(
+          "ecuacion-tool-command-api.properties was not found. Without it no scriptId can ever "
+              + "be resolved, so this module cannot execute any script. Place the file next to "
+              + "the deployed jar/war (e.g. under ./config/) or add it to the classpath.");
+    }
 
     if (!env.containsProperty(PROP_API_KEY_REQUIRED)) {
       dtlLogger.warn("'" + PROP_API_KEY_REQUIRED + "' is not configured. Falling back to "
@@ -109,6 +130,17 @@ public class CommandApiService {
     }
 
     this.apiKeyRequired = env.getProperty(PROP_API_KEY_REQUIRED, Boolean.class, true);
+
+    String apiKeyFilePath = env.getProperty(PROP_API_KEY_FILE_PATH);
+    if (this.apiKeyRequired && (apiKeyFilePath == null || apiKeyFilePath.isBlank())) {
+      throw new IllegalStateException(
+          "'" + PROP_API_KEY_REQUIRED + "' is true (either explicitly set, or defaulted for not "
+              + "being configured), which disables the API-key-less api/public/executeScript "
+              + "endpoint. But '" + PROP_API_KEY_FILE_PATH + "' is also not configured, so no key "
+              + "presented to api/key/executeScript can ever match and no script can ever be "
+              + "executed through either endpoint. Set '" + PROP_API_KEY_FILE_PATH + "', or set '"
+              + PROP_API_KEY_REQUIRED + "=false' to allow api/public/executeScript instead.");
+    }
   }
 
   /**
@@ -220,7 +252,7 @@ public class CommandApiService {
     }
 
     // Resolve environment variables
-    scriptFilePath = resolveEnvironmentVariables(scriptFilePath);
+    scriptFilePath = resolveEnvironmentVariables(scriptId, scriptFilePath);
 
     // Cause an error if scriptFilePath not found
     dtlLogger.info("scriptFilePath: " + scriptFilePath);
@@ -264,7 +296,18 @@ public class CommandApiService {
     commandList.addAll(Arrays.asList(paramsString.split(" ")));
 
     Runtime runtime = Runtime.getRuntime();
-    Process p = runtime.exec(commandList.toArray(new String[commandList.size()]));
+    Process p;
+    try {
+      p = runtime.exec(commandList.toArray(new String[commandList.size()]));
+    } catch (IOException e) {
+      // scriptFile.canExecute() already passed, so this means the OS itself refused/failed to
+      // start it (e.g. missing/invalid shebang interpreter, scriptFile is actually a directory,
+      // or a permission check finer-grained than canExecute()'s) — a config/environment problem
+      // on the server, not a client-caused error.
+      return throwException(HttpStatus.INTERNAL_SERVER_ERROR,
+          "Failed to start scriptId '" + scriptId + "' (" + scriptFile.getAbsolutePath() + "): "
+              + e.getMessage());
+    }
     dtlLogger.info("command start : " + scriptFile.getAbsolutePath() + " " + paramsString);
 
     // Read the script's standard output and standard error, logging them and collecting them
@@ -399,21 +442,54 @@ public class CommandApiService {
   /**
    * Searches ${XXX} format (not $XXX) and replaces it to the environment valuable value.
    *
+   * @param scriptId the scriptId {@code string} was configured under, used only to identify
+   *     which script definition is misconfigured if resolution fails
    * @param string any string
    * @return string with environment variables resolved
    */
-  private String resolveEnvironmentVariables(String string) {
+  private String resolveEnvironmentVariables(String scriptId, String string) {
     Function<String, String> func = (key) -> {
       return System.getenv(key);
     };
     try {
       return EmbeddedVariableUtil.getVariableReplacedString(string, "${", "}", func);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (ViolationException e) {
+      // Thrown for a malformed "${...}" (unmatched braces) or a referenced environment
+      // variable that isn't set — both are a misconfigured script.<id> entry in
+      // ecuacion-tool-command-api.properties, not a client-caused error.
+      return throwException(HttpStatus.INTERNAL_SERVER_ERROR,
+          "Failed to resolve environment variable(s) for scriptId '" + scriptId + "' ("
+              + string + "): " + describeViolations(e));
     }
   }
 
-  private void throwException(HttpStatus status, String message) {
+  /**
+   * Throws a {@link ResponseStatusException} carrying {@code message}.
+   *
+   * <p>Declared to return {@code T} — rather than {@code void} — purely so call sites in a
+   * non-{@code void} method can write {@code return throwException(...)}, satisfying the
+   * compiler's definite-return check; this method never actually returns.</p>
+   *
+   * <p>Logging this happens centrally in {@code SplibRestExceptionHandler.
+   * handleExceptionInternal} (in {@code ecuacion-splib-rest}), not here — every
+   * {@code ResponseStatusException} reaching that handler is logged there (4xx at WARN, other
+   * statuses at ERROR), regardless of which application/service threw it.</p>
+   *
+   * @param status the HTTP status to respond with
+   * @param message the detail message set on the thrown exception
+   */
+  private <T> T throwException(HttpStatus status, String message) {
     throw new ResponseStatusException(status, message);
+  }
+
+  /**
+   * Renders a {@link ViolationException}'s violations as a single human-readable string, joining
+   * multiple violations (rare in practice) with {@code "; "}.
+   */
+  @SuppressWarnings("null")
+  private String describeViolations(ViolationException e) {
+    return e.getViolations().getBusinessViolations().stream()
+        .map(v -> PropertiesFileUtil.getMessage(Locale.ROOT, v.getMessageId(), v.getMessageArgs()))
+        .collect(Collectors.joining("; "));
   }
 }
