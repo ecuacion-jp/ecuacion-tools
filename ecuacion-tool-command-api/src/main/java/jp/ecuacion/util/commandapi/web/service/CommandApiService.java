@@ -304,7 +304,7 @@ public class CommandApiService {
       // start it (e.g. missing/invalid shebang interpreter, scriptFile is actually a directory,
       // or a permission check finer-grained than canExecute()'s) — a config/environment problem
       // on the server, not a client-caused error.
-      return throwException(HttpStatus.INTERNAL_SERVER_ERROR,
+      throw newResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
           "Failed to start scriptId '" + scriptId + "' (" + scriptFile.getAbsolutePath() + "): "
               + e.getMessage());
     }
@@ -457,7 +457,7 @@ public class CommandApiService {
       // Thrown for a malformed "${...}" (unmatched braces) or a referenced environment
       // variable that isn't set — both are a misconfigured script.<id> entry in
       // ecuacion-tool-command-api.properties, not a client-caused error.
-      return throwException(HttpStatus.INTERNAL_SERVER_ERROR,
+      throw newResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
           "Failed to resolve environment variable(s) for scriptId '" + scriptId + "' ("
               + string + "): " + describeViolations(e));
     }
@@ -465,10 +465,6 @@ public class CommandApiService {
 
   /**
    * Throws a {@link ResponseStatusException} carrying {@code message}.
-   *
-   * <p>Declared to return {@code T} — rather than {@code void} — purely so call sites in a
-   * non-{@code void} method can write {@code return throwException(...)}, satisfying the
-   * compiler's definite-return check; this method never actually returns.</p>
    *
    * <p>Logging this happens centrally in {@code SplibRestExceptionHandler.
    * handleExceptionInternal} (in {@code ecuacion-splib-rest}), not here — every
@@ -478,8 +474,23 @@ public class CommandApiService {
    * @param status the HTTP status to respond with
    * @param message the detail message set on the thrown exception
    */
-  private <T> T throwException(HttpStatus status, String message) {
-    throw new ResponseStatusException(status, message);
+  private void throwException(HttpStatus status, String message) {
+    throw newResponseStatusException(status, message);
+  }
+
+  /**
+   * Builds (without throwing) a {@link ResponseStatusException} carrying {@code message}.
+   *
+   * <p>Used instead of {@link #throwException} at call sites inside a non-{@code void} method
+   * where the compiler's definite-return check requires a {@code return} statement — writing
+   * {@code throw newResponseStatusException(...)} satisfies that check without the enclosing
+   * method having to fake a return value.</p>
+   *
+   * @param status the HTTP status to respond with
+   * @param message the detail message set on the returned exception
+   */
+  private ResponseStatusException newResponseStatusException(HttpStatus status, String message) {
+    return new ResponseStatusException(status, message);
   }
 
   /**
