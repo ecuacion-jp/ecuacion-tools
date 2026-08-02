@@ -174,22 +174,13 @@ class CommandApiControllerTest {
     }
   }
 
-  /** When neither access-control property is configured, GET must stay disabled (secure default). */
-  @Nested
-  @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-  @AutoConfigureMockMvc
-  @ContextConfiguration(initializers = ScriptPropertySourceInitializer.class)
-  class WhenAccessControlPropertiesAreUnset {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Test
-    void getIsForbidden() throws Exception {
-      mockMvc.perform(get("/api/public/executeScript").param("scriptId", SCRIPT_ID))
-          .andExpect(status().isForbidden());
-    }
-  }
+  // When neither access-control property is configured, api-key-required defaults to true while
+  // api-key-file-path stays unset, so CommandApiService's constructor now fails application
+  // startup instead of serving a secure-but-unusable app (see
+  // CommandApiServiceTest#constructorThrowsWhenApiKeyRequiredButNoApiKeyFilePathConfigured for
+  // the corresponding guard's unit-level coverage). A @SpringBootTest context whose startup is
+  // itself expected to fail doesn't fit this class's MockMvc-per-nested-class pattern, so the
+  // scenario is intentionally not duplicated here.
 
   /** A correctly configured api-key file: {@code api/key/executeScript} POST behavior. */
   @Nested
