@@ -34,6 +34,7 @@ import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
+import jp.ecuacion.util.commandapi.web.config.CommandApiKeyFileLocator;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
@@ -53,10 +54,6 @@ public class CommandApiService {
 
   private static final String PROP_API_KEY_REQUIRED =
       "jp.ecuacion.tool.command-api.api-key-required";
-
-  /** Keep this literal in sync with {@code CommandApiKeyProvider.PROP_API_KEY_FILE_PATH}. */
-  private static final String PROP_API_KEY_FILE_PATH =
-      "jp.ecuacion.tool.command-api.api-key-file-path";
 
   private static final String PREFIX_GET = "GET:";
   private static final String PREFIX_POST = "POST:";
@@ -133,15 +130,18 @@ public class CommandApiService {
 
     this.apiKeyRequired = env.getProperty(PROP_API_KEY_REQUIRED, Boolean.class, true);
 
-    String apiKeyFilePath = env.getProperty(PROP_API_KEY_FILE_PATH);
-    if (this.apiKeyRequired && (apiKeyFilePath == null || apiKeyFilePath.isBlank())) {
+    if (this.apiKeyRequired && CommandApiKeyFileLocator.resolve(env) == null) {
       String message =
           "'" + PROP_API_KEY_REQUIRED + "' is true (either explicitly set, or defaulted for not "
               + "being configured), which disables the API-key-less api/public/executeScript "
-              + "endpoint. But '" + PROP_API_KEY_FILE_PATH + "' is also not configured, so no key "
-              + "presented to api/key/executeScript can ever match and no script can ever be "
-              + "executed through either endpoint. Set '" + PROP_API_KEY_FILE_PATH + "', or set '"
-              + PROP_API_KEY_REQUIRED + "=false' to allow api/public/executeScript instead.";
+              + "endpoint. But '" + CommandApiKeyFileLocator.PROP_API_KEY_FILE_PATH + "' is not "
+              + "configured, and no '" + CommandApiKeyFileLocator.DEFAULT_FILE_NAME + "' file was "
+              + "found in ./config/ or next to the deployed war either, so no key presented to "
+              + "api/key/executeScript can ever match and no script can ever be executed through "
+              + "either endpoint. Set '" + CommandApiKeyFileLocator.PROP_API_KEY_FILE_PATH
+              + "', place a '" + CommandApiKeyFileLocator.DEFAULT_FILE_NAME + "' file there, or "
+              + "set '" + PROP_API_KEY_REQUIRED + "=false' to allow api/public/executeScript "
+              + "instead.";
       dtlLogger.error(message);
       throw new IllegalStateException(message);
     }
