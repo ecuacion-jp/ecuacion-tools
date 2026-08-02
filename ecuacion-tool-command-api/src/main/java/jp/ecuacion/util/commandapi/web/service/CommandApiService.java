@@ -116,10 +116,12 @@ public class CommandApiService {
 
     if (env.getPropertySources().stream()
         .noneMatch(source -> source.getName().contains(SCRIPT_PROPERTIES_SOURCE_NAME_MARKER))) {
-      throw new IllegalStateException(
+      String message =
           "ecuacion-tool-command-api.properties was not found. Without it no scriptId can ever "
               + "be resolved, so this module cannot execute any script. Place the file next to "
-              + "the deployed jar/war (e.g. under ./config/) or add it to the classpath.");
+              + "the deployed jar/war (e.g. under ./config/) or add it to the classpath.";
+      dtlLogger.error(message);
+      throw new IllegalStateException(message);
     }
 
     if (!env.containsProperty(PROP_API_KEY_REQUIRED)) {
@@ -133,13 +135,15 @@ public class CommandApiService {
 
     String apiKeyFilePath = env.getProperty(PROP_API_KEY_FILE_PATH);
     if (this.apiKeyRequired && (apiKeyFilePath == null || apiKeyFilePath.isBlank())) {
-      throw new IllegalStateException(
+      String message =
           "'" + PROP_API_KEY_REQUIRED + "' is true (either explicitly set, or defaulted for not "
               + "being configured), which disables the API-key-less api/public/executeScript "
               + "endpoint. But '" + PROP_API_KEY_FILE_PATH + "' is also not configured, so no key "
               + "presented to api/key/executeScript can ever match and no script can ever be "
               + "executed through either endpoint. Set '" + PROP_API_KEY_FILE_PATH + "', or set '"
-              + PROP_API_KEY_REQUIRED + "=false' to allow api/public/executeScript instead.");
+              + PROP_API_KEY_REQUIRED + "=false' to allow api/public/executeScript instead.";
+      dtlLogger.error(message);
+      throw new IllegalStateException(message);
     }
   }
 
