@@ -119,6 +119,10 @@ class CommandApiServiceTest {
         () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
 
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains(SCRIPT_ID));
+    // The registered (invalid) path is server-side config detail; only scriptId is safe to
+    // hand back.
+    assertFalse(Objects.requireNonNull(ex.getReason()).contains("some#script.sh"));
   }
 
   @Test
@@ -131,11 +135,14 @@ class CommandApiServiceTest {
         () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
 
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
-    // The whole point of this message is to tell the caller *why* it failed (a missing file,
-    // as opposed to e.g. a permission problem) and *which* path was missing — both need to
-    // actually be in the message, not just a generic "something went wrong".
+    // The client-facing message tells the caller *why* it failed (a missing file, as opposed to
+    // e.g. a permission problem) and *which* scriptId is affected, but must not leak the actual
+    // resolved server-side path — a caller may only hold a valid X-Api-Key (or, when
+    // api-key-required=false, may be unauthenticated), so the path itself is logged server-side
+    // only (see CommandApiService.serverConfigError).
     assertTrue(Objects.requireNonNull(ex.getReason()).contains("not found"));
-    assertTrue(Objects.requireNonNull(ex.getReason()).contains(missing.toString()));
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains(SCRIPT_ID));
+    assertFalse(Objects.requireNonNull(ex.getReason()).contains(missing.toString()));
   }
 
   @Test
@@ -177,7 +184,10 @@ class CommandApiServiceTest {
         () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
 
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
-    assertTrue(Objects.requireNonNull(ex.getReason())
+    // The unresolved variable name (and the raw configured path it was embedded in) is
+    // server-side config detail, not something to hand back to the caller — only scriptId is.
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains(SCRIPT_ID));
+    assertFalse(Objects.requireNonNull(ex.getReason())
         .contains("THIS_ENV_VAR_SHOULD_NOT_EXIST_XYZ123"));
   }
 
@@ -206,6 +216,8 @@ class CommandApiServiceTest {
 
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
     assertTrue(Objects.requireNonNull(ex.getReason()).contains("Failed to start"));
+    // The resolved absolute path is server-side detail; only scriptId is safe to hand back.
+    assertFalse(Objects.requireNonNull(ex.getReason()).contains(dir.toString()));
   }
 
   @Test
