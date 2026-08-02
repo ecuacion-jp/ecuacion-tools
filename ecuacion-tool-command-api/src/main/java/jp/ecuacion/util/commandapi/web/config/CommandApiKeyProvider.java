@@ -40,6 +40,11 @@ import org.springframework.stereotype.Component;
  *     {@code apiKeyId} is ignored: any key present in the file is accepted regardless of which
  *     one was presented.</p>
  *
+ * <p>Blank lines are skipped, and lines whose stripped content starts with {@code #} are treated
+ *     as comments and skipped as well — handy for labeling which key belongs to which caller
+ *     (e.g. {@code # key for company A}) so the right line can be found and deleted when a key
+ *     needs revoking.</p>
+ *
  * <p>Every key in the file is compared the same way, controlled by
  *     {@value #PROP_API_KEY_COMPARISON_MODE} (default {@link SplibApiKeyComparisonMode#PLAIN}):
  *     either every line is a plain-text key, or every line is a bcrypt hash. Mixing the two
@@ -94,7 +99,8 @@ public class CommandApiKeyProvider implements SplibApiKeyExpectedValueProvider {
 
     SplibApiKeyComparisonMode mode = resolveComparisonMode();
 
-    return keys.stream().map(String::strip).filter(line -> !line.isEmpty())
+    return keys.stream().map(String::strip)
+        .filter(line -> !line.isEmpty() && !line.startsWith("#"))
         .map(key -> new SplibApiKeyExpectedValue(key, mode)).toList();
   }
 
