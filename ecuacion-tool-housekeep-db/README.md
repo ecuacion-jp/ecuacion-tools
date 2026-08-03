@@ -11,7 +11,7 @@ Only `Postgresql` is supported (for now).
 
 ## Documentation
 
-- [javadoc](https://docs.ecuacion.jp/javadoc/apidocs/ecuacion-tool-housekeep-db/)
+- [ecuacion-references-tools](https://references.ecuacion.jp/ecuacion-references-tools/public/showMarkdown/page?id=housekeep-db/overview) — Official reference documentation
 
 ## Premises
 
