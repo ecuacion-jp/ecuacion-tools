@@ -133,7 +133,7 @@ buildNumber.properties
 ### ecuacion ###
 
 # ecuacion-tool-code-generator-batch
-products/
+local-test
 
 # checkstyle
 .checkstyle
