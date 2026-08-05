@@ -36,7 +36,7 @@ import org.springframework.transaction.PlatformTransactionManager;
  */
 @Configuration
 @ComponentScan(basePackages = "jp.ecuacion.splib.batch.config")
-@PropertySource(value = "classpath:application_profile.properties")
+@PropertySource(value = "classpath:application-profile.properties")
 @SuppressWarnings("NullAway.Init")
 public class AppBatchConfig extends SplibAppParentBatchConfig {
 
