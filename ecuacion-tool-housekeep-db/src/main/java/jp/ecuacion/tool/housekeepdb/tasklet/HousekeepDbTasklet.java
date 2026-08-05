@@ -20,6 +20,7 @@ import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBe
 
 import jakarta.validation.Validation;
 import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -48,7 +49,10 @@ import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
 import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
 import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
+import jp.ecuacion.util.excel.util.ExcelReadUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.event.Level;
 import org.springframework.batch.core.scope.context.ChunkContext;
@@ -167,6 +171,22 @@ public class HousekeepDbTasklet implements Tasklet {
     File excelFile = new File(excelPath);
     if (!excelFile.exists() || !excelFile.isFile()) {
       new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_NOT_FOUND")).throwIfAny();
+    }
+
+    String extension =
+        excelPath.contains(".") ? excelPath.substring(excelPath.lastIndexOf(".")) : "";
+    if (!extension.equalsIgnoreCase(".xlsx")) {
+      new Violations()
+          .add(new BusinessViolation("MSG_ERR_EXCEL_PATH_EXTENSION_NOT_EXPECTED", extension))
+          .throwIfAny();
+    }
+
+    try (Workbook workbook = ExcelReadUtil.openForRead(excelPath)) {
+      // Only verifying the file can be opened as an excel file here.
+      // Its content is read later.
+    } catch (EncryptedDocumentException | IOException e) {
+      new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_CANNOT_OPEN", excelPath))
+          .throwIfAny();
     }
 
     return excelPath;
