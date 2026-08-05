@@ -114,6 +114,7 @@ class ColumnAndValueInfoBeanTest {
       assertThat(validator.validate(new ColumnAndValueInfoBean("col1", false, "abc"))).isEmpty();
     }
 
+    @SuppressWarnings("null")
     @Test
     @DisplayName("empty string value fails @NotEmpty")
     void emptyValueFails() {
