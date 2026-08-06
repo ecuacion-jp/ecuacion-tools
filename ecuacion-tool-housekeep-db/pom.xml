@@ -65,12 +65,24 @@
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.mariadb.jdbc</groupId>
+			<artifactId>mariadb-java-client</artifactId>
+		</dependency>
 
 		<!-- Real Postgres for tests, launched without Docker (see HousekeepDbTaskletTest). -->
 		<dependency>
 			<groupId>io.zonky.test</groupId>
 			<artifactId>embedded-postgres</artifactId>
 			<version>2.1.0</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- No true embedded MySQL exists, so MySQL/MariaDB-flavored SQL is verified against H2's
+		     MySQL compatibility mode instead (see HousekeepDbTaskletMysqlTest). -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
 			<scope>test</scope>
 		</dependency>
 

@@ -18,13 +18,11 @@ package jp.ecuacion.tool.housekeepdb.tasklet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -40,8 +38,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.jspecify.annotations.Nullable;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -51,44 +47,36 @@ import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 
 /**
- * Integration tests for {@link HousekeepDbTasklet}.
+ * Integration tests for {@link HousekeepDbTasklet}, common to every supported database.
  *
- * <p>Runs against a real PostgreSQL instance launched by {@code io.zonky.test:embedded-postgres}
- *     (no Docker required, works the same in GitHub Actions and on an offline Jenkins build
- *     server), because the SQL built by this tasklet relies on PostgreSQL-specific syntax
- *     (e.g. the {@code 'timestamp' - column > 'n days'} interval subtraction) that an
- *     HSQLDB/H2 stand-in would not reproduce faithfully.</p>
+ * <p>Subclasses provide the actual database ({@link HousekeepDbTaskletPostgresqlTest} for
+ *     PostgreSQL, {@link HousekeepDbTaskletMysqlTest} for MySQL / MariaDB) plus the small set of
+ *     DDL fragments that aren't portable across the two SQL dialects.</p>
  */
-@DisplayName("HousekeepDbTasklet")
-class HousekeepDbTaskletTest {
+abstract class AbstractHousekeepDbTaskletTest {
 
-  @SuppressWarnings("null")
-  private static EmbeddedPostgres postgres;
-  private static int port;
+  /** Database kind, as written to the "protocol" column / the Info sheet's "database" row. */
+  protected abstract String protocol();
 
-  @BeforeAll
-  static void startPostgres() throws IOException {
-    postgres = EmbeddedPostgres.start();
-    port = postgres.getPort();
-  }
+  /** A single "DB Connection Settings" row pointing at the test database. */
+  protected abstract String[] dbConnectionRow(String id);
 
-  @AfterAll
-  static void stopPostgres() throws IOException {
-    postgres.close();
-  }
+  /** Opens a direct JDBC connection to the test database, for test setup/verification SQL. */
+  protected abstract Connection newConnection() throws SQLException;
 
-  private static Connection newConnection() throws SQLException {
-    return DriverManager
-        .getConnection("jdbc:postgresql://localhost:" + port + "/postgres?user=postgres");
-  }
+  /** Column type usable for a timestamp column in this dialect's DDL. */
+  protected abstract String timestampColumnType();
 
-  private static void execute(String sql) throws SQLException {
+  /** SQL expression yielding a point in time {@code daysAgo} days before now. */
+  protected abstract String timestampDaysAgoExpr(int daysAgo);
+
+  protected void execute(String sql) throws SQLException {
     try (Connection conn = newConnection(); Statement st = conn.createStatement()) {
       st.execute(sql);
     }
   }
 
-  private static int countRows(String sql) throws SQLException {
+  protected int countRows(String sql) throws SQLException {
     try (Connection conn = newConnection(); Statement st = conn.createStatement();
         ResultSet rs = st.executeQuery(sql)) {
       rs.next();
@@ -110,21 +98,14 @@ class HousekeepDbTaskletTest {
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
   }
 
-  /** A single "DB Connection Settings" row pointing at the embedded postgres instance. */
-  private static String[] dbConnectionRow(String id) {
-    return new String[] {id, "org.postgresql.Driver", "postgresql", "localhost",
-        String.valueOf(port), "postgres", "", "postgres", "postgres"};
-  }
-
-  private static Path buildExcelFile(List<String[]> dbConnectionRows,
-      List<String[]> housekeepRows, List<String[]> relatedRows, List<String[]> searchRows)
-      throws IOException {
+  private Path buildExcelFile(List<String[]> dbConnectionRows, List<String[]> housekeepRows,
+      List<String[]> relatedRows, List<String[]> searchRows) throws IOException {
     LangExcel lang = new LangExcel(Locale.of("en"));
 
     try (XSSFWorkbook wb = new XSSFWorkbook()) {
       writeSheet(wb, "Info", new String[] {"item", "value"},
           List.<String[]>of(new String[] {"locale", "en"}, new String[] {"format-version", "1.3.0"},
-              new String[] {"database", "postgresql"}));
+              new String[] {"database", protocol()}));
       writeSheet(wb, lang.get(LangExcel.DB_CONNECTION_SETTINGS),
           lang.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS), dbConnectionRows);
       writeSheet(wb, lang.get(LangExcel.HOUSEKEEP_DB_SETTINGS),
@@ -174,7 +155,7 @@ class HousekeepDbTaskletTest {
     @Test
     @DisplayName("with no filter columns configured, deletes every row in the target table")
     void deletesAllRowsWhenUnfiltered() throws Exception {
-      execute("create table hd_basic (num1 integer primary key, char1 varchar)");
+      execute("create table hd_basic (num1 integer primary key, char1 varchar(20))");
       execute("insert into hd_basic values (1, 'a'), (2, 'b')");
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
@@ -192,7 +173,8 @@ class HousekeepDbTaskletTest {
     @DisplayName("with a soft-delete column configured, only purges rows whose flag is already "
         + "true (idColumnLiteralSymbol quotes(') exercises the string-quoting path)")
     void hardDeleteWithSoftDeleteColumnOnlyPurgesFlaggedRows() throws Exception {
-      execute("create table hd_withflag (code varchar primary key, rem_flg boolean default false)");
+      execute(
+          "create table hd_withflag (code varchar(20) primary key, rem_flg boolean default false)");
       execute("insert into hd_withflag values ('flagged', true), ('not-flagged', false)");
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
@@ -258,7 +240,7 @@ class HousekeepDbTaskletTest {
     @DisplayName("also updates the configured timestamp and user-id columns")
     void updatesTimestampAndUserIdColumns() throws Exception {
       execute("create table sd_audit (num1 integer primary key, rem_flg boolean default false, "
-          + "upd_at timestamptz, upd_by varchar)");
+          + "upd_at " + timestampColumnType() + ", upd_by varchar(20))");
       execute("insert into sd_audit values (1, false, null, null)");
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
@@ -286,9 +268,10 @@ class HousekeepDbTaskletTest {
     @Test
     @DisplayName("only deletes rows whose timestamp column is older than deleteTargetInDays")
     void onlyDeletesExpiredRows() throws Exception {
-      execute("create table exp_basic (num1 integer primary key, last_updated timestamptz)");
-      execute("insert into exp_basic values (1, now() - interval '100 days')");
-      execute("insert into exp_basic values (2, now() - interval '1 days')");
+      execute("create table exp_basic (num1 integer primary key, last_updated "
+          + timestampColumnType() + ")");
+      execute("insert into exp_basic values (1, " + timestampDaysAgoExpr(100) + ")");
+      execute("insert into exp_basic values (2, " + timestampDaysAgoExpr(1) + ")");
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "exp_basic",
@@ -314,8 +297,8 @@ class HousekeepDbTaskletTest {
     @Test
     @DisplayName("'Delete' pattern deletes the related-table rows before the target row")
     void deletePatternCascades() throws Exception {
-      execute("create table rt_parent (num1 integer primary key, child_code varchar)");
-      execute("create table rt_child (code varchar primary key)");
+      execute("create table rt_parent (num1 integer primary key, child_code varchar(20))");
+      execute("create table rt_child (code varchar(20) primary key)");
       execute("insert into rt_parent values (1, 'c1')");
       execute("insert into rt_child values ('c1')");
 
@@ -336,8 +319,8 @@ class HousekeepDbTaskletTest {
     @DisplayName("'Check and Skip Delete' pattern leaves the target row untouched "
         + "when a related row exists")
     void checkAndSkipDeletePatternSkipsWhenRelatedRowExists() throws Exception {
-      execute("create table rt_parent2 (num1 integer primary key, child_code varchar)");
-      execute("create table rt_child2 (code varchar primary key)");
+      execute("create table rt_parent2 (num1 integer primary key, child_code varchar(20))");
+      execute("create table rt_child2 (code varchar(20) primary key)");
       execute("insert into rt_parent2 values (1, 'c1')");
       execute("insert into rt_child2 values ('c1')");
 
@@ -358,8 +341,8 @@ class HousekeepDbTaskletTest {
     @DisplayName("'Check and Skip Delete' pattern deletes the target row "
         + "when no related row exists")
     void checkAndSkipDeletePatternDeletesWhenNoRelatedRow() throws Exception {
-      execute("create table rt_parent3 (num1 integer primary key, child_code varchar)");
-      execute("create table rt_child3 (code varchar primary key)");
+      execute("create table rt_parent3 (num1 integer primary key, child_code varchar(20))");
+      execute("create table rt_child3 (code varchar(20) primary key)");
       execute("insert into rt_parent3 values (1, 'c1')");
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
@@ -387,7 +370,7 @@ class HousekeepDbTaskletTest {
     @Test
     @DisplayName("adds an extra AND condition, narrowing the deleted rows")
     void narrowsDeletionWithExtraCondition() throws Exception {
-      execute("create table sc_basic (num1 integer primary key, status varchar)");
+      execute("create table sc_basic (num1 integer primary key, status varchar(20))");
       execute("insert into sc_basic values (1, 'COMPLETED'), (2, 'RUNNING')");
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),

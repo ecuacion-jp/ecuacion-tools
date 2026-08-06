@@ -17,6 +17,7 @@ package jp.ecuacion.tool.housekeepdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -53,10 +54,55 @@ class SqlUtilTest {
     }
 
     @Test
+    @DisplayName("'mysql' protocol returns a parsable offset-less date-time close to now")
+    void mysql() {
+      String result = SqlUtil.getTimestampNow("mysql");
+
+      LocalDateTime parsed =
+          LocalDateTime.parse(result, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+      assertThat(parsed).isCloseTo(LocalDateTime.now(),
+          new TemporalUnitWithinOffset(10, ChronoUnit.SECONDS));
+    }
+
+    @Test
     @DisplayName("unrecognized protocol throws RuntimeException")
     void unrecognizedProtocol() {
-      assertThatThrownBy(() -> SqlUtil.getTimestampNow("mysql"))
-          .isInstanceOf(RuntimeException.class).hasMessageContaining("mysql");
+      assertThatThrownBy(() -> SqlUtil.getTimestampNow("oracle"))
+          .isInstanceOf(RuntimeException.class).hasMessageContaining("oracle");
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // getExpirationCondition
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("getExpirationCondition")
+  class GetExpirationCondition {
+
+    @Test
+    @DisplayName("'postgresql' protocol renders interval subtraction with a quoted 'n days'")
+    void postgresql() {
+      String result = SqlUtil.getExpirationCondition("postgresql", "updated_at", 30);
+
+      assertThat(result).matches(
+          "'.+' - updated_at > '30 days'");
+    }
+
+    @Test
+    @DisplayName("'mysql' protocol renders interval subtraction with a quoted 'n day'")
+    void mysql() {
+      String result = SqlUtil.getExpirationCondition("mysql", "updated_at", 30);
+
+      assertThat(result).matches(
+          "timestamp '.+' - interval '30' day > updated_at");
+    }
+
+    @Test
+    @DisplayName("unrecognized protocol throws RuntimeException")
+    void unrecognizedProtocol() {
+      assertThatThrownBy(() -> SqlUtil.getExpirationCondition("oracle", "updated_at", 30))
+          .isInstanceOf(RuntimeException.class).hasMessageContaining("oracle");
     }
   }
 

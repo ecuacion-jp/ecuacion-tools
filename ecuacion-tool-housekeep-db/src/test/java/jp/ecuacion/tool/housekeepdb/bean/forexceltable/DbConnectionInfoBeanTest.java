@@ -88,6 +88,7 @@ class DbConnectionInfoBeanTest {
       assertThat(validator.validate(bean)).isEmpty();
     }
 
+    @SuppressWarnings("null")
     @ParameterizedTest(name = "{0} empty -> @NotEmpty violation on that field")
     @MethodSource("jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBeanTest#requiredFieldMutators")
     @DisplayName("each required field, when empty, fails @NotEmpty on that field alone")
@@ -100,6 +101,7 @@ class DbConnectionInfoBeanTest {
   }
 
   /** Provides (property name, bean-with-that-property-emptied) pairs for required fields. */
+  @SuppressWarnings("null")
   static Stream<Arguments> requiredFieldMutators() {
     return Stream.of(
         Arguments.of("id", new DbConnectionInfoBean("", "org.postgresql.Driver", "postgresql",

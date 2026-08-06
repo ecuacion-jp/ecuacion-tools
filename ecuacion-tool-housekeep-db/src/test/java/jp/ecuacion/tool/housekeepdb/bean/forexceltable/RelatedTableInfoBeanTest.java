@@ -68,6 +68,7 @@ class RelatedTableInfoBeanTest {
     void allNullFailsOnRequiredColumnsOnly() {
       List<String> allNull = Arrays.asList(new String[13]);
 
+      @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
           validator.validate(new RelatedTableInfoBean(allNull));
 
@@ -100,6 +101,7 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("invalid isSoftDeleteInternalValue fails @Pattern")
     void invalidSoftDeleteInternalValue() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
           validator.validate(bean(HARD_BASE, 1, "UNEXPECTED"));
 
@@ -111,6 +113,7 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("invalid relatedTableIdColumnNeedsQuotationMark fails @Pattern")
     void invalidLiteralSymbol() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
           validator.validate(bean(HARD_BASE, 7, "UNEXPECTED"));
 
@@ -131,6 +134,7 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("soft delete without softDeleteColumn fails with NotEmptyWhen")
     void softDeleteWithoutColumnFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
           validator.validate(bean(SOFT_BASE, 8, null));
 
@@ -164,6 +168,7 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("hard delete with update-timestamp column set fails")
     void hardDeleteWithUpdateTimestampColumnFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
           validator.validate(bean(HARD_BASE, 9, "upd_at"));
 
@@ -212,6 +217,7 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("only softDeleteUpdateUserIdColumn set (symbol/value left empty) fails")
     void onlyUserIdColumnSetFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
           validator.validate(bean(SOFT_BASE, 10, "upd_by"));
 

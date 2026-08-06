@@ -36,6 +36,7 @@ class WhereConditionInfoBeanTest {
 
   // Column order: taskId, conditionColumn, conditionColumnNeedsQuotationMark,
   // conditionColumnValue
+  @SuppressWarnings("null")
   private static WhereConditionInfoBean bean(String taskId, String column, String literalSymbol,
       String value) {
     return new WhereConditionInfoBean(Arrays.asList(taskId, column, literalSymbol, value));
@@ -105,6 +106,7 @@ class WhereConditionInfoBeanTest {
     @Test
     @DisplayName("empty taskId fails @NotEmpty on taskId alone")
     void emptyTaskIdFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<WhereConditionInfoBean>> result =
           validator.validate(bean("", "col1", "(none)", "123"));
 
@@ -116,6 +118,7 @@ class WhereConditionInfoBeanTest {
     @DisplayName("empty conditionColumn fails @NotEmpty on conditionColumn alone "
         + "(conditionColumnInfo is still null at validation time, so there is no cascade)")
     void emptyConditionColumnFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<WhereConditionInfoBean>> result =
           validator.validate(bean("task1", "", "(none)", "123"));
 
@@ -128,6 +131,7 @@ class WhereConditionInfoBeanTest {
     @DisplayName("empty conditionColumnValue fails @NotEmpty on conditionColumnValue alone, "
         + "with a clean validation error instead of the NPE afterReading() would raise")
     void emptyConditionColumnValueFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<WhereConditionInfoBean>> result =
           validator.validate(bean("task1", "col1", "(none)", ""));
 
