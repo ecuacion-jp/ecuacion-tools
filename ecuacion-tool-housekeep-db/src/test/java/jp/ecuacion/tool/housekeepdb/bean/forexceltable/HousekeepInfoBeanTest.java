@@ -69,6 +69,7 @@ class HousekeepInfoBeanTest {
     void allNullFailsOnRequiredColumnsOnly() {
       List<String> allNull = Arrays.asList(new String[15]);
 
+      @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
           validator.validate(new HousekeepInfoBean(allNull));
 
@@ -99,6 +100,7 @@ class HousekeepInfoBeanTest {
           "isSoftDeleteInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark", null,
           null, null, null, null, null, null, null);
 
+      @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
           validator.validate(new HousekeepInfoBean(list));
 
@@ -126,6 +128,7 @@ class HousekeepInfoBeanTest {
     @Test
     @DisplayName("soft delete without softDeleteColumn fails with NotEmptyWhen")
     void softDeleteWithoutColumnFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
           validator.validate(bean(SOFT_BASE, 10, null));
 
@@ -174,6 +177,7 @@ class HousekeepInfoBeanTest {
     @Test
     @DisplayName("only timestampColumn set (kind/days left empty) fails")
     void onlyTimestampColumnSetFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
           validator.validate(bean(HARD_BASE, 7, "last_updated"));
 
@@ -186,6 +190,7 @@ class HousekeepInfoBeanTest {
     @Test
     @DisplayName("timestampColumn empty but kind set fails")
     void timestampColumnEmptyButKindSetFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
           validator.validate(bean(HARD_BASE, 8, "OffsetDateTime"));
 
@@ -204,6 +209,7 @@ class HousekeepInfoBeanTest {
     @Test
     @DisplayName("hard delete with update-timestamp column set fails")
     void hardDeleteWithUpdateTimestampColumnFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
           validator.validate(bean(HARD_BASE, 11, "upd_at"));
 
@@ -220,6 +226,7 @@ class HousekeepInfoBeanTest {
       // "all-or-nothing" rule for its own quotation-mark/value pair, but since those stay
       // empty (condition not satisfied there, notEmptyWhenConditionNotSatisfied requires
       // them to be non-empty), this scenario is expected to raise 2 violations.
+      @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
           validator.validate(bean(HARD_BASE, 12, "upd_by"));
 
@@ -268,6 +275,7 @@ class HousekeepInfoBeanTest {
     @Test
     @DisplayName("only softDeleteUpdateUserIdColumn set (symbol/value left empty) fails")
     void onlyUserIdColumnSetFails() {
+      @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
           validator.validate(bean(SOFT_BASE, 12, "upd_by"));
 

@@ -200,9 +200,9 @@ public class HousekeepDbTasklet implements Tasklet {
         info.getWhereConditionInfoList().stream().map(e -> e.getConditionColumnInfo()).toList());
 
     if (info.timestampColumnDefines()) {
-      whereList.add(new ColumnAndValueStringBean(
-          "'" + SqlUtil.getTimestampNow(info.getDbConnectionInfo().getProtocol()) + "' - "
-              + info.getTimestampColumn() + " > '" + info.getDeleteTargetInDays() + " days'"));
+      whereList.add(new ColumnAndValueStringBean(SqlUtil.getExpirationCondition(
+          info.getDbConnectionInfo().getProtocol(), info.getTimestampColumn(),
+          info.getDeleteTargetInDays())));
     }
 
     if (info.isSoftDelete()) {
@@ -414,8 +414,10 @@ public class HousekeepDbTasklet implements Tasklet {
   }
 
   private String getDbConnectionUrl(DbConnectionInfoBean dbInfo) {
-    String param =
-        StringUtils.isEmpty(dbInfo.getSchema()) ? "" : "?currentSchema=" + dbInfo.getSchema();
+    // "currentSchema" is a postgresql-specific JDBC URL parameter; MySQL / MariaDB have no
+    // equivalent (there, "database" and "schema" are the same thing).
+    String param = dbInfo.getProtocol().equals("postgresql") && StringUtils.isNotEmpty(
+        dbInfo.getSchema()) ? "?currentSchema=" + dbInfo.getSchema() : "";
     return "jdbc:" + dbInfo.getProtocol() + "://" + dbInfo.getServer() + ":" + dbInfo.getPort()
         + "/" + dbInfo.getDatabase() + param;
   }
