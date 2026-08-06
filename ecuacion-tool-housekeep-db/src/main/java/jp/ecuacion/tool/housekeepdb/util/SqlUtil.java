@@ -15,6 +15,7 @@
  */
 package jp.ecuacion.tool.housekeepdb.util;
 
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -36,15 +37,49 @@ public class SqlUtil {
 
   }
 
+  private static final DateTimeFormatter MYSQL_TIMESTAMP_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
   /**
    * Provides current date-time string considering database kinds.
-   * 
+   *
    * @param protocol database kind like 'postgresql'
    * @return date-time string
    */
   public static String getTimestampNow(String protocol) {
     if (protocol.equals("postgresql")) {
       return OffsetDateTime.now(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_DATE_TIME);
+
+    } else if (protocol.equals("mysql")) {
+      // MySQL / MariaDB datetime literals don't accept an offset suffix, unlike postgres.
+      return LocalDateTime.now(ZoneId.systemDefault()).format(MYSQL_TIMESTAMP_FORMATTER);
+
+    } else {
+      throw new RuntimeException("Protocol not recognized. protocol: " + protocol);
+    }
+  }
+
+  /**
+   * Creates the condition that filters records whose {@code timestampColumn} is older than
+   * {@code deleteTargetInDays} days.
+   *
+   * @param protocol database kind like 'postgresql'
+   * @param timestampColumn column holding the timestamp to check
+   * @param deleteTargetInDays number of days used as the expiration threshold
+   * @return condition string
+   */
+  public static String getExpirationCondition(String protocol, String timestampColumn,
+      int deleteTargetInDays) {
+    String now = getTimestampNow(protocol);
+
+    if (protocol.equals("postgresql")) {
+      return "'" + now + "' - " + timestampColumn + " > '" + deleteTargetInDays + " days'";
+
+    } else if (protocol.equals("mysql")) {
+      // The "timestamp" keyword makes the literal's temporal type explicit so it can be used in
+      // interval arithmetic without relying on an implicit string-to-datetime conversion.
+      return "timestamp '" + now + "' - interval '" + deleteTargetInDays + "' day > "
+          + timestampColumn;
 
     } else {
       throw new RuntimeException("Protocol not recognized. protocol: " + protocol);
