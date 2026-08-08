@@ -43,6 +43,7 @@ class CommandApiKeyFileLocatorTest {
     originalUserDir = System.getProperty("user.dir");
   }
 
+  @SuppressWarnings("null")
   @AfterEach
   void restoreUserDir() {
     System.setProperty("user.dir", originalUserDir);

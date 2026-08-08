@@ -88,6 +88,7 @@ public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterfac
     createDirRecursively(channel, taskRec, destPath);
   }
 
+  @SuppressWarnings("null")
   private void createDirRecursively(ChannelSftp channel, HousekeepFilesTaskRecord taskRec,
       String destPath) throws SftpException {
 
