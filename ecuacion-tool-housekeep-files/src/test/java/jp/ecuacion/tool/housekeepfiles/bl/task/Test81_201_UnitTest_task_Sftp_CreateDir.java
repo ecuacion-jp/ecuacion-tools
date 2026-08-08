@@ -245,6 +245,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     assertTrue(procCalledOnWarnListIsNotEmpty);
   }
 
+  @SuppressWarnings("null")
   @Test
   public void test23_invalid_dirExists_whenDestPathExists_ERROR() throws Exception {
     String dir = SFTP_ROOT_PATH + "/test-dir";
@@ -267,6 +268,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     }
   }
 
+  @SuppressWarnings("null")
   @Test
   public void test24_invalid_fileExists_whenDestPathExists_IGNORE() throws Exception {
     String filePath = SFTP_ROOT_PATH + "/testfile.txt";
@@ -290,6 +292,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     }
   }
 
+  @SuppressWarnings("null")
   @Test
   public void test25_invalid_fileExists_whenDestPathExists_WARN() throws Exception {
     String filePath = SFTP_ROOT_PATH + "/testfile.txt";
@@ -313,6 +316,7 @@ public class Test81_201_UnitTest_task_Sftp_CreateDir extends TestTool {
     }
   }
 
+  @SuppressWarnings("null")
   @Test
   public void test26_invalid_fileExists_whenDestPathExists_ERROR() throws Exception {
     String filePath = SFTP_ROOT_PATH + "/testfile.txt";
