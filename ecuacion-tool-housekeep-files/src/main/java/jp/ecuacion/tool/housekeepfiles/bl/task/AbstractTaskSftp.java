@@ -136,6 +136,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     return new ConnectionToSftpServer(sftpSession, sftpChannel);
   }
 
+  @SuppressWarnings("null")
   private void addAuthTypeToConfig(AuthTypeEnum authTypeEnum, Properties config) {
     Map<AuthTypeEnum, String> authNameMap = new HashMap<>();
     authNameMap.put(AuthTypeEnum.PASSWORD, "password");

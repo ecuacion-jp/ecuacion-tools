@@ -55,7 +55,6 @@ class CommandApiServiceTest {
       "Config resource 'class path resource [ecuacion-tool-command-api.properties]' "
           + "via location 'test'";
 
-  @SuppressWarnings("null")
   private static CommandApiService newService(String scriptDefinitionValue) {
     MockEnvironment env = new MockEnvironment();
     env.getPropertySources().addFirst(
@@ -81,7 +80,6 @@ class CommandApiServiceTest {
         Objects.requireNonNull(ex.getMessage()).contains("ecuacion-tool-command-api.properties"));
   }
 
-  @SuppressWarnings("null")
   @Test
   void constructorThrowsWhenApiKeyRequiredButNoApiKeyFilePathConfigured() {
     // api-key-required is left unset (defaults to true), and api-key-file-path is unset too,

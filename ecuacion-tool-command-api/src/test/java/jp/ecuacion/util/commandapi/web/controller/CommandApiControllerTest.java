@@ -107,7 +107,6 @@ class CommandApiControllerTest {
   private static class ScriptPropertySourceInitializer
       extends AbstractScriptPropertySourceInitializer {
 
-    @SuppressWarnings("null")
     @Override
     Map<String, String> scriptDefinitions() {
       return Map.of(SCRIPT_ID, createExecutableScript().toString());
@@ -124,7 +123,6 @@ class CommandApiControllerTest {
   private static class MethodRestrictedScriptPropertySourceInitializer
       extends AbstractScriptPropertySourceInitializer {
 
-    @SuppressWarnings("null")
     @Override
     Map<String, String> scriptDefinitions() {
       return Map.of(
@@ -156,7 +154,6 @@ class CommandApiControllerTest {
 
     static final String STDOUT_AND_STDERR_SCRIPT_ID = "script.stdout-and-stderr";
 
-    @SuppressWarnings("null")
     @Override
     Map<String, String> scriptDefinitions() {
       return Map.of(STDOUT_AND_STDERR_SCRIPT_ID, "ALL:" + createStdoutAndStderrScript());

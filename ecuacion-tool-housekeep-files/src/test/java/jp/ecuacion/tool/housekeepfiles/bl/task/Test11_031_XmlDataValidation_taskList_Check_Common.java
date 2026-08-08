@@ -48,7 +48,6 @@ public class Test11_031_XmlDataValidation_taskList_Check_Common extends TestTool
     }
   }
 
-  @SuppressWarnings("null")
   @Test
   public void test01_systemNameIsNull() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,
@@ -68,7 +67,6 @@ public class Test11_031_XmlDataValidation_taskList_Check_Common extends TestTool
     }
   }
 
-  @SuppressWarnings("null")
   @Test
   public void test02_systemNameIsEmpty() throws Exception {
     HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "AAA", null,

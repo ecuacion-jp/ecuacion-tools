@@ -99,6 +99,7 @@ public class CompressUtil {
    * Recursive processing for directory compression.
    * baseFile is the output ZIP file and targetFile is the file or directory to compress.
    */
+  @SuppressWarnings("null")
   private void archive(ZipOutputStream outZip, File baseFile, File targetFile) throws IOException {
     if (targetFile.isDirectory()) {
       File[] files = targetFile.listFiles();

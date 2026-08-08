@@ -371,6 +371,7 @@ public class CommandApiService {
         "stderr", String.join(System.lineSeparator(), stderrLines));
   }
 
+  @SuppressWarnings("null")
   private boolean isWindows() {
     return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
   }
@@ -539,7 +540,6 @@ public class CommandApiService {
    * Renders a {@link ViolationException}'s violations as a single human-readable string, joining
    * multiple violations (rare in practice) with {@code "; "}.
    */
-  @SuppressWarnings("null")
   private String describeViolations(ViolationException e) {
     return e.getViolations().getBusinessViolations().stream()
         .map(v -> PropertiesFileUtil.getMessage(Locale.ROOT, v.getMessageId(), v.getMessageArgs()))
