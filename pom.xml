@@ -24,10 +24,10 @@
 	<packaging>pom</packaging>
 	<parent>
 		<groupId>jp.ecuacion.splib</groupId>
-		<artifactId>ecuacion-splib-parent</artifactId>
+		<artifactId>ecuacion-splib-dependencies</artifactId>
 		<!-- The version number is updated to the latest release in the build script. -->
 		<version>0.0.2-SNAPSHOT</version>
-		<relativePath>../ecuacion-splib</relativePath>
+		<relativePath>../ecuacion-splib/ecuacion-splib-dependencies</relativePath>
 	</parent>
 	<properties>
 		<app.version>0.0.1-SNAPSHOT</app.version>
