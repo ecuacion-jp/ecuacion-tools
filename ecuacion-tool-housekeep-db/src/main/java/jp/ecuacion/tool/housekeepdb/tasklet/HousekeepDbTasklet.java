@@ -284,6 +284,7 @@ public class HousekeepDbTasklet implements Tasklet {
     return false;
   }
 
+  @SuppressWarnings("null")
   private void deleteRelatedData(Connection conn, HousekeepInfoBean info, Object id,
       Map<String, Integer> tableRecordDeleted) throws SQLException {
     List<RelatedTableInfoBean> list = info.getRelatedRecordTableInfoList().stream()
@@ -422,7 +423,6 @@ public class HousekeepDbTasklet implements Tasklet {
         + "/" + dbInfo.getDatabase() + param;
   }
 
-  @SuppressWarnings("null")
   private Map<String, String> getInfoMap(String filePath) throws Exception {
     List<List<String>> list;
     try {
