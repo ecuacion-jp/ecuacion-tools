@@ -36,6 +36,7 @@ import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.util.commandapi.web.config.CommandApiKeyFileLocator;
 import org.jspecify.annotations.Nullable;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.http.HttpMethod;
@@ -48,8 +49,13 @@ import org.springframework.web.server.ResponseStatusException;
  * access-control rules described on {@code CommandApiController}'s endpoints (the
  * {@code api-key-required} gate for the API-key-less GET endpoint, and each script's declared
  * {@code GET:} / {@code POST:} / {@code ALL:} allowed method).
+ *
+ * <p>{@code @RefreshScope} so {@code apiKeyRequired} (cached in a field at construction time,
+ *     see the constructor) is re-read from the environment when this bean is recreated on
+ *     refresh, rather than staying fixed for the process lifetime.</p>
  */
 @Service
+@RefreshScope
 public class CommandApiService {
 
   private static final String PROP_API_KEY_REQUIRED =
