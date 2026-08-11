@@ -24,7 +24,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.util.FileUtil;
-import jp.ecuacion.lib.core.util.ObjectsUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import org.apache.commons.lang3.StringUtils;
@@ -115,7 +114,7 @@ public class WildcardPathUtil {
    * Returns -1 if there is no separator position.
    */
   private static int getFirstPathSeparatorIndex(String path) {
-    ObjectsUtil.requireNonNull(path);
+    Objects.requireNonNull(path);
 
     int firstSlashIndex = path.indexOf("/");
     int firstBackSlashIndex = path.indexOf("\\");
@@ -136,7 +135,9 @@ public class WildcardPathUtil {
 
   private static void getPathListFromPathWithWildcardRecursively(String fullPath, String parentPath,
       List<@NonNull String> rtnFullPathList) {
-    ObjectsUtil.requireNonNull(fullPath, parentPath, rtnFullPathList);
+    Objects.requireNonNull(fullPath);
+    Objects.requireNonNull(parentPath);
+    Objects.requireNonNull(rtnFullPathList);
 
     String myFileOrDirnameWithWildcard = null;
     boolean hasReachedFullPathDirDepth = false;
