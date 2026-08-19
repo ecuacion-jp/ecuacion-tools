@@ -46,7 +46,7 @@ import org.springframework.stereotype.Component;
  *     needs revoking.</p>
  *
  * <p>Every key in the file is compared the same way, controlled by
- *     {@value #PROP_API_KEY_COMPARISON_MODE} (default {@link SplibApiKeyComparisonMode#PLAIN}):
+ *     {@value #PROP_API_KEY_COMPARISON_MODE} (default {@link SplibApiKeyComparisonMode#BCRYPT}):
  *     either every line is a plain-text key, or every line is a bcrypt hash. Mixing the two
  *     within one file is not supported — the mode applies to the whole file, not per line.</p>
  */
@@ -55,8 +55,8 @@ public class CommandApiKeyProvider implements SplibApiKeyExpectedValueProvider {
 
   /**
    * Selects how every key in the api-key file is compared: {@code PLAIN} or {@code BCRYPT} (see
-   * {@link SplibApiKeyComparisonMode}). Defaults to {@code PLAIN} when unset. An unrecognized
-   * value is logged as a warning at read time and treated as {@code PLAIN}.
+   * {@link SplibApiKeyComparisonMode}). Defaults to {@code BCRYPT} when unset. An unrecognized
+   * value throws a {@link RuntimeException} at read time.
    */
   public static final String PROP_API_KEY_COMPARISON_MODE =
       "jp.ecuacion.tool.command-api.api-key-comparison-mode";
@@ -106,20 +106,22 @@ public class CommandApiKeyProvider implements SplibApiKeyExpectedValueProvider {
 
   /**
    * Resolves {@value #PROP_API_KEY_COMPARISON_MODE} to the {@link SplibApiKeyComparisonMode}
-   * applied to every key in the file, defaulting to {@code PLAIN} when unset or unrecognized.
+   * applied to every key in the file, defaulting to {@code BCRYPT} when unset.
+   *
+   * @throws RuntimeException if the property is set to a value other than {@code PLAIN} or
+   *     {@code BCRYPT}
    */
   private SplibApiKeyComparisonMode resolveComparisonMode() {
     String rawValue = env.getProperty(PROP_API_KEY_COMPARISON_MODE);
     if (rawValue == null || rawValue.isBlank()) {
-      return SplibApiKeyComparisonMode.PLAIN;
+      return SplibApiKeyComparisonMode.BCRYPT;
     }
 
     try {
       return SplibApiKeyComparisonMode.valueOf(rawValue.strip().toUpperCase(Locale.ROOT));
     } catch (IllegalArgumentException e) {
-      dtlLogger.warn("'" + PROP_API_KEY_COMPARISON_MODE + "' has an unrecognized value '"
-          + rawValue + "'. Falling back to PLAIN. Valid values: PLAIN, BCRYPT.");
-      return SplibApiKeyComparisonMode.PLAIN;
+      throw new RuntimeException("'" + PROP_API_KEY_COMPARISON_MODE + "' has an unrecognized "
+          + "value '" + rawValue + "'. Valid values: PLAIN, BCRYPT.");
     }
   }
 }
