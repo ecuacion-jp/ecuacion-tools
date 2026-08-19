@@ -39,6 +39,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.MapPropertySource;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -171,6 +172,16 @@ class CommandApiControllerTest {
     }
   }
 
+  /**
+   * Hashes {@code plainKey} with bcrypt, matching {@code api-key-comparison-mode}'s default
+   * ({@code BCRYPT}) — the file on disk holds the hash, while callers still present the plain
+   * value in the {@code X-Api-Key} header.
+   */
+  @SuppressWarnings("null")
+  private static String bcryptHash(String plainKey) {
+    return new BCryptPasswordEncoder().encode(plainKey);
+  }
+
   // When neither access-control property is configured, api-key-required defaults to true while
   // api-key-file-path stays unset, so CommandApiService's constructor now fails application
   // startup instead of serving a secure-but-unusable app (see
@@ -191,7 +202,7 @@ class CommandApiControllerTest {
       registry.add(API_KEY_REQUIRED_PROP, () -> "true");
       // Trailing newline verifies the api-key file content is trimmed before comparison.
       registry.add(API_KEY_FILE_PATH_PROP,
-          () -> createApiKeyFile(CORRECT_API_KEY + "\n").toString());
+          () -> createApiKeyFile(bcryptHash(CORRECT_API_KEY) + "\n").toString());
     }
 
     @Autowired
@@ -253,7 +264,9 @@ class CommandApiControllerTest {
     static void properties(DynamicPropertyRegistry registry) {
       registry.add(API_KEY_REQUIRED_PROP, () -> "true");
       registry.add(API_KEY_FILE_PATH_PROP,
-          () -> createApiKeyFile("\n" + CORRECT_API_KEY + "\n\n" + OTHER_API_KEY + "\n").toString());
+          () -> createApiKeyFile(
+              "\n" + bcryptHash(CORRECT_API_KEY) + "\n\n" + bcryptHash(OTHER_API_KEY) + "\n")
+                  .toString());
     }
 
     @Autowired
@@ -431,7 +444,7 @@ class CommandApiControllerTest {
     static void properties(DynamicPropertyRegistry registry) {
       registry.add(API_KEY_REQUIRED_PROP, () -> "true");
       registry.add(API_KEY_FILE_PATH_PROP,
-          () -> createApiKeyFile(CORRECT_API_KEY).toString());
+          () -> createApiKeyFile(bcryptHash(CORRECT_API_KEY)).toString());
     }
 
     @Autowired
