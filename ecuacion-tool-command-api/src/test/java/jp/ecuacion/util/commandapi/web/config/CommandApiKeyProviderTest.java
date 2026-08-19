@@ -93,6 +93,22 @@ class CommandApiKeyProviderTest {
     Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
 
     assertEquals(
+        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.BCRYPT),
+            new SplibApiKeyExpectedValue("key-two", SplibApiKeyComparisonMode.BCRYPT)),
+        keys);
+  }
+
+  @Test
+  void comparisonModePlainAppliesToEveryKey() {
+    Path file = createApiKeyFile("key-one\nkey-two\n");
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty(PROP_API_KEY_FILE_PATH, file.toString());
+    env.setProperty(CommandApiKeyProvider.PROP_API_KEY_COMPARISON_MODE, "PLAIN");
+    CommandApiKeyProvider provider = new CommandApiKeyProvider(env);
+
+    Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
+
+    assertEquals(
         List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.PLAIN),
             new SplibApiKeyExpectedValue("key-two", SplibApiKeyComparisonMode.PLAIN)),
         keys);
@@ -129,17 +145,14 @@ class CommandApiKeyProviderTest {
   }
 
   @Test
-  void comparisonModeUnrecognizedValueFallsBackToPlain() {
+  void comparisonModeUnrecognizedValueThrows() {
     Path file = createApiKeyFile("key-one\n");
     MockEnvironment env = new MockEnvironment();
     env.setProperty(PROP_API_KEY_FILE_PATH, file.toString());
     env.setProperty(CommandApiKeyProvider.PROP_API_KEY_COMPARISON_MODE, "not-a-real-mode");
     CommandApiKeyProvider provider = new CommandApiKeyProvider(env);
 
-    Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
-
-    assertEquals(
-        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.PLAIN)), keys);
+    assertThrows(RuntimeException.class, () -> provider.getExpectedValues(null, "any-key"));
   }
 
   @Test
@@ -153,8 +166,8 @@ class CommandApiKeyProviderTest {
     Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
 
     assertEquals(
-        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.PLAIN),
-            new SplibApiKeyExpectedValue("key-two", SplibApiKeyComparisonMode.PLAIN)),
+        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.BCRYPT),
+            new SplibApiKeyExpectedValue("key-two", SplibApiKeyComparisonMode.BCRYPT)),
         keys);
   }
 
@@ -168,7 +181,7 @@ class CommandApiKeyProviderTest {
     Collection<SplibApiKeyExpectedValue> keys = provider.getExpectedValues(null, "any-key");
 
     assertEquals(
-        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.PLAIN)), keys);
+        List.of(new SplibApiKeyExpectedValue("key-one", SplibApiKeyComparisonMode.BCRYPT)), keys);
   }
 
   @Test
