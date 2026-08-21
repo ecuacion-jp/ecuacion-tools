@@ -48,11 +48,11 @@ class CommandApiServiceTest {
 
   /**
    * Matches {@code CommandApiService.SCRIPT_PROPERTIES_SOURCE_NAME_MARKER}, so the registered
-   * script definition resolves the same way a real {@code ecuacion-tool-command-api.properties}
+   * script definition resolves the same way a real {@code ecuacion-tool-command-api-scripts.properties}
    * entry would.
    */
   private static final String SCRIPT_PROPERTIES_SOURCE_NAME =
-      "Config resource 'class path resource [ecuacion-tool-command-api.properties]' "
+      "Config resource 'class path resource [ecuacion-tool-command-api-scripts.properties]' "
           + "via location 'test'";
 
   private static CommandApiService newService(String scriptDefinitionValue) {
@@ -69,7 +69,7 @@ class CommandApiServiceTest {
   @Test
   void constructorThrowsWhenScriptPropertiesFileIsAbsent() {
     // No PropertySource matching SCRIPT_PROPERTIES_SOURCE_NAME_MARKER is registered at all,
-    // simulating ecuacion-tool-command-api.properties missing entirely.
+    // simulating ecuacion-tool-command-api-scripts.properties missing entirely.
     MockEnvironment env = new MockEnvironment();
     env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
 
@@ -77,7 +77,7 @@ class CommandApiServiceTest {
         assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
 
     assertTrue(
-        Objects.requireNonNull(ex.getMessage()).contains("ecuacion-tool-command-api.properties"));
+        Objects.requireNonNull(ex.getMessage()).contains("ecuacion-tool-command-api-scripts.properties"));
   }
 
   @Test
