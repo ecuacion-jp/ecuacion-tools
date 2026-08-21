@@ -177,9 +177,8 @@ class CommandApiControllerTest {
    * ({@code BCRYPT}) — the file on disk holds the hash, while callers still present the plain
    * value in the {@code X-Api-Key} header.
    */
-  @SuppressWarnings("null")
   private static String bcryptHash(String plainKey) {
-    return new BCryptPasswordEncoder().encode(plainKey);
+    return Objects.requireNonNull(new BCryptPasswordEncoder().encode(plainKey));
   }
 
   // When neither access-control property is configured, api-key-required defaults to true while
