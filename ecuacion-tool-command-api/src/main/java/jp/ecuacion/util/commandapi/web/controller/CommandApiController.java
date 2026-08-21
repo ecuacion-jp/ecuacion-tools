@@ -45,14 +45,14 @@ public class CommandApiController {
    *     {@code true}) — this exists purely as a manual-testing convenience (e.g. from a browser
    *     or a bare {@code curl}, without having to set a header), not for production use. Whether
    *     a given script accepts GET here follows the same {@code GET:} / {@code POST:} /
-   *     {@code ALL:} declaration as {@code api/key/executeScript} (see
+   *     {@code ALL:} declaration as {@code api/key/execute} (see
    *     {@code CommandApiService}); scripts with no prefix, or an explicit {@code POST:} prefix,
    *     reject GET here too — see {@link #executeCommandByPost}. For programmatic / production
    *     access, use {@link #executeCommandByKeyGet} or {@link #executeCommandByKeyPost} on
-   *     {@code api/key/executeScript} instead.</p>
+   *     {@code api/key/execute} instead.</p>
    *
    * @param scriptId It's the key to the script file path defined
-   *     in {@code ecuacion-tool-command-api.properties}.<br>
+   *     in {@code ecuacion-tool-command-api-scripts.properties}.<br>
    *     Since it's unsecure for API to be able to execute any scripts,
    *     executable scripts from API must be pre-defined.
    * @param parameters parameters given to the script.
@@ -63,7 +63,7 @@ public class CommandApiController {
    *     (parameters are splitted at "," and each csv element will be an parameter.)
    * @throws Exception Exception
    */
-  @GetMapping("api/public/executeScript")
+  @GetMapping("api/public/execute")
   public Map<String, String> executeCommandByGet(@RequestParam String scriptId,
       @RequestParam(required = false) String parameters) throws Exception {
 
@@ -75,14 +75,14 @@ public class CommandApiController {
    *
    * <p>See {@link #executeCommandByGet} for when this endpoint is reachable and why it exists.
    *     Whether a given script accepts POST here follows the same {@code GET:} / {@code POST:} /
-   *     {@code ALL:} declaration as {@code api/key/executeScript}; scripts with an explicit
+   *     {@code ALL:} declaration as {@code api/key/execute}; scripts with an explicit
    *     {@code GET:} prefix reject POST here.</p>
    *
    * @param scriptId see {@link #executeCommandByGet}
    * @param parameters see {@link #executeCommandByGet}
    * @throws Exception Exception
    */
-  @PostMapping("api/public/executeScript")
+  @PostMapping("api/public/execute")
   public Map<String, String> executeCommandByPost(@RequestParam String scriptId,
       @RequestParam(required = false) String parameters) throws Exception {
 
@@ -97,15 +97,16 @@ public class CommandApiController {
    *     (checked against the application-registered
    *     {@code SplibApiKeyExpectedValueProvider} bean) before this method is ever invoked. On top
    *     of that, the script's own definition must declare itself GET-reachable via a
-   *     {@code GET:} or {@code ALL:} prefix in {@code ecuacion-tool-command-api.properties} (see
-   *     {@code CommandApiService}); scripts with no prefix, or an explicit {@code POST:} prefix,
+   *     {@code GET:} or {@code ALL:} prefix in {@code ecuacion-tool-command-api-scripts.properties}
+   *     (see {@code CommandApiService}); scripts with no prefix, or an explicit {@code POST:}
+   *     prefix,
    *     reject GET here even with a valid key.</p>
    *
    * @param scriptId see {@link #executeCommandByGet}
    * @param parameters see {@link #executeCommandByGet}
    * @throws Exception Exception
    */
-  @GetMapping("api/key/executeScript")
+  @GetMapping("api/key/execute")
   public Map<String, String> executeCommandByKeyGet(@RequestParam String scriptId,
       @RequestParam(required = false) String parameters) throws Exception {
 
@@ -124,7 +125,7 @@ public class CommandApiController {
    *     narrowed to {@code GET:} only.</p>
    *
    * @param scriptId It's the key to the script file path defined
-   *     in {@code ecuacion-tool-command-api.properties}.<br>
+   *     in {@code ecuacion-tool-command-api-scripts.properties}.<br>
    *     Since it's unsecure for API to be able to execute any scripts,
    *     executable scripts from API must be pre-defined.
    * @param parameters parameters given to the script.
@@ -135,7 +136,7 @@ public class CommandApiController {
    *     (parameters are splitted at "," and each csv element will be an parameter.)
    * @throws Exception Exception
    */
-  @PostMapping("api/key/executeScript")
+  @PostMapping("api/key/execute")
   public Map<String, String> executeCommandByKeyPost(@RequestParam String scriptId,
       @RequestParam(required = false) String parameters) throws Exception {
 
