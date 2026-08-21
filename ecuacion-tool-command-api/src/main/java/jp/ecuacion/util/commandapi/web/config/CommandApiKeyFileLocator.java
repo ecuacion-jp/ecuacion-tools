@@ -32,15 +32,15 @@ import org.springframework.core.env.Environment;
  *     {@code ${ENV_VAR}} resolved) is returned as-is, even if no file exists there yet —
  *     existence is validated lazily, per request, by {@link CommandApiKeyProvider}. When unset,
  *     the conventional locations next to the deployed war are checked, mirroring where
- *     {@code ecuacion-tool-command-api.properties} itself is searched for, and the first one that
- *     actually exists is returned.</p>
+ *     {@code ecuacion-tool-command-api-scripts.properties} itself is searched for, and the
+ *     first one that actually exists is returned.</p>
  */
 public final class CommandApiKeyFileLocator {
 
   public static final String PROP_API_KEY_FILE_PATH =
       "jp.ecuacion.tool.command-api.api-key-file-path";
 
-  public static final String DEFAULT_FILE_NAME = "ecuacion-tool-command-api-key.txt";
+  public static final String DEFAULT_FILE_NAME = "ecuacion-tool-command-api-keys.txt";
 
   private CommandApiKeyFileLocator() {}
 

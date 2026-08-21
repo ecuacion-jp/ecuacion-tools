@@ -32,7 +32,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Supplies the expected API-key values read from the file resolved by
- * {@link CommandApiKeyFileLocator}, backing {@code api/key/executeScript} authentication
+ * {@link CommandApiKeyFileLocator}, backing {@code api/key/execute} authentication
  * (see {@link jp.ecuacion.splib.rest.config.SplibRestSecurityConfig}).
  *
  * <p>The file may contain more than one key, one per line, so that individual keys (e.g. one
@@ -84,7 +84,7 @@ public class CommandApiKeyProvider implements SplibApiKeyExpectedValueProvider {
     if (resolvedPath == null) {
       dtlLogger.warn("'" + CommandApiKeyFileLocator.PROP_API_KEY_FILE_PATH + "' is not "
           + "configured, and no '" + CommandApiKeyFileLocator.DEFAULT_FILE_NAME + "' file was "
-          + "found in ./config/ or next to the deployed war. All api/key/executeScript requests "
+          + "found in ./config/ or next to the deployed war. All api/key/execute requests "
           + "are rejected.");
       return null;
     }

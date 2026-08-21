@@ -30,7 +30,7 @@ public class AppRestSecurityConfig extends SplibRestSecurityConfig {
   /**
    * Constructs a new instance.
    *
-   * @param apiKeyExpectedValueProvider backs {@code api/key/executeScript} authentication; see
+   * @param apiKeyExpectedValueProvider backs {@code api/key/execute} authentication; see
    *     {@link CommandApiKeyProvider}
    */
   public AppRestSecurityConfig(SplibApiKeyExpectedValueProvider apiKeyExpectedValueProvider) {

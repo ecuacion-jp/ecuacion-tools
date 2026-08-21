@@ -47,8 +47,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Tests access control added to {@link CommandApiController}: the {@code api-key-required} gated
- * {@code api/public/executeScript} GET/POST endpoints, and the always-key-required
- * {@code api/key/executeScript} GET/POST endpoints (authenticated by ecuacion-splib-rest's
+ * {@code api/public/execute} GET/POST endpoints, and the always-key-required
+ * {@code api/key/execute} GET/POST endpoints (authenticated by ecuacion-splib-rest's
  * {@link SplibApiKeyAuthenticationFilter} via
  * {@link jp.ecuacion.util.commandapi.web.config.CommandApiKeyProvider}), including the per-script
  * {@code GET:} / {@code POST:} / {@code ALL:} method restriction.
@@ -83,7 +83,7 @@ class CommandApiControllerTest {
   /**
    * Registers script definitions under a {@code PropertySource} name matching
    * {@code CommandApiService.SCRIPT_PROPERTIES_SOURCE_NAME_MARKER}, so they resolve the same
-   * way real {@code ecuacion-tool-command-api.properties} entries would — as opposed to
+   * way real {@code ecuacion-tool-command-api-scripts.properties} entries would — as opposed to
    * {@code @DynamicPropertySource}, whose "Dynamic Test Properties" source does not match that
    * filter. The other test-only properties ({@code api-key-required}, {@code api-key-file-path})
    * are not scoped that way in production, so they stay on {@code @DynamicPropertySource}.
@@ -98,7 +98,7 @@ class CommandApiControllerTest {
       Objects.requireNonNull(applicationContext).getEnvironment().getPropertySources()
           .addFirst(
               new MapPropertySource(
-                  "Config resource 'class path resource [ecuacion-tool-command-api.properties]' "
+                  "Config resource 'class path resource [ecuacion-tool-command-api-scripts.properties]' "
                       + "via location 'test'",
                   Map.copyOf(scriptDefinitions())));
     }
@@ -117,7 +117,7 @@ class CommandApiControllerTest {
   /**
    * Registers one script per {@code GET:} / {@code POST:} / {@code ALL:} prefix (plus a
    * mixed-case variant of each and a no-prefix one), to exercise per-script method restriction on
-   * {@code api/key/executeScript}. The mixed-case variants (e.g. {@code gEt:}, not just
+   * {@code api/key/execute}. The mixed-case variants (e.g. {@code gEt:}, not just
    * {@code get:}) verify prefix matching upper-cases and compares rather than only recognizing
    * one specific alternate casing.
    */
@@ -190,7 +190,7 @@ class CommandApiControllerTest {
   // itself expected to fail doesn't fit this class's MockMvc-per-nested-class pattern, so the
   // scenario is intentionally not duplicated here.
 
-  /** A correctly configured api-key file: {@code api/key/executeScript} POST behavior. */
+  /** A correctly configured api-key file: {@code api/key/execute} POST behavior. */
   @Nested
   @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
   @AutoConfigureMockMvc
@@ -210,20 +210,20 @@ class CommandApiControllerTest {
 
     @Test
     void getIsForbidden() throws Exception {
-      mockMvc.perform(get("/api/public/executeScript").param("scriptId", SCRIPT_ID))
+      mockMvc.perform(get("/api/public/execute").param("scriptId", SCRIPT_ID))
           .andExpect(status().isForbidden());
     }
 
     @Test
     void postWithoutApiKeyHeaderIsUnauthorized() throws Exception {
-      mockMvc.perform(post("/api/key/executeScript").param("scriptId", SCRIPT_ID))
+      mockMvc.perform(post("/api/key/execute").param("scriptId", SCRIPT_ID))
           .andExpect(status().isUnauthorized());
     }
 
     @Test
     void postWithWrongApiKeyHeaderIsUnauthorized() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, "wrong-key"))
           .andExpect(status().isUnauthorized());
     }
@@ -231,7 +231,7 @@ class CommandApiControllerTest {
     @Test
     void postWithCorrectApiKeyHeaderSucceeds() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"))
           .andExpect(jsonPath("$.stdout").value("hello"))
@@ -241,7 +241,7 @@ class CommandApiControllerTest {
     @Test
     void getWithCorrectApiKeyHeaderIsForbiddenSinceScriptDefaultsToPostOnly() throws Exception {
       mockMvc
-          .perform(get("/api/key/executeScript").param("scriptId", SCRIPT_ID)
+          .perform(get("/api/key/execute").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isForbidden());
     }
@@ -275,7 +275,7 @@ class CommandApiControllerTest {
     @Test
     void postWithFirstApiKeyHeaderSucceeds() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
     }
@@ -283,7 +283,7 @@ class CommandApiControllerTest {
     @Test
     void postWithSecondApiKeyHeaderSucceeds() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, OTHER_API_KEY))
           .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
     }
@@ -291,7 +291,7 @@ class CommandApiControllerTest {
     @Test
     void postWithWrongApiKeyHeaderIsUnauthorized() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, "wrong-key"))
           .andExpect(status().isUnauthorized());
     }
@@ -320,7 +320,7 @@ class CommandApiControllerTest {
     @Test
     void postIsUnauthorizedAndDoesNotLeakServerConfiguration() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isUnauthorized())
           .andExpect(content().string(not(Matchers.containsString(missingFilePath.toString()))));
@@ -329,11 +329,11 @@ class CommandApiControllerTest {
 
   /**
    * {@code api-key-required=false} enables both {@code GET} and {@code POST} on
-   * {@code api/public/executeScript}; which of the two a given script accepts is governed by the
+   * {@code api/public/execute}; which of the two a given script accepts is governed by the
    * exact same {@code GET:} / {@code POST:} / {@code ALL:} declaration as
-   * {@code api/key/executeScript} (see {@link WhenScriptDeclaresAnAllowedMethod}) — the only
+   * {@code api/key/execute} (see {@link WhenScriptDeclaresAnAllowedMethod}) — the only
    * difference from that endpoint is that no {@code X-Api-Key} is required here.
-   * {@code api/key/executeScript} itself is untouched by this flag and must still require a
+   * {@code api/key/execute} itself is untouched by this flag and must still require a
    * valid {@code X-Api-Key} regardless. No api-key file is configured in this class, so every
    * request there is necessarily unauthorized.
    */
@@ -353,7 +353,7 @@ class CommandApiControllerTest {
 
     @Test
     void getOnGetOnlyScriptSucceeds() throws Exception {
-      mockMvc.perform(get("/api/public/executeScript").param("scriptId", GET_ONLY_SCRIPT_ID))
+      mockMvc.perform(get("/api/public/execute").param("scriptId", GET_ONLY_SCRIPT_ID))
           .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"))
           .andExpect(jsonPath("$.stdout").value("hello"))
           .andExpect(jsonPath("$.stderr").value(""));
@@ -361,47 +361,47 @@ class CommandApiControllerTest {
 
     @Test
     void getOnPostOnlyScriptIsForbidden() throws Exception {
-      mockMvc.perform(get("/api/public/executeScript").param("scriptId", SCRIPT_ID))
+      mockMvc.perform(get("/api/public/execute").param("scriptId", SCRIPT_ID))
           .andExpect(status().isForbidden());
     }
 
     @Test
     void postOnPostOnlyScriptSucceeds() throws Exception {
-      mockMvc.perform(post("/api/public/executeScript").param("scriptId", SCRIPT_ID))
+      mockMvc.perform(post("/api/public/execute").param("scriptId", SCRIPT_ID))
           .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
     }
 
     @Test
     void postOnGetOnlyScriptIsForbidden() throws Exception {
-      mockMvc.perform(post("/api/public/executeScript").param("scriptId", GET_ONLY_SCRIPT_ID))
+      mockMvc.perform(post("/api/public/execute").param("scriptId", GET_ONLY_SCRIPT_ID))
           .andExpect(status().isForbidden());
     }
 
     @Test
     void getAndPostOnAllMethodsScriptSucceed() throws Exception {
-      mockMvc.perform(get("/api/public/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID))
+      mockMvc.perform(get("/api/public/execute").param("scriptId", ALL_METHODS_SCRIPT_ID))
           .andExpect(status().isOk());
-      mockMvc.perform(post("/api/public/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID))
+      mockMvc.perform(post("/api/public/execute").param("scriptId", ALL_METHODS_SCRIPT_ID))
           .andExpect(status().isOk());
     }
 
     @Test
     void postWithoutApiKeyHeaderIsStillUnauthorized() throws Exception {
-      mockMvc.perform(post("/api/key/executeScript").param("scriptId", SCRIPT_ID))
+      mockMvc.perform(post("/api/key/execute").param("scriptId", SCRIPT_ID))
           .andExpect(status().isUnauthorized());
     }
 
     @Test
     void getWithAllowlistedParameterSucceeds() throws Exception {
       mockMvc
-          .perform(get("/api/public/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID)
+          .perform(get("/api/public/execute").param("scriptId", ALL_METHODS_SCRIPT_ID)
               .param("parameters", "param1,param2"))
           .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
     }
 
     /**
      * Regression test: {@code scriptId} must resolve only against the dedicated
-     * {@code ecuacion-tool-command-api.properties}-backed property source, not the full merged
+     * {@code ecuacion-tool-command-api-scripts.properties}-backed property source, not the full merged
      * {@code Environment} — otherwise a {@code scriptId} that happens to match an unrelated JVM
      * system property or OS environment variable name would be treated as a valid script
      * definition, and its (possibly sensitive) value would be echoed back in the "not found"
@@ -414,7 +414,7 @@ class CommandApiControllerTest {
       String unrelatedValue = "s3cr3t-value-that-must-not-leak";
       System.setProperty(unrelatedKey, unrelatedValue);
       try {
-        mockMvc.perform(get("/api/public/executeScript").param("scriptId", unrelatedKey))
+        mockMvc.perform(get("/api/public/execute").param("scriptId", unrelatedKey))
             .andExpect(status().isBadRequest())
             .andExpect(content().string(not(Matchers.containsString(unrelatedValue))));
       } finally {
@@ -424,13 +424,13 @@ class CommandApiControllerTest {
 
     @Test
     void getWithShellMetacharacterInParameterIsRejected() throws Exception {
-      mockMvc.perform(get("/api/public/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID)
+      mockMvc.perform(get("/api/public/execute").param("scriptId", ALL_METHODS_SCRIPT_ID)
           .param("parameters", "param1 & calc.exe")).andExpect(status().isBadRequest());
     }
   }
 
   /**
-   * With a valid API key, {@code api/key/executeScript} enforces each script's declared
+   * With a valid API key, {@code api/key/execute} enforces each script's declared
    * {@code GET:} / {@code POST:} / {@code ALL:} method restriction (case-insensitive prefix; no
    * prefix means POST only).
    */
@@ -453,7 +453,7 @@ class CommandApiControllerTest {
     @Test
     void getOnGetOnlyScriptSucceeds() throws Exception {
       mockMvc
-          .perform(get("/api/key/executeScript").param("scriptId", GET_ONLY_SCRIPT_ID)
+          .perform(get("/api/key/execute").param("scriptId", GET_ONLY_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk());
     }
@@ -461,7 +461,7 @@ class CommandApiControllerTest {
     @Test
     void postOnGetOnlyScriptIsForbidden() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", GET_ONLY_SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", GET_ONLY_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isForbidden());
     }
@@ -469,7 +469,7 @@ class CommandApiControllerTest {
     @Test
     void postOnPostOnlyScriptSucceeds() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", POST_ONLY_SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", POST_ONLY_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk());
     }
@@ -477,7 +477,7 @@ class CommandApiControllerTest {
     @Test
     void getOnPostOnlyScriptIsForbidden() throws Exception {
       mockMvc
-          .perform(get("/api/key/executeScript").param("scriptId", POST_ONLY_SCRIPT_ID)
+          .perform(get("/api/key/execute").param("scriptId", POST_ONLY_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isForbidden());
     }
@@ -485,7 +485,7 @@ class CommandApiControllerTest {
     @Test
     void getOnAllMethodsScriptSucceeds() throws Exception {
       mockMvc
-          .perform(get("/api/key/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID)
+          .perform(get("/api/key/execute").param("scriptId", ALL_METHODS_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk());
     }
@@ -493,7 +493,7 @@ class CommandApiControllerTest {
     @Test
     void postOnAllMethodsScriptSucceeds() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", ALL_METHODS_SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", ALL_METHODS_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk());
     }
@@ -501,7 +501,7 @@ class CommandApiControllerTest {
     @Test
     void mixedCaseGetPrefixIsRecognized() throws Exception {
       mockMvc
-          .perform(get("/api/key/executeScript").param("scriptId", MIXED_CASE_GET_SCRIPT_ID)
+          .perform(get("/api/key/execute").param("scriptId", MIXED_CASE_GET_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk());
     }
@@ -509,7 +509,7 @@ class CommandApiControllerTest {
     @Test
     void postOnMixedCaseGetPrefixScriptIsForbidden() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", MIXED_CASE_GET_SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", MIXED_CASE_GET_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isForbidden());
     }
@@ -517,7 +517,7 @@ class CommandApiControllerTest {
     @Test
     void mixedCasePostPrefixIsRecognized() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", MIXED_CASE_POST_SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", MIXED_CASE_POST_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk());
     }
@@ -525,7 +525,7 @@ class CommandApiControllerTest {
     @Test
     void getOnMixedCasePostPrefixScriptIsForbidden() throws Exception {
       mockMvc
-          .perform(get("/api/key/executeScript").param("scriptId", MIXED_CASE_POST_SCRIPT_ID)
+          .perform(get("/api/key/execute").param("scriptId", MIXED_CASE_POST_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isForbidden());
     }
@@ -533,7 +533,7 @@ class CommandApiControllerTest {
     @Test
     void mixedCaseAllPrefixIsRecognizedOnGet() throws Exception {
       mockMvc
-          .perform(get("/api/key/executeScript").param("scriptId", MIXED_CASE_ALL_SCRIPT_ID)
+          .perform(get("/api/key/execute").param("scriptId", MIXED_CASE_ALL_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk());
     }
@@ -541,7 +541,7 @@ class CommandApiControllerTest {
     @Test
     void mixedCaseAllPrefixIsRecognizedOnPost() throws Exception {
       mockMvc
-          .perform(post("/api/key/executeScript").param("scriptId", MIXED_CASE_ALL_SCRIPT_ID)
+          .perform(post("/api/key/execute").param("scriptId", MIXED_CASE_ALL_SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
           .andExpect(status().isOk());
     }
@@ -565,7 +565,7 @@ class CommandApiControllerTest {
     @Test
     void stdoutAndStderrAreCapturedSeparately() throws Exception {
       mockMvc
-          .perform(get("/api/public/executeScript").param("scriptId",
+          .perform(get("/api/public/execute").param("scriptId",
               StdoutAndStderrScriptPropertySourceInitializer.STDOUT_AND_STDERR_SCRIPT_ID))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.stdout").value("out-line"))

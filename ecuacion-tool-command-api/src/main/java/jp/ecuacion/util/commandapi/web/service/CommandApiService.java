@@ -68,7 +68,7 @@ public class CommandApiService {
   /**
    * A substring unique to the {@link PropertySource} name Spring Boot assigns to a config file
    * loaded via {@code spring.config.name} (see {@code WebApplication}) — e.g. {@code "Config
-   * resource 'class path resource [ecuacion-tool-command-api.properties]' via location
+   * resource 'class path resource [ecuacion-tool-command-api-scripts.properties]' via location
    * 'optional:classpath:/'"}. Used to resolve {@code scriptId} only from this dedicated file,
    * not from the full merged {@link Environment}
    * (which also includes {@code application.properties},
@@ -77,13 +77,13 @@ public class CommandApiService {
    * {@code AWS_SECRET_ACCESS_KEY}) and leak its value via the "not found" error response.
    */
   private static final String SCRIPT_PROPERTIES_SOURCE_NAME_MARKER =
-      "[ecuacion-tool-command-api.properties]";
+      "[ecuacion-tool-command-api-scripts.properties]";
 
   /**
-   * Which HTTP method(s) a script definition allows on {@code executeScript}, expressed by an
+   * Which HTTP method(s) a script definition allows on {@code execute}, expressed by an
    * optional {@code GET:} / {@code POST:} / {@code ALL:} prefix on the script definition's value
    * (case-insensitive); no prefix means {@link #POST}. Enforced identically on both
-   * {@code api/key/executeScript} and {@code api/public/executeScript} (once the latter is
+   * {@code api/key/execute} and {@code api/public/execute} (once the latter is
    * enabled via {@code api-key-required=false}) — the two endpoints differ only in whether an
    * {@code X-Api-Key} is required, not in which methods a script accepts.
    */
@@ -108,8 +108,9 @@ public class CommandApiService {
   /**
    * Constructs a new instance.
    *
-   * @throws IllegalStateException if {@code ecuacion-tool-command-api.properties} is missing
-   *     altogether (no scriptId could ever be resolved), or if {@code api-key-required} is true
+   * @throws IllegalStateException if {@code ecuacion-tool-command-api-scripts.properties} is
+   *     missing altogether (no scriptId could ever be resolved), or if {@code api-key-required}
+   *     is true
    *     (explicitly or by default) while {@code api-key-file-path} is unset (no scriptId could
    *     ever be executed through either endpoint) — both states leave this module unable to do
    *     anything useful, so startup is failed fast rather than deferring to a per-request error.
@@ -120,17 +121,17 @@ public class CommandApiService {
     if (env.getPropertySources().stream()
         .noneMatch(source -> source.getName().contains(SCRIPT_PROPERTIES_SOURCE_NAME_MARKER))) {
       String message =
-          "ecuacion-tool-command-api.properties was not found. Without it no scriptId can ever "
-              + "be resolved, so this module cannot execute any script. Place the file next to "
-              + "the deployed jar/war (e.g. under ./config/) or add it to the classpath.";
+          "ecuacion-tool-command-api-scripts.properties was not found. Without it no scriptId "
+              + "can ever be resolved, so this module cannot execute any script. Place the file "
+              + "next to the deployed jar/war (e.g. under ./config/) or add it to the classpath.";
       dtlLogger.error(message);
       throw new IllegalStateException(message);
     }
 
     if (!env.containsProperty(PROP_API_KEY_REQUIRED)) {
       dtlLogger.warn("'" + PROP_API_KEY_REQUIRED + "' is not configured. Falling back to "
-          + "the secure default (true): the api/public/executeScript GET endpoint (no API key "
-          + "needed) is disabled; use api/key/executeScript with a valid 'X-Api-Key' header "
+          + "the secure default (true): the api/public/execute GET endpoint (no API key "
+          + "needed) is disabled; use api/key/execute with a valid 'X-Api-Key' header "
           + "instead. Set this property explicitly to silence this warning.");
     }
 
@@ -139,14 +140,14 @@ public class CommandApiService {
     if (this.apiKeyRequired && CommandApiKeyFileLocator.resolve(env) == null) {
       String message =
           "'" + PROP_API_KEY_REQUIRED + "' is true (either explicitly set, or defaulted for not "
-              + "being configured), which disables the API-key-less api/public/executeScript "
+              + "being configured), which disables the API-key-less api/public/execute "
               + "endpoint. But '" + CommandApiKeyFileLocator.PROP_API_KEY_FILE_PATH + "' is not "
               + "configured, and no '" + CommandApiKeyFileLocator.DEFAULT_FILE_NAME + "' file was "
               + "found in ./config/ or next to the deployed war either, so no key presented to "
-              + "api/key/executeScript can ever match and no script can ever be executed through "
+              + "api/key/execute can ever match and no script can ever be executed through "
               + "either endpoint. Set '" + CommandApiKeyFileLocator.PROP_API_KEY_FILE_PATH
               + "', place a '" + CommandApiKeyFileLocator.DEFAULT_FILE_NAME + "' file there, or "
-              + "set '" + PROP_API_KEY_REQUIRED + "=false' to allow api/public/executeScript "
+              + "set '" + PROP_API_KEY_REQUIRED + "=false' to allow api/public/execute "
               + "instead.";
       dtlLogger.error(message);
       throw new IllegalStateException(message);
@@ -166,9 +167,9 @@ public class CommandApiService {
    *
    * @param requestMethod the HTTP method the request arrived on ({@code GET} or {@code POST}),
    *     checked against the script's declared {@code GET:} / {@code POST:} / {@code ALL:} prefix
-   *     in {@code ecuacion-tool-command-api.properties}; no prefix means {@code POST} only.
+   *     in {@code ecuacion-tool-command-api-scripts.properties}; no prefix means {@code POST} only.
    * @param scriptId It's the key to the script file path defined
-   *     in {@code ecuacion-tool-command-api.properties}.<br>
+   *     in {@code ecuacion-tool-command-api-scripts.properties}.<br>
    *     Since it's unsecure for API to be able to execute any scripts,
    *     executable scripts from API must be pre-defined.
    * @param parameters parameters given to the script.
@@ -185,7 +186,7 @@ public class CommandApiService {
     if (apiKeyRequired) {
       throwException(HttpStatus.FORBIDDEN,
           "Access without an API key is disabled. Set '" + PROP_API_KEY_REQUIRED
-              + "=false' to allow it, or use api/key/executeScript "
+              + "=false' to allow it, or use api/key/execute "
               + "with a valid 'X-Api-Key' header.");
     }
 
@@ -204,7 +205,7 @@ public class CommandApiService {
    *
    * @param requestMethod the HTTP method the request arrived on ({@code GET} or {@code POST}),
    *     checked against the script's declared {@code GET:} / {@code POST:} / {@code ALL:} prefix
-   *     in {@code ecuacion-tool-command-api.properties}; no prefix means {@code POST} only.
+   *     in {@code ecuacion-tool-command-api-scripts.properties}; no prefix means {@code POST} only.
    * @param scriptId see {@link #executeScriptWithoutApiKey}
    * @param parameters see {@link #executeScriptWithoutApiKey}
    * @throws Exception Exception
@@ -250,7 +251,8 @@ public class CommandApiService {
       throwException(HttpStatus.FORBIDDEN,
           "scriptId '" + scriptId + "' does not allow " + requestMethod
               + " access. Add a matching 'GET:' / 'POST:' / 'ALL:' "
-              + "prefix to its definition in ecuacion-tool-command-api.properties to allow it.");
+              + "prefix to its definition in ecuacion-tool-command-api-scripts.properties to "
+              + "allow it.");
     }
 
     String scriptFilePath = scriptDefinition.scriptFilePath();
@@ -384,7 +386,7 @@ public class CommandApiService {
 
   /**
    * Resolves {@code scriptId} to a {@link ScriptDefinition}, consulting only the
-   * {@link PropertySource}s backed by {@code ecuacion-tool-command-api.properties} (see
+   * {@link PropertySource}s backed by {@code ecuacion-tool-command-api-scripts.properties} (see
    * {@link #SCRIPT_PROPERTIES_SOURCE_NAME_MARKER}) rather than the full merged
    * {@link org.springframework.core.env.Environment}.
    *
@@ -472,7 +474,7 @@ public class CommandApiService {
     } catch (ViolationException e) {
       // Thrown for a malformed "${...}" (unmatched braces) or a referenced environment
       // variable that isn't set — both are a misconfigured script.<id> entry in
-      // ecuacion-tool-command-api.properties, not a client-caused error.
+      // ecuacion-tool-command-api-scripts.properties, not a client-caused error.
       throw serverConfigError(
           "Failed to resolve environment variable(s) for scriptId '" + scriptId + "' ("
               + string + "): " + describeViolations(e),
