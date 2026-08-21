@@ -33,7 +33,7 @@ public class WebApplication extends SpringBootServletInitializer {
    * deployed to an existing Tomcat instance, not just when launched standalone.
    */
   private static final String SPRING_CONFIG_NAME =
-      "spring.config.name=application,ecuacion-tool-command-api";
+      "spring.config.name=application,ecuacion-tool-command-api-scripts";
 
   /**
    * Provides main method.

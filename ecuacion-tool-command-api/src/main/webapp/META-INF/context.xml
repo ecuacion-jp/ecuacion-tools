@@ -17,32 +17,25 @@
 
 -->
 <!--
-  PREREQUISITE: The following directory must exist on the server before deployment.
-  If it does not exist, Tomcat will fail to deploy with an IllegalArgumentException.
-  (Creating the app-specific directory below with "mkdir -p" also creates its
-  ${catalina.base}/app-conf parent as a side effect, so in practice only one command
-  is needed.)
+  Place environment-specific config files (application.properties,
+  ecuacion-tool-command-api-scripts.properties, logback-spring.xml, etc.) under:
 
     ${catalina.base}/app-conf/ecuacion-tool-command-api/
       (e.g. /usr/local/tomcat/app-conf/ecuacion-tool-command-api/)
 
-  Place environment-specific config files (application.properties,
-  ecuacion-tool-command-api.properties, logback-spring.xml, etc.) there.
+  This directory doesn't need to exist beforehand — SplibAppConfDirLifecycleListener
+  (see below) creates it at startup if missing, instead of Tomcat failing to deploy
+  with an IllegalArgumentException the way a plain <PreResources> would.
 
-  ${catalina.base}/app-conf/ is also mounted below, so when only this one WAR is
-  deployed on the Tomcat instance, files may instead be placed directly under
-  app-conf/ without the app-specific subdirectory. A file present in both is
-  resolved from the app-specific directory first (see the PreResources order below).
+  This directory's location can be overridden per deployment, without editing this
+  file, via the jp.ecuacion.tool.command-api.app-conf-dir system property (e.g. in
+  Tomcat's setenv.sh) — e.g. point it directly at ${catalina.base}/app-conf if you'd
+  rather skip the app-specific subdirectory. See SplibAppConfDirLifecycleListener in
+  ecuacion-splib-core for details.
 -->
 <Context>
-	<Resources>
-		<PreResources className="org.apache.catalina.webresources.DirResourceSet"
-				base="${catalina.base}/app-conf/ecuacion-tool-command-api"
-				webAppMount="/WEB-INF/classes"
-				readOnly="true"/>
-		<PreResources className="org.apache.catalina.webresources.DirResourceSet"
-				base="${catalina.base}/app-conf"
-				webAppMount="/WEB-INF/classes"
-				readOnly="true"/>
-	</Resources>
+	<Listener className="jp.ecuacion.splib.core.tomcat.SplibAppConfDirLifecycleListener"
+			customPathPropertyName="jp.ecuacion.tool.command-api.app-conf-dir"
+			defaultPath="${catalina.base}/app-conf/ecuacion-tool-command-api"
+			createDefaultPathIfMissing="true"/>
 </Context>
