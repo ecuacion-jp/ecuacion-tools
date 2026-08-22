@@ -31,7 +31,7 @@ import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
-import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
+import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -91,19 +91,19 @@ abstract class AbstractHousekeepDbTaskletTest {
 
   private Path buildExcelFile(List<String[]> dbConnectionRows, List<String[]> housekeepRows,
       List<String[]> relatedRows, List<String[]> searchRows) throws IOException {
-    LangExcel lang = new LangExcel(Locale.of("en"));
+    LangExcelUtil lang = new LangExcelUtil(Locale.of("en"));
 
     try (XSSFWorkbook wb = new XSSFWorkbook()) {
       writeSheet(wb, "Info", new String[] {"item", "value"},
           List.<String[]>of(new String[] {"locale", "en"}, new String[] {"format-version", "1.3.0"},
               new String[] {"database", protocol()}));
-      writeSheet(wb, lang.get(LangExcel.DB_CONNECTION_SETTINGS),
+      writeSheet(wb, lang.get(LangExcelUtil.DB_CONNECTION_SETTINGS),
           lang.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS), dbConnectionRows);
-      writeSheet(wb, lang.get(LangExcel.HOUSEKEEP_DB_SETTINGS),
+      writeSheet(wb, lang.get(LangExcelUtil.HOUSEKEEP_DB_SETTINGS),
           lang.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS), housekeepRows);
-      writeSheet(wb, lang.get(LangExcel.RELATED_TABLE_SETTINGS),
+      writeSheet(wb, lang.get(LangExcelUtil.RELATED_TABLE_SETTINGS),
           lang.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS), relatedRows);
-      writeSheet(wb, lang.get(LangExcel.SEARCH_CONDITION_SETTINGS),
+      writeSheet(wb, lang.get(LangExcelUtil.SEARCH_CONDITION_SETTINGS),
           lang.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS), searchRows);
 
       Path path = Files.createTempFile("housekeep-db-test-", ".xlsx");
