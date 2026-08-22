@@ -407,4 +407,22 @@ abstract class AbstractHousekeepDbTaskletTest {
       assertThat(countRows("select count(*) from mt_b where rem_flg = true")).isEqualTo(1);
     }
   }
+
+  // -------------------------------------------------------------------------
+  // empty settings
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("empty settings")
+  class EmptySettings {
+
+    @Test
+    @DisplayName("with no rows in Housekeep DB Settings, finishes without error")
+    void finishesWithoutErrorWhenNoTasksConfigured() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")), List.of(),
+          List.of(), List.of());
+
+      runTasklet(excel);
+    }
+  }
 }
