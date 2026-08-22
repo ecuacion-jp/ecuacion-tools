@@ -17,7 +17,6 @@ package jp.ecuacion.tool.housekeepdb.tasklet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -28,7 +27,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
@@ -42,7 +40,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.scope.context.ChunkContext;
-import org.springframework.batch.core.scope.context.StepContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 
@@ -86,14 +83,8 @@ abstract class AbstractHousekeepDbTaskletTest {
 
   @SuppressWarnings("null")
   private static void runTasklet(Path excelFile) throws Exception {
-    StepContext stepContext = mock(StepContext.class);
-    when(stepContext.getJobParameters())
-        .thenReturn(Map.of("excelPath", excelFile.toString()));
-    ChunkContext chunkContext = mock(ChunkContext.class);
-    when(chunkContext.getStepContext()).thenReturn(stepContext);
-
-    RepeatStatus status =
-        new HousekeepDbTasklet().execute(mock(StepContribution.class), chunkContext);
+    RepeatStatus status = new HousekeepDbTasklet(excelFile.toString())
+        .execute(mock(StepContribution.class), mock(ChunkContext.class));
 
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
   }

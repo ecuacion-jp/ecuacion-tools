@@ -59,6 +59,7 @@ import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -67,9 +68,22 @@ import org.springframework.stereotype.Component;
 @Component
 public class HousekeepDbTasklet implements Tasklet {
 
+  public static final String PROP_EXCEL_PATH = "jp.ecuacion.tool.housekeep-db.excel-path";
+
   private static final int MAX_SELECT_LINES = 1000;
   private DetailLogger detailLogger = new DetailLogger(this);
   private @Nullable LangExcel lang;
+  private final @Nullable String excelPath;
+
+  /**
+   * Creates the tasklet, reading the excel file path from the {@link #PROP_EXCEL_PATH} property.
+   *
+   * @param excelPath the excel file path, or {@code null} if unset
+   */
+  public HousekeepDbTasklet(
+      @Value("${" + PROP_EXCEL_PATH + ":#{null}}") @Nullable String excelPath) {
+    this.excelPath = excelPath;
+  }
 
   /**
    * Executes the procedure.
@@ -78,7 +92,7 @@ public class HousekeepDbTasklet implements Tasklet {
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
 
-    String excelPath = getExcelPathFromParameter(chunkContext);
+    String excelPath = validateExcelPath();
 
     final Map<String, String> infoMap = getInfoMap(excelPath);
 
@@ -158,38 +172,37 @@ public class HousekeepDbTasklet implements Tasklet {
     return RepeatStatus.FINISHED;
   }
 
-  private String getExcelPathFromParameter(ChunkContext chunkContext) {
-    Map<String, Object> paramMap = chunkContext.getStepContext().getJobParameters();
-
-    String excelPath = (String) paramMap.get("excelPath");
-
-    if (excelPath == null) {
+  private String validateExcelPath() {
+    if (excelPath == null || Objects.requireNonNull(excelPath).isBlank()) {
       new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_NOT_SPECIFIED")).throwIfAny();
     }
-    Objects.requireNonNull(excelPath);
 
-    File excelFile = new File(excelPath);
+    String nonnullExcelPath = Objects.requireNonNull(excelPath);
+
+    File excelFile = new File(nonnullExcelPath);
     if (!excelFile.exists() || !excelFile.isFile()) {
       new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_NOT_FOUND")).throwIfAny();
     }
 
-    String extension =
-        excelPath.contains(".") ? excelPath.substring(excelPath.lastIndexOf(".")) : "";
+    String extension = nonnullExcelPath.contains(".")
+        ? nonnullExcelPath.substring(nonnullExcelPath.lastIndexOf("."))
+        : "";
     if (!extension.equalsIgnoreCase(".xlsx")) {
       new Violations()
           .add(new BusinessViolation("MSG_ERR_EXCEL_PATH_EXTENSION_NOT_EXPECTED", extension))
           .throwIfAny();
     }
 
-    try (Workbook workbook = ExcelReadUtil.openForRead(excelPath)) {
+    try (Workbook workbook = ExcelReadUtil.openForRead(nonnullExcelPath)) {
       // Only verifying the file can be opened as an excel file here.
       // Its content is read later.
     } catch (EncryptedDocumentException | IOException e) {
-      new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_CANNOT_OPEN", excelPath))
+      new Violations()
+          .add(new BusinessViolation("MSG_ERR_EXCEL_PATH_CANNOT_OPEN", nonnullExcelPath))
           .throwIfAny();
     }
 
-    return excelPath;
+    return nonnullExcelPath;
   }
 
   private String getMainSelectSql(HousekeepInfoBean info) {
@@ -200,9 +213,9 @@ public class HousekeepDbTasklet implements Tasklet {
         info.getWhereConditionInfoList().stream().map(e -> e.getConditionColumnInfo()).toList());
 
     if (info.timestampColumnDefines()) {
-      whereList.add(new ColumnAndValueStringBean(SqlUtil.getExpirationCondition(
-          info.getDbConnectionInfo().getProtocol(), info.getTimestampColumn(),
-          info.getDeleteTargetInDays())));
+      whereList.add(new ColumnAndValueStringBean(
+          SqlUtil.getExpirationCondition(info.getDbConnectionInfo().getProtocol(),
+              info.getTimestampColumn(), info.getDeleteTargetInDays())));
     }
 
     if (info.isSoftDelete()) {
@@ -417,8 +430,10 @@ public class HousekeepDbTasklet implements Tasklet {
   private String getDbConnectionUrl(DbConnectionInfoBean dbInfo) {
     // "currentSchema" is a postgresql-specific JDBC URL parameter; MySQL / MariaDB have no
     // equivalent (there, "database" and "schema" are the same thing).
-    String param = dbInfo.getProtocol().equals("postgresql") && StringUtils.isNotEmpty(
-        dbInfo.getSchema()) ? "?currentSchema=" + dbInfo.getSchema() : "";
+    String param =
+        dbInfo.getProtocol().equals("postgresql") && StringUtils.isNotEmpty(dbInfo.getSchema())
+            ? "?currentSchema=" + dbInfo.getSchema()
+            : "";
     return "jdbc:" + dbInfo.getProtocol() + "://" + dbInfo.getServer() + ":" + dbInfo.getPort()
         + "/" + dbInfo.getDatabase() + param;
   }
@@ -444,8 +459,8 @@ public class HousekeepDbTasklet implements Tasklet {
     try {
       dbConnectionInfoMap = new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
           DbConnectionInfoBean.class, langLocal.get(LangExcel.DB_CONNECTION_SETTINGS),
-          langLocal.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS))
-              .readToBean(filePath).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
+          langLocal.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath)
+              .stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -465,8 +480,7 @@ public class HousekeepDbTasklet implements Tasklet {
     List<HousekeepInfoBean> housekeepList =
         new StringOneLineHeaderExcelTableToBeanReader<HousekeepInfoBean>(HousekeepInfoBean.class,
             langLocal.get(LangExcel.HOUSEKEEP_DB_SETTINGS),
-            langLocal.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS))
-                .readToBean(filePath);
+            langLocal.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath);
     List<WhereConditionInfoBean> whereConditionList =
         new StringOneLineHeaderExcelTableToBeanReader<WhereConditionInfoBean>(
             WhereConditionInfoBean.class, langLocal.get(LangExcel.SEARCH_CONDITION_SETTINGS),
@@ -475,8 +489,7 @@ public class HousekeepDbTasklet implements Tasklet {
     List<RelatedTableInfoBean> relatedTableList =
         new StringOneLineHeaderExcelTableToBeanReader<RelatedTableInfoBean>(
             RelatedTableInfoBean.class, langLocal.get(LangExcel.RELATED_TABLE_SETTINGS),
-            langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS))
-                .readToBean(filePath);
+            langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath);
 
     // Set for detecting duplicate task IDs.
     Set<String> housekeepInfoTaskIdSet = new HashSet<>();
