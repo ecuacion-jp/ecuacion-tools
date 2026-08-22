@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jp.ecuacion.tool.housekeepdb.lang;
+package jp.ecuacion.tool.housekeepdb.util;
 
 import java.util.Arrays;
 import java.util.List;
@@ -23,7 +23,7 @@ import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 /**
  * Provides message IDs to internationalize excel settings file.
  */
-public class LangExcel {
+public class LangExcelUtil {
   public static final String DB_CONNECTION_SETTINGS = "EXCEL_SHEET_DB_CONNECTION_SETTINGS";
   public static final String HOUSEKEEP_DB_SETTINGS = "EXCEL_SHEET_HOUSEKEEP_DB_SETTINGS";
   public static final String RELATED_TABLE_SETTINGS = "EXCEL_SHEET_RELATED_TABLE_SETTINGS";
@@ -33,16 +33,16 @@ public class LangExcel {
 
   /**
    * Constructs a new instance.
-   * 
+   *
    * @param locale locale
    */
-  public LangExcel(Locale locale) {
+  public LangExcelUtil(Locale locale) {
     this.locale = locale;
   }
 
   /**
    * Gets localized message from {@code key}.
-   * 
+   *
    * @param key message ID
    * @return message
    */
@@ -52,7 +52,7 @@ public class LangExcel {
 
   /**
    * Provides a localized array of header labels.
-   * 
+   *
    * @param headerLabelKeys headerLabelKeys
    * @return localized header labels
    */

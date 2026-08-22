@@ -24,7 +24,7 @@ import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.enums.TimestampKindEnum;
-import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
+import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -100,7 +100,7 @@ public class HousekeepInfoBean extends StringExcelTableBean {
 
   private List<RelatedTableInfoBean> relatedRecordTableInfoList;
 
-  public static final String[] HEADER_LABEL_KEYS = LangExcel.HousekeepDbSettings.HEADER_LABELS;
+  public static final String[] HEADER_LABEL_KEYS = LangExcelUtil.HousekeepDbSettings.HEADER_LABELS;
 
   @Override
   protected @Nullable String[] getFieldNameArray() {
