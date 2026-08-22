@@ -64,12 +64,19 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- spring-cloud-context: added to enable cache-clear feature -->		
+		<!-- spring-cloud-context: added to enable cache-clear feature -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-context</artifactId>
 		</dependency>
-		
+
+		<!-- spring-boot-starter-mail: runtime jakarta.mail implementation needed by
+		     SplibMailUtil (used by ActionOnThrowable to send system error mail). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
 		<!-- ecuacion-splib -->
 		<dependency>
 			<groupId>jp.ecuacion.splib</groupId>
