@@ -430,13 +430,9 @@ public class HousekeepDbTasklet implements Tasklet {
   }
 
   private Map<String, String> getInfoMap(String filePath) throws Exception {
-    List<List<String>> list;
-    try {
-      list = new StringOneLineHeaderExcelTableReader("Info", new String[] {"item", "value"})
-          .read(filePath);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    List<List<String>> list =
+        new StringOneLineHeaderExcelTableReader("Info", new String[] {"item", "value"})
+            .read(filePath);
 
     return list.stream().collect(Collectors.toMap(l -> l.get(0), l -> l.get(1)));
   }
@@ -446,15 +442,11 @@ public class HousekeepDbTasklet implements Tasklet {
       throws Exception {
 
     LangExcel langLocal = Objects.requireNonNull(lang);
-    Map<String, DbConnectionInfoBean> dbConnectionInfoMap;
-    try {
-      dbConnectionInfoMap = new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
-          DbConnectionInfoBean.class, langLocal.get(LangExcel.DB_CONNECTION_SETTINGS),
-          langLocal.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath)
-              .stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    Map<String, DbConnectionInfoBean> dbConnectionInfoMap =
+        new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
+            DbConnectionInfoBean.class, langLocal.get(LangExcel.DB_CONNECTION_SETTINGS),
+            langLocal.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath)
+                .stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
 
     dbConnectionInfoMap.values().stream().forEach(info -> {
       new Violations()
