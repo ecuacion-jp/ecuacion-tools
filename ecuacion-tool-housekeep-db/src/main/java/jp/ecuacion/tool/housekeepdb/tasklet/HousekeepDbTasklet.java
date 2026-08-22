@@ -108,6 +108,10 @@ public class HousekeepDbTasklet implements Tasklet {
     final List<HousekeepInfoBean> housekeepInfoList =
         getHousekeepInfoList(excelPath, dbConnectionInfoMap);
 
+    if (housekeepInfoList.isEmpty()) {
+      detailLogger.warn("\"Housekeep DB Settings\" sheet has no data rows. Nothing to do.");
+    }
+
     detailLogger.info("Format Excel Version: " + infoMap.get("format-version"));
     detailLogger.info("Locale              : " + infoMap.get("locale"));
     detailLogger.info("database kind       : " + infoMap.get("database"));
