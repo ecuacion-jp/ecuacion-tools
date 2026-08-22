@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -49,7 +50,7 @@ class SqlUtilTest {
       String result = SqlUtil.getTimestampNow("postgresql");
 
       OffsetDateTime parsed = OffsetDateTime.parse(result, DateTimeFormatter.ISO_DATE_TIME);
-      assertThat(parsed).isCloseTo(OffsetDateTime.now(),
+      assertThat(parsed).isCloseTo(OffsetDateTime.now(ZoneId.systemDefault()),
           new TemporalUnitWithinOffset(10, ChronoUnit.SECONDS));
     }
 
@@ -60,7 +61,7 @@ class SqlUtilTest {
 
       LocalDateTime parsed =
           LocalDateTime.parse(result, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-      assertThat(parsed).isCloseTo(LocalDateTime.now(),
+      assertThat(parsed).isCloseTo(LocalDateTime.now(ZoneId.systemDefault()),
           new TemporalUnitWithinOffset(10, ChronoUnit.SECONDS));
     }
 
