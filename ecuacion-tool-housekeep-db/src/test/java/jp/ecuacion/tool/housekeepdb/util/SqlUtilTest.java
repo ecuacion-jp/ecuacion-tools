@@ -121,7 +121,6 @@ class SqlUtilTest {
       assertThat(SqlUtil.getWhere(Collections.emptyList())).isEqualTo("");
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("single condition is prefixed with '\\nwhere '")
     void singleCondition() {
@@ -131,7 +130,6 @@ class SqlUtilTest {
       assertThat(SqlUtil.getWhere(list)).isEqualTo("\nwhere col1 = 1");
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("multiple conditions are joined with ' and '")
     void multipleConditions() {
@@ -141,7 +139,6 @@ class SqlUtilTest {
       assertThat(SqlUtil.getWhere(list)).isEqualTo("\nwhere col1 = 1 and col2 = 2");
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("varargs overload behaves the same as the List overload")
     void varargsOverload() {
@@ -151,7 +148,6 @@ class SqlUtilTest {
                   new ColumnAndValueStringBean("col2 = 2"))));
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("condition built from ColumnAndValueInfoBean renders 'column = value'")
     void withColumnAndValueInfoBean() {
@@ -176,7 +172,6 @@ class SqlUtilTest {
       assertThat(SqlUtil.getUpdateSet(Collections.emptyList())).isEqualTo("\nset ");
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("single assignment")
     void singleAssignment() {
@@ -186,7 +181,6 @@ class SqlUtilTest {
       assertThat(SqlUtil.getUpdateSet(list)).isEqualTo("\nset deleted = true");
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("multiple assignments are joined with ', '")
     void multipleAssignments() {
@@ -196,7 +190,6 @@ class SqlUtilTest {
       assertThat(SqlUtil.getUpdateSet(list)).isEqualTo("\nset deleted = true, updated_by = 'user1'");
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("varargs overload behaves the same as the List overload")
     void varargsOverload() {
