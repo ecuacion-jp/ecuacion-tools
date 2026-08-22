@@ -18,7 +18,7 @@ package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
-import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
+import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.jspecify.annotations.Nullable;
 
@@ -37,7 +37,8 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
   private String conditionColumnValue;
   private ColumnAndValueInfoBean conditionColumnInfo;
 
-  public static final String[] HEADER_LABEL_KEYS = LangExcel.SearchConditionSettings.HEADER_LABELS;
+  public static final String[] HEADER_LABEL_KEYS =
+      LangExcelUtil.SearchConditionSettings.HEADER_LABELS;
 
   @Override
   protected @Nullable String[] getFieldNameArray() {
