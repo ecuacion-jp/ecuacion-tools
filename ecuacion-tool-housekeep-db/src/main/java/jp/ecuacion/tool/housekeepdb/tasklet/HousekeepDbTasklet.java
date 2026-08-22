@@ -69,20 +69,26 @@ import org.springframework.stereotype.Component;
 public class HousekeepDbTasklet implements Tasklet {
 
   public static final String PROP_EXCEL_PATH = "jp.ecuacion.tool.housekeep-db.excel-path";
+  public static final String PROP_MAX_SELECT_LINES =
+      "jp.ecuacion.tool.housekeep-db.max-select-lines";
 
-  private static final int MAX_SELECT_LINES = 1000;
   private DetailLogger detailLogger = new DetailLogger(this);
   private @Nullable LangExcel lang;
   private final @Nullable String excelPath;
+  private final int maxSelectLines;
 
   /**
-   * Creates the tasklet, reading the excel file path from the {@link #PROP_EXCEL_PATH} property.
+   * Creates the tasklet, reading the excel file path and the per-commit row limit from the
+   * {@link #PROP_EXCEL_PATH} / {@link #PROP_MAX_SELECT_LINES} properties.
    *
    * @param excelPath the excel file path, or {@code null} if unset
+   * @param maxSelectLines the number of rows selected and committed per loop iteration
    */
   public HousekeepDbTasklet(
-      @Value("${" + PROP_EXCEL_PATH + ":#{null}}") @Nullable String excelPath) {
+      @Value("${" + PROP_EXCEL_PATH + ":#{null}}") @Nullable String excelPath,
+      @Value("${" + PROP_MAX_SELECT_LINES + ":1000}") int maxSelectLines) {
     this.excelPath = excelPath;
+    this.maxSelectLines = maxSelectLines;
   }
 
   /**
@@ -108,7 +114,7 @@ public class HousekeepDbTasklet implements Tasklet {
     String msg = "- SQLs for per-record soft / hard delete will be logged with \"debug\" loglevel "
         + "because of the amount.";
     detailLogger.info(msg);
-    msg = "- The main select SQL is Looped and committed every " + MAX_SELECT_LINES + " lines "
+    msg = "- The main select SQL is Looped and committed every " + maxSelectLines + " lines "
         + "to prevent from using too much memory and time.";
     detailLogger.info(msg);
     msg = "- When 1 record selected by the execution of the main SQL, "
@@ -127,10 +133,10 @@ public class HousekeepDbTasklet implements Tasklet {
       // DB Connection settings
       try (Connection conn = connectionSettings(dbConnectionInfoMap, info)) {
 
-        // Retrieve IDs up to MAX_SELECT_LINES rows.
+        // Retrieve IDs up to maxSelectLines rows.
         String selectSql = getMainSelectSql(info);
 
-        // Process in batches of MAX_SELECT_LINES even when there are many records.
+        // Process in batches of maxSelectLines even when there are many records.
         while (true) {
           try (PreparedStatement stmt = getStatement(conn, selectSql)) {
             ResultSet rs = stmt.executeQuery();
@@ -233,7 +239,7 @@ public class HousekeepDbTasklet implements Tasklet {
     String where = SqlUtil.getWhere(whereList);
 
     return "select * from " + info.getTable() + where + " order by "
-        + info.getIdColumnInfo().getColumn() + " limit " + MAX_SELECT_LINES;
+        + info.getIdColumnInfo().getColumn() + " limit " + maxSelectLines;
   }
 
   private Connection connectionSettings(Map<String, DbConnectionInfoBean> dbConnectionInfoMap,

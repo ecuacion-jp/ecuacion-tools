@@ -83,7 +83,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
   @SuppressWarnings("null")
   private static void runTasklet(Path excelFile) throws Exception {
-    RepeatStatus status = new HousekeepDbTasklet(excelFile.toString())
+    RepeatStatus status = new HousekeepDbTasklet(excelFile.toString(), 1000)
         .execute(mock(StepContribution.class), mock(ChunkContext.class));
 
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
