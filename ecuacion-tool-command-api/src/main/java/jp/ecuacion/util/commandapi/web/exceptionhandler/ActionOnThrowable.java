@@ -15,13 +15,20 @@
  */
 package jp.ecuacion.util.commandapi.web.exceptionhandler;
 
-import jp.ecuacion.splib.core.exceptionhandler.SplibExceptionHandlerAction;
+import jp.ecuacion.splib.core.exceptionhandler.SplibRestExceptionHandlerAction;
 import jp.ecuacion.splib.core.util.SplibMailUtil;
 import org.springframework.stereotype.Component;
 
-/** Sends a mail on a system error, when mail settings exist. */
+/**
+ * Sends a mail on a system error, when mail settings exist.
+ *
+ * <p>Implements {@link SplibRestExceptionHandlerAction} — the extension point
+ *     {@code SplibRestExceptionHandler} uses for command-api's REST frontend (e.g.
+ *     {@code /api/**} endpoints). command-api has no web/batch frontend, so there's no
+ *     {@code SplibExceptionHandlerAction} consumer to also implement here.</p>
+ */
 @Component
-public class ActionOnThrowable implements SplibExceptionHandlerAction {
+public class ActionOnThrowable implements SplibRestExceptionHandlerAction {
 
   private final SplibMailUtil splibMailUtil;
 
