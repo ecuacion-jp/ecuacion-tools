@@ -18,6 +18,7 @@ package jp.ecuacion.tool.housekeepdb.bean;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import org.assertj.core.data.TemporalUnitWithinOffset;
@@ -136,7 +137,7 @@ class ColumnInfoBeanTest {
       assertThat(result.isNeedsQuotationMark()).isTrue();
       OffsetDateTime parsed =
           OffsetDateTime.parse((String) result.getValue(), DateTimeFormatter.ISO_DATE_TIME);
-      assertThat(parsed).isCloseTo(OffsetDateTime.now(),
+      assertThat(parsed).isCloseTo(OffsetDateTime.now(ZoneId.systemDefault()),
           new TemporalUnitWithinOffset(10, ChronoUnit.SECONDS));
     }
   }
