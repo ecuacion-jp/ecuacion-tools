@@ -46,8 +46,8 @@ public class H2AsMysqlDriver implements Driver {
   }
 
   @Override
-  public @Nullable Connection connect(@SuppressWarnings("null") String url,
-      @SuppressWarnings("null") Properties info) throws SQLException {
+  public @Nullable Connection connect(String url, @SuppressWarnings("null") Properties info)
+      throws SQLException {
     if (!acceptsURL(url)) {
       return null;
     }
