@@ -23,7 +23,7 @@ import jp.ecuacion.lib.validation.constraints.NotEmptyWhen;
 import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
-import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
+import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -103,7 +103,7 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
   private ColumnInfoBean softDeleteUpdateTimestampColumnInfo;
   private ColumnAndValueInfoBean softDeleteUpdateUserIdColumnAndValueInfo;
 
-  public static final String[] HEADER_LABEL_KEYS = LangExcel.RelatedTableSettings.HEADER_LABELS;
+  public static final String[] HEADER_LABEL_KEYS = LangExcelUtil.RelatedTableSettings.HEADER_LABELS;
 
   @Override
   protected @Nullable String[] getFieldNameArray() {
