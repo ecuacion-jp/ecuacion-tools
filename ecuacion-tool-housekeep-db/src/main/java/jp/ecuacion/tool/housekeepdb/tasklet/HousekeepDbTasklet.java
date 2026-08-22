@@ -89,8 +89,7 @@ public class HousekeepDbTasklet implements Tasklet {
    * @param excelPath the excel file path, or {@code null} if unset
    * @param maxSelectLines the number of rows selected and committed per loop iteration
    */
-  public HousekeepDbTasklet(
-      @Value("${" + PROP_EXCEL_PATH + ":#{null}}") @Nullable String excelPath,
+  public HousekeepDbTasklet(@Value("${" + PROP_EXCEL_PATH + ":#{null}}") @Nullable String excelPath,
       @Value("${" + PROP_MAX_SELECT_LINES + ":1000}") int maxSelectLines) {
     this.excelPath = excelPath;
     this.maxSelectLines = maxSelectLines;
@@ -105,16 +104,18 @@ public class HousekeepDbTasklet implements Tasklet {
 
     String excelPath = validateExcelPath();
 
+    detailLogger.info("Excel File Path     : " + excelPath);
+
     final Map<String, String> infoMap = getInfoMap(excelPath);
 
     lang = new LangExcel(Locale.of(infoMap.get("locale")));
 
+    detailLogger.info("Format Excel Version: " + infoMap.get("format-version"));
+    detailLogger.info("Locale              : " + infoMap.get("locale"));
+
     final Map<String, DbConnectionInfoBean> dbConnectionInfoMap = getDbConnectionInfoMap(excelPath);
     final List<HousekeepInfoBean> housekeepInfoList =
         getHousekeepInfoList(excelPath, dbConnectionInfoMap);
-
-    detailLogger.info("Format Excel Version: " + infoMap.get("format-version"));
-    detailLogger.info("Locale              : " + infoMap.get("locale"));
 
     if (housekeepInfoList.isEmpty()) {
       detailLogger.warn("\"Housekeep DB Settings\" sheet has no data rows. Nothing to do.");
