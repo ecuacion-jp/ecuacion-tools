@@ -111,16 +111,6 @@ public class HousekeepDbTasklet implements Tasklet {
     detailLogger.info("Format Excel Version: " + infoMap.get("format-version"));
     detailLogger.info("Locale              : " + infoMap.get("locale"));
     detailLogger.info("database kind       : " + infoMap.get("database"));
-    String msg = "- SQLs for per-record soft / hard delete will be logged with \"debug\" loglevel "
-        + "because of the amount.";
-    detailLogger.info(msg);
-    msg = "- The main select SQL is Looped and committed every " + maxSelectLines + " lines "
-        + "to prevent from using too much memory and time.";
-    detailLogger.info(msg);
-    msg = "- When 1 record selected by the execution of the main SQL, "
-        + "the log of the main select SQL occurs twice "
-        + "because the loop ends when the count of the main select SQL is zero.";
-    detailLogger.info(msg);
 
     for (HousekeepInfoBean info : housekeepInfoList) {
       detailLogger.info("[task start ] " + info.getTaskId());
