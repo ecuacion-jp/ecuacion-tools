@@ -19,7 +19,7 @@ import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBe
 import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.skipTargetTableRecordDeletion;
 
 import jakarta.validation.Validation;
-import java.io.File;
+import jakarta.validation.constraints.NotEmpty;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.lib.validation.constraints.FileExists;
+import jp.ecuacion.lib.validation.constraints.FileExtension;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueStringBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
@@ -74,6 +76,9 @@ public class HousekeepDbTasklet implements Tasklet {
 
   private DetailLogger detailLogger = new DetailLogger(this);
   private @Nullable LangExcel lang;
+  @NotEmpty
+  @FileExists
+  @FileExtension(".xlsx")
   private final @Nullable String excelPath;
   private final int maxSelectLines;
 
@@ -172,25 +177,11 @@ public class HousekeepDbTasklet implements Tasklet {
   }
 
   private String validateExcelPath() {
-    if (excelPath == null || Objects.requireNonNull(excelPath).isBlank()) {
-      new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_NOT_SPECIFIED")).throwIfAny();
-    }
+    new Violations().addAll(Validation.buildDefaultValidatorFactory().getValidator().validate(this))
+        .messageParameters(Violations.newMessageParameters().isMessageWithItemName(true))
+        .throwIfAny();
 
     String nonnullExcelPath = Objects.requireNonNull(excelPath);
-
-    File excelFile = new File(nonnullExcelPath);
-    if (!excelFile.exists() || !excelFile.isFile()) {
-      new Violations().add(new BusinessViolation("MSG_ERR_EXCEL_PATH_NOT_FOUND")).throwIfAny();
-    }
-
-    String extension = nonnullExcelPath.contains(".")
-        ? nonnullExcelPath.substring(nonnullExcelPath.lastIndexOf("."))
-        : "";
-    if (!extension.equalsIgnoreCase(".xlsx")) {
-      new Violations()
-          .add(new BusinessViolation("MSG_ERR_EXCEL_PATH_EXTENSION_NOT_EXPECTED", extension))
-          .throwIfAny();
-    }
 
     try (Workbook workbook = ExcelReadUtil.openForRead(nonnullExcelPath)) {
       // Only verifying the file can be opened as an excel file here.
