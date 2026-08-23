@@ -98,7 +98,7 @@ public class SqlUtil {
     sb.append(StringUtil.getSeparatedValuesString(
         list.stream().map(bean -> bean.getCondition()).toList(), " and "));
 
-    return (StringUtils.isEmpty(sb.toString()) ? "" : "\nwhere ") +  sb.toString();
+    return (StringUtils.isEmpty(sb.toString()) ? "" : " where ") +  sb.toString();
   }
 
   /**
@@ -121,7 +121,7 @@ public class SqlUtil {
   public static String getUpdateSet(List<SqlConditionInterface> list) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("\nset ");
+    sb.append(" set ");
     sb.append(StringUtil.getCsvWithSpace(list.stream().map(bean -> bean.getCondition()).toList()));
 
     return sb.toString();

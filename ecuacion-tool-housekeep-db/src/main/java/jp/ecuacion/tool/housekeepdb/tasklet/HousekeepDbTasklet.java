@@ -74,6 +74,10 @@ public class HousekeepDbTasklet implements Tasklet {
   public static final String PROP_MAX_SELECT_LINES =
       "jp.ecuacion.tool.housekeep-db.max-select-lines";
 
+  private static final int IDT_1 = 1;
+  private static final int IDT_2 = 2;
+  private static final int IDT_3 = 3;
+
   private DetailLogger detailLogger = new DetailLogger(this);
   private @Nullable LangExcelUtil lang;
   @NotEmpty
@@ -104,6 +108,8 @@ public class HousekeepDbTasklet implements Tasklet {
 
     String excelPath = validateExcelPath();
 
+    detailLogger.info("===============");
+    detailLogger.info("housekeep-db start.");
     detailLogger.info("Excel File Path     : " + excelPath);
 
     final Map<String, String> infoMap = getInfoMap(excelPath);
@@ -122,10 +128,11 @@ public class HousekeepDbTasklet implements Tasklet {
     }
 
     for (HousekeepInfoBean info : housekeepInfoList) {
-      detailLogger.info("[task start ] " + info.getTaskId());
-      detailLogger.info("DB Connection ID: " + info.getDbConnectionInfoId() + " / "
+      detailLogger.info("--- task start : " + info.getTaskId());
+      String logMsg = "DB Connection ID: " + info.getDbConnectionInfoId() + " / "
           + (info.isSoftDelete() ? "Soft Delete" : "Hard Delete") + " / " + "Table Name: "
-          + info.getTable() + ")");
+          + info.getTable();
+      dlogWithIndent(Level.INFO, logMsg, IDT_1);
 
       Map<String, Integer> tableRecordDeleted = new LinkedHashMap<>();
 
@@ -137,30 +144,47 @@ public class HousekeepDbTasklet implements Tasklet {
 
         // Process in batches of maxSelectLines even when there are many records.
         while (true) {
-          try (PreparedStatement stmt = getStatement(conn, selectSql)) {
+          dlogWithIndent(Level.INFO, "Find records from target table.", IDT_1);
+
+          try (PreparedStatement stmt =
+              getStatement(conn, selectSql, "target table select", IDT_1)) {
             ResultSet rs = stmt.executeQuery();
 
+            // Flag to determine whether the query found any records.
+            boolean isQueryResultCountZero = true;
             // Flag to determine whether the query returned at least one result.
-            boolean isResultZero = true;
+            boolean isDeletableRecordZero = true;
 
             // Process each retrieved record one by one.
             while (rs.next()) {
+              isQueryResultCountZero = false;
+
               Object idValue = rs.getObject(info.getIdColumnInfo().getColumn());
+              String idCol = info.getIdColumnInfo().getColumn();
+              dlogWithIndent(Level.DEBUG, "Record found. " + idCol + " = " + idValue, IDT_2);
 
               // Check for data that should be skipped.
               if (needsSkipFromRelatedTableDataCheck(conn, info, rs)) {
+                dlogWithIndent(Level.DEBUG, "Not a housekeep target. Skipped", IDT_3);
                 continue;
               }
 
-              isResultZero = false;
+              isDeletableRecordZero = false;
 
               deleteRelatedData(conn, info, idValue, tableRecordDeleted);
               deleteTargetData(conn, info, idValue, tableRecordDeleted);
             }
 
+
             // Terminate when the result set is empty.
-            if (isResultZero) {
+            if (isDeletableRecordZero) {
+              logMsg = isQueryResultCountZero ? "Record not found."
+                  : "Record(s) found, but no deletable one(s) only.";
+              dlogWithIndent(Level.INFO, logMsg, IDT_2);
               break;
+
+            } else {
+              dlogWithIndent(Level.INFO, "Record(s) deleted.", IDT_2);
             }
 
             conn.commit();
@@ -168,13 +192,27 @@ public class HousekeepDbTasklet implements Tasklet {
         }
       }
 
-      tableRecordDeleted.keySet().stream().forEach(table -> detailLogger
-          .info("[Delete lines] table:" + table + ", count:" + tableRecordDeleted.get(table)));
+      tableRecordDeleted.keySet().stream().forEach(table -> dlogWithIndent(Level.INFO,
+          "Delete lines | table: " + table + ", count: " + tableRecordDeleted.get(table), IDT_1));
 
-      detailLogger.info("[task finish] " + info.getTaskId());
+      detailLogger.info("--- task finish: " + info.getTaskId());
     }
 
+    detailLogger.info("housekeep-db finished successfully.");
+    detailLogger.info("===============");
+    
     return RepeatStatus.FINISHED;
+  }
+
+  private void dlogWithIndent(Level logLevel, String message, int indents) {
+    final String indentString = "  ";
+
+    String indentsString = "";
+    for (int i = 0; i < indents; i++) {
+      indentsString += indentString;
+    }
+
+    detailLogger.log(logLevel, indentsString + message);
   }
 
   private String validateExcelPath() {
@@ -244,16 +282,10 @@ public class HousekeepDbTasklet implements Tasklet {
     return conn;
   }
 
-  private PreparedStatement getStatement(Connection conn, String sql) throws SQLException {
-    return getStatement(conn, sql, Level.INFO);
-  }
-
-  private PreparedStatement getStatement(Connection conn, String sql, Level logLevel)
+  private PreparedStatement getStatement(Connection conn, String sql, String sqlName, int indents)
       throws SQLException {
 
-    if (logLevel != null) {
-      detailLogger.log(logLevel, sql);
-    }
+    dlogWithIndent(Level.TRACE, sqlName + " SQL: " + sql, indents);
 
     return conn.prepareStatement(sql);
   }
@@ -275,7 +307,7 @@ public class HousekeepDbTasklet implements Tasklet {
       String selectSql = "select count(*) count from " + relatedBean.getRelatedTable() + " where "
           + relatedBean.getRelatedTableIdColumnInfo().getColumnAndValueInfo(value).getCondition();
 
-      PreparedStatement stmt = getStatement(connection, selectSql, Level.DEBUG);
+      PreparedStatement stmt = getStatement(connection, selectSql, "related table select", IDT_3);
       ResultSet rs = stmt.executeQuery();
 
       rs.next();
@@ -326,7 +358,7 @@ public class HousekeepDbTasklet implements Tasklet {
           "select " + relatedInfo.getTargetTableColumn() + " from " + info.getTable() + " where "
               + info.getIdColumnInfo().getColumnAndValueInfo(id).getCondition();
 
-      try (PreparedStatement stmt = getStatement(conn, sqlTargetSelect, Level.DEBUG);
+      try (PreparedStatement stmt = getStatement(conn, sqlTargetSelect, "", IDT_3);
           ResultSet rs = stmt.executeQuery();) {
 
         // number of records is always one because 'id' is specified to the where clause.
@@ -351,7 +383,7 @@ public class HousekeepDbTasklet implements Tasklet {
         String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
         sql = sql + SqlUtil.getWhere(whereList);
 
-        PreparedStatement delStmt = getStatement(conn, sql, Level.DEBUG);
+        PreparedStatement delStmt = getStatement(conn, sql, "", IDT_3);
         int count = delStmt.executeUpdate();
         tableRecordDeleted.put(relatedInfo.getRelatedTable(),
             tableRecordDeleted.get(relatedInfo.getRelatedTable()) + count);
@@ -360,7 +392,7 @@ public class HousekeepDbTasklet implements Tasklet {
 
         logDeleteLines(relatedInfo.getRelatedTable(), count,
             relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val).getCondition(),
-            Level.DEBUG);
+            Level.DEBUG, IDT_3);
       }
     }
   }
@@ -397,7 +429,7 @@ public class HousekeepDbTasklet implements Tasklet {
     String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
     sql = sql + SqlUtil.getWhere(whereList);
 
-    PreparedStatement delStmt = getStatement(conn, sql, Level.DEBUG);
+    PreparedStatement delStmt = getStatement(conn, sql, "main table delete", IDT_3);
     int count = delStmt.executeUpdate();
 
     if (count > 0 && !tableRecordDeleted.containsKey(info.getTable())) {
@@ -409,12 +441,14 @@ public class HousekeepDbTasklet implements Tasklet {
     delStmt.close();
 
     logDeleteLines(info.getTable(), count,
-        info.getIdColumnInfo().getColumnAndValueInfo(idValue).getCondition(), Level.DEBUG);
+        info.getIdColumnInfo().getColumnAndValueInfo(idValue).getCondition(), Level.TRACE, IDT_3);
   }
 
-  private void logDeleteLines(String table, int count, String condition, Level logLevel) {
+  private void logDeleteLines(String table, int count, String condition, Level logLevel,
+      int indents) {
     if (logLevel != null) {
-      detailLogger.log(logLevel, table + ": " + count + " lines deleted. (" + condition + ")");
+      dlogWithIndent(logLevel, table + ": " + count + " record(s) deleted. (" + condition + ")",
+          indents);
     }
   }
 
