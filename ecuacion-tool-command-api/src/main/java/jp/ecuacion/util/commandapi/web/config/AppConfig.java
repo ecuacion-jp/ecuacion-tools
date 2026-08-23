@@ -17,6 +17,8 @@ package jp.ecuacion.util.commandapi.web.config;
 
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.PropertySources;
 
 /**
  * Provides app config.
@@ -25,6 +27,9 @@ import org.springframework.context.annotation.Configuration;
 @ComponentScan(basePackages = "jp.ecuacion.splib.core.config"
     + ",jp.ecuacion.splib.rest.config"
     + ",jp.ecuacion.splib.jpa.config")
+@PropertySources({
+  @PropertySource(value = "classpath:application-builtin.properties")
+})
 public class AppConfig {
   
 }
