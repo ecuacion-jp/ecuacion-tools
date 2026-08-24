@@ -15,14 +15,19 @@
  */
 package jp.ecuacion.tool.housekeepdb.tasklet;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 /**
  * Runs {@link AbstractHousekeepDbTaskletTest} against a real PostgreSQL instance launched by
@@ -72,7 +77,50 @@ class HousekeepDbTaskletPostgresqlTest extends AbstractHousekeepDbTaskletTest {
   }
 
   @Override
+  protected String localTimestampColumnType() {
+    return "timestamp";
+  }
+
+  @Override
   protected String timestampDaysAgoExpr(int daysAgo) {
     return "now() - interval '" + daysAgo + " days'";
+  }
+
+  // -------------------------------------------------------------------------
+  // schema (postgresql only)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Covers the {@code ?currentSchema=} JDBC URL parameter, which
+   * {@link HousekeepDbTasklet} appends for PostgreSQL only - MySQL / MariaDB have no equivalent,
+   * so this cannot live in {@link AbstractHousekeepDbTaskletTest}.
+   */
+  @Nested
+  @DisplayName("\"Connection URL: Schema\" setting")
+  class SchemaSetting {
+
+    @Test
+    @DisplayName("an unqualified table name resolves inside the configured schema")
+    void resolvesTableInsideConfiguredSchema() throws Exception {
+      execute("create schema hk_schema");
+      // Same table name in both schemas: only the one in hk_schema may be housekept.
+      execute("create table hk_schema.sc_scoped (num1 integer primary key)");
+      execute("create table public.sc_scoped (num1 integer primary key)");
+      execute("insert into hk_schema.sc_scoped values (1)");
+      execute("insert into public.sc_scoped values (1)");
+
+      String[] connectionRow = dbConnectionRow("conn1");
+      connectionRow[6] = "hk_schema";
+
+      Path excel = buildExcelFile(List.<String[]>of(connectionRow),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "sc_scoped", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(), List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from hk_schema.sc_scoped")).isZero();
+      assertThat(countRows("select count(*) from public.sc_scoped")).isEqualTo(1);
+    }
   }
 }

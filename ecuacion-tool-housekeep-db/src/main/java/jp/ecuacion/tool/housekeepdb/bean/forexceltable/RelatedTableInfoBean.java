@@ -88,6 +88,7 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
   @NotEmpty(groups = AfterMergeValidation.class)
   @Pattern(regexp = "^" + HousekeepInfoBean.DELETE_KIND_HARD + "|"
       + HousekeepInfoBean.DELETE_KIND_SOFT + "$", groups = AfterMergeValidation.class)
+  @SuppressWarnings("UnusedVariable")
   private String isSoftDeleteInternalValue;
   @NotEmpty
   @SuppressWarnings("UnusedVariable")

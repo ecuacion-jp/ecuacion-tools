@@ -69,6 +69,12 @@ abstract class AbstractHousekeepDbTaskletTest {
   /** Column type usable for a timestamp column in this dialect's DDL. */
   protected abstract String timestampColumnType();
 
+  /**
+   * Column type for a timestamp column carrying no time-zone offset, matching the
+   * "LocalDateTime" value of the Excel "Expiration Check: Timestamp Column Data Type" column.
+   */
+  protected abstract String localTimestampColumnType();
+
   /** SQL expression yielding a point in time {@code daysAgo} days before now. */
   protected abstract String timestampDaysAgoExpr(int daysAgo);
 
@@ -86,25 +92,38 @@ abstract class AbstractHousekeepDbTaskletTest {
     }
   }
 
-  private static void runTasklet(Path excelFile) throws Exception {
+  protected static void runTasklet(Path excelFile) throws Exception {
     runTasklet(excelFile, 1000);
   }
 
   @SuppressWarnings("null")
-  private static void runTasklet(Path excelFile, int maxSelectLines) throws Exception {
+  protected static void runTasklet(Path excelFile, int maxSelectLines) throws Exception {
     RepeatStatus status = new HousekeepDbTasklet(excelFile.toString(), maxSelectLines)
         .execute(mock(StepContribution.class), mock(ChunkContext.class));
 
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
   }
 
-  private Path buildExcelFile(List<String[]> dbConnectionRows, List<String[]> housekeepRows,
+  protected Path buildExcelFile(List<String[]> dbConnectionRows, List<String[]> housekeepRows,
       List<String[]> relatedRows, List<String[]> searchRows) throws IOException {
-    LangExcelUtil lang = new LangExcelUtil(Locale.of("en"));
+    return buildExcelFile(Locale.of("en"), dbConnectionRows, housekeepRows, relatedRows,
+        searchRows);
+  }
+
+  /**
+   * Writes a settings excel file whose sheet names and header labels are localized to
+   * {@code locale}, the same way {@link HousekeepDbTasklet} localizes them when reading it back
+   * from the "locale" row of the "Info" sheet.
+   */
+  protected Path buildExcelFile(Locale locale, List<String[]> dbConnectionRows,
+      List<String[]> housekeepRows, List<String[]> relatedRows, List<String[]> searchRows)
+      throws IOException {
+    LangExcelUtil lang = new LangExcelUtil(locale);
 
     try (XSSFWorkbook wb = new XSSFWorkbook()) {
       writeSheet(wb, "Info", new String[] {"item", "value"},
-          List.<String[]>of(new String[] {"locale", "en"}, new String[] {"format-version", "1.3.0"},
+          List.<String[]>of(new String[] {"locale", locale.getLanguage()},
+              new String[] {"format-version", "1.3.0"},
               new String[] {"database", protocol()}));
       writeSheet(wb, lang.get(LangExcelUtil.DB_CONNECTION_SETTINGS),
           lang.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS), dbConnectionRows);
@@ -284,6 +303,27 @@ abstract class AbstractHousekeepDbTaskletTest {
       assertThat(countRows("select count(*) from exp_basic where num1 = 1")).isZero();
       assertThat(countRows("select count(*) from exp_basic where num1 = 2")).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("works the same against an offset-less timestamp column (\"LocalDateTime\"), "
+        + "which the generated SQL handles without consulting the configured column data type")
+    void onlyDeletesExpiredRowsWithLocalDateTimeColumn() throws Exception {
+      execute("create table exp_local (num1 integer primary key, last_updated "
+          + localTimestampColumnType() + ")");
+      execute("insert into exp_local values (1, " + timestampDaysAgoExpr(100) + ")");
+      execute("insert into exp_local values (2, " + timestampDaysAgoExpr(1) + ")");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "exp_local", "num1", "(none)", "last_updated", "LocalDateTime", "30", null, null,
+              null, null, null}),
+          List.of(), List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from exp_local where num1 = 1")).isZero();
+      assertThat(countRows("select count(*) from exp_local where num1 = 2")).isEqualTo(1);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -384,6 +424,29 @@ abstract class AbstractHousekeepDbTaskletTest {
       assertThat(countRows("select count(*) from sc_basic where num1 = 1")).isZero();
       assertThat(countRows("select count(*) from sc_basic where num1 = 2")).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("several rows for one task are combined with AND, so only rows matching every "
+        + "condition are deleted")
+    void combinesSeveralConditionsWithAnd() throws Exception {
+      execute("create table sc_multi (num1 integer primary key, status varchar(20), "
+          + "category varchar(20))");
+      execute("insert into sc_multi values (1, 'COMPLETED', 'A'), (2, 'COMPLETED', 'B'), "
+          + "(3, 'RUNNING', 'A')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "sc_multi", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(),
+          List.of(new String[] {"task-1", "status", "quotes(')", "COMPLETED"},
+              new String[] {"task-1", "category", "quotes(')", "A"}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from sc_multi where num1 = 1")).isZero();
+      assertThat(countRows("select count(*) from sc_multi where num1 = 2")).isEqualTo(1);
+      assertThat(countRows("select count(*) from sc_multi where num1 = 3")).isEqualTo(1);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -461,6 +524,49 @@ abstract class AbstractHousekeepDbTaskletTest {
       runTasklet(excel, 2);
 
       assertThat(countRows("select count(*) from pg_basic")).isZero();
+    }
+
+    @Test
+    @DisplayName("reaches records located after a full page of skip targets: skipped records are "
+        + "not deleted, so paging must advance past them instead of re-selecting them forever")
+    void reachesRecordsAfterAfullPageOfSkipTargets() throws Exception {
+      execute("create table pg_skip_parent (num1 integer primary key, child_code varchar(20))");
+      execute("create table pg_skip_child (code varchar(20) primary key)");
+      execute("insert into pg_skip_parent values (1, 'c1'), (2, 'c2'), (3, 'c3')");
+      // num1 = 1 and 2 are skip targets; num1 = 3 has no related record and is deletable.
+      execute("insert into pg_skip_child values ('c1'), ('c2')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "pg_skip_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
+              "CHECK_AND_SKIP_DELETE", "child_code", "pg_skip_child", "code", "quotes(')", null,
+              null, null, null, null}),
+          List.of());
+
+      // maxSelectLines=2 makes the first batch consist solely of the two skip targets.
+      runTasklet(excel, 2);
+
+      assertThat(countRows("select count(*) from pg_skip_parent where num1 = 3")).isZero();
+      assertThat(countRows("select count(*) from pg_skip_parent")).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("soft delete also processes every row across multiple batches")
+    void softDeleteProcessesAllRowsAcrossMultipleBatches() throws Exception {
+      execute("create table pg_soft (num1 integer primary key, rem_flg boolean default false)");
+      for (int i = 1; i <= 5; i++) {
+        execute("insert into pg_soft values (" + i + ", false)");
+      }
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
+              "pg_soft", "num1", "(none)", null, null, null, "rem_flg", null, null, null, null}),
+          List.of(), List.of());
+
+      runTasklet(excel, 2);
+
+      assertThat(countRows("select count(*) from pg_soft where rem_flg = true")).isEqualTo(5);
     }
   }
 
@@ -749,6 +855,108 @@ abstract class AbstractHousekeepDbTaskletTest {
       assertThat(countRows("select count(*) from mrt_parent")).isEqualTo(1);
       assertThat(countRows("select count(*) from mrt_child_del")).isEqualTo(1);
       assertThat(countRows("select count(*) from mrt_child_skip")).isEqualTo(1);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // related table settings - target record removed as a side effect
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("related table settings - target record removed as a side effect")
+  class TargetRecordRemovedAsSideEffect {
+
+    @Test
+    @DisplayName("finishes normally when deleting the related record already removed the target "
+        + "record through a cascading foreign key, leaving the target delete affecting no rows")
+    void finishesWhenCascadeAlreadyRemovedTheTargetRecord() throws Exception {
+      execute("create table cas_child (code varchar(20) primary key)");
+      execute("create table cas_parent (num1 integer primary key, child_code varchar(20) "
+          + "references cas_child (code) on delete cascade)");
+      execute("insert into cas_child values ('c1')");
+      execute("insert into cas_parent values (1, 'c1')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "cas_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE", "child_code", "cas_child",
+              "code", "quotes(')", null, null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from cas_child")).isZero();
+      assertThat(countRows("select count(*) from cas_parent")).isZero();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // multiple db connections
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("multiple db connections")
+  class MultipleDbConnections {
+
+    @Test
+    @DisplayName("each task opens the connection its own DB Connection ID resolves to")
+    void eachTaskUsesItsOwnConnection() throws Exception {
+      execute("create table mc_a (num1 integer primary key)");
+      execute("create table mc_b (num1 integer primary key)");
+      execute("insert into mc_a values (1)");
+      execute("insert into mc_b values (1)");
+
+      Path excel = buildExcelFile(
+          List.of(dbConnectionRow("conn1"), dbConnectionRow("conn2")),
+          List.of(
+              new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "mc_a", "num1",
+                  "(none)", null, null, null, null, null, null, null, null},
+              new String[] {"task-2", "conn2", "Hard Delete", "HARD_DELETE", "mc_b", "num1",
+                  "(none)", null, null, null, null, null, null, null, null}),
+          List.of(), List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from mc_a")).isZero();
+      assertThat(countRows("select count(*) from mc_b")).isZero();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // localized settings file
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("localized settings file")
+  class LocalizedSettingsFile {
+
+    @Test
+    @DisplayName("a Japanese settings file, whose sheet names and header labels differ entirely "
+        + "from the English one, drives the same housekeeping")
+    void japaneseSettingsFile() throws Exception {
+      execute("create table loc_parent (num1 integer primary key, rem_flg boolean default false, "
+          + "child_code varchar(20), status varchar(20))");
+      execute("create table loc_child (code varchar(20) primary key, rem_flg boolean "
+          + "default false)");
+      execute("insert into loc_parent values (1, false, 'c1', 'COMPLETED')");
+      execute("insert into loc_parent values (2, false, 'c2', 'RUNNING')");
+      execute("insert into loc_child values ('c1', false)");
+
+      // Every sheet is exercised so that a mistranslated label on any of them fails this test.
+      Path excel = buildExcelFile(Locale.of("ja"), List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "論理廃止", "SOFT_DELETE", "loc_parent",
+              "num1", "(none)", null, null, null, "rem_flg", null, null, null, null}),
+          List.<String[]>of(new String[] {"task-1", "論理廃止／削除", "DELETE", "child_code",
+              "loc_child", "code", "quotes(')", "rem_flg", null, null, null, null}),
+          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "COMPLETED"}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from loc_parent where num1 = 1 and rem_flg = true"))
+          .isEqualTo(1);
+      assertThat(countRows("select count(*) from loc_parent where num1 = 2 and rem_flg = false"))
+          .isEqualTo(1);
+      assertThat(countRows("select count(*) from loc_child where rem_flg = true")).isEqualTo(1);
     }
   }
 }

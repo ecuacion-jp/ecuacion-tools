@@ -122,12 +122,12 @@ class SqlUtilTest {
     }
 
     @Test
-    @DisplayName("single condition is prefixed with '\\nwhere '")
+    @DisplayName("single condition is prefixed with ' where '")
     void singleCondition() {
       List<SqlConditionInterface> list =
           List.of(new ColumnAndValueStringBean("col1 = 1"));
 
-      assertThat(SqlUtil.getWhere(list)).isEqualTo("\nwhere col1 = 1");
+      assertThat(SqlUtil.getWhere(list)).isEqualTo(" where col1 = 1");
     }
 
     @Test
@@ -136,7 +136,7 @@ class SqlUtilTest {
       List<SqlConditionInterface> list = List.of(new ColumnAndValueStringBean("col1 = 1"),
           new ColumnAndValueStringBean("col2 = 2"));
 
-      assertThat(SqlUtil.getWhere(list)).isEqualTo("\nwhere col1 = 1 and col2 = 2");
+      assertThat(SqlUtil.getWhere(list)).isEqualTo(" where col1 = 1 and col2 = 2");
     }
 
     @Test
@@ -154,7 +154,7 @@ class SqlUtilTest {
       List<SqlConditionInterface> list =
           List.of(new ColumnAndValueInfoBean("id", true, "abc"));
 
-      assertThat(SqlUtil.getWhere(list)).isEqualTo("\nwhere id = 'abc'");
+      assertThat(SqlUtil.getWhere(list)).isEqualTo(" where id = 'abc'");
     }
   }
 
@@ -169,7 +169,7 @@ class SqlUtilTest {
     @Test
     @DisplayName("empty list still renders the 'set ' prefix")
     void emptyList() {
-      assertThat(SqlUtil.getUpdateSet(Collections.emptyList())).isEqualTo("\nset ");
+      assertThat(SqlUtil.getUpdateSet(Collections.emptyList())).isEqualTo(" set ");
     }
 
     @Test
@@ -178,7 +178,7 @@ class SqlUtilTest {
       List<SqlConditionInterface> list =
           List.of(new ColumnAndValueInfoBean("deleted", false, "true"));
 
-      assertThat(SqlUtil.getUpdateSet(list)).isEqualTo("\nset deleted = true");
+      assertThat(SqlUtil.getUpdateSet(list)).isEqualTo(" set deleted = true");
     }
 
     @Test
@@ -187,7 +187,7 @@ class SqlUtilTest {
       List<SqlConditionInterface> list = List.of(new ColumnAndValueInfoBean("deleted", false, "true"),
           new ColumnAndValueInfoBean("updated_by", true, "user1"));
 
-      assertThat(SqlUtil.getUpdateSet(list)).isEqualTo("\nset deleted = true, updated_by = 'user1'");
+      assertThat(SqlUtil.getUpdateSet(list)).isEqualTo(" set deleted = true, updated_by = 'user1'");
     }
 
     @Test
