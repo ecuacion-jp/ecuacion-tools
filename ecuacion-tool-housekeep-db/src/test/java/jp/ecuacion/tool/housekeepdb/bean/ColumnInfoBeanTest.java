@@ -17,6 +17,7 @@ package jp.ecuacion.tool.housekeepdb.bean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -139,6 +140,29 @@ class ColumnInfoBeanTest {
           OffsetDateTime.parse((String) result.getValue(), DateTimeFormatter.ISO_DATE_TIME);
       assertThat(parsed).isCloseTo(OffsetDateTime.now(ZoneId.systemDefault()),
           new TemporalUnitWithinOffset(10, ChronoUnit.SECONDS));
+    }
+
+    @Test
+    @DisplayName("'mysql' protocol yields the offset-less timestamp that dialect accepts")
+    void buildsBeanWithNowForMysql() {
+      ColumnInfoBean bean = new ColumnInfoBean("updated_at", false);
+
+      ColumnAndValueInfoBean result = bean.getTimestampColumnNowInfo("mysql");
+
+      assertThat(result.isNeedsQuotationMark()).isTrue();
+      LocalDateTime parsed = LocalDateTime.parse((String) result.getValue(),
+          DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+      assertThat(parsed).isCloseTo(LocalDateTime.now(ZoneId.systemDefault()),
+          new TemporalUnitWithinOffset(10, ChronoUnit.SECONDS));
+    }
+
+    @Test
+    @DisplayName("an unrecognized protocol throws RuntimeException")
+    void unrecognizedProtocolThrows() {
+      ColumnInfoBean bean = new ColumnInfoBean("updated_at", false);
+
+      assertThatThrownBy(() -> bean.getTimestampColumnNowInfo("oracle"))
+          .isInstanceOf(RuntimeException.class);
     }
   }
 }
