@@ -149,12 +149,20 @@ public class HousekeepDbTasklet implements Tasklet {
       // DB Connection settings
       try (Connection conn = connectionSettings(dbConnectionInfoMap, info)) {
 
-        // Retrieve IDs up to maxSelectLines rows.
-        String selectSql = getMainSelectSql(info);
+        // Paging cursor: the id of the last record walked. Records are walked in id order and
+        // each batch continues after this value, so the loop terminates by reaching the end of
+        // the table rather than by failing to delete anything.
+        @Nullable
+        Object lastProcessedId = null;
+        boolean recordFound = false;
+        boolean recordDeleted = false;
 
         // Process in batches of maxSelectLines even when there are many records.
         while (true) {
           dlogWithIndent(Level.INFO, "Find records from target table.", IDT_1);
+
+          // Retrieve IDs up to maxSelectLines rows, continuing after the previous batch.
+          String selectSql = getMainSelectSql(info, lastProcessedId);
 
           try (PreparedStatement stmt =
               getStatement(conn, selectSql, "target table select", IDT_1)) {
@@ -162,16 +170,20 @@ public class HousekeepDbTasklet implements Tasklet {
 
             // Flag to determine whether the query found any records.
             boolean isQueryResultCountZero = true;
-            // Flag to determine whether the query returned at least one result.
-            boolean isDeletableRecordZero = true;
 
             // Process each retrieved record one by one.
             while (rs.next()) {
               isQueryResultCountZero = false;
+              recordFound = true;
 
               Object idValue = rs.getObject(info.getIdColumnInfo().getColumn());
               String idCol = info.getIdColumnInfo().getColumn();
               dlogWithIndent(Level.DEBUG, "Record found. " + idCol + " = " + idValue, IDT_2);
+
+              // Advance the cursor before the skip check below. Skipped records are not deleted,
+              // so they would otherwise be re-selected by every following batch and the records
+              // after them never reached.
+              lastProcessedId = idValue;
 
               // Check for data that should be skipped.
               if (needsSkipFromRelatedTableDataCheck(conn, info, rs)) {
@@ -179,27 +191,25 @@ public class HousekeepDbTasklet implements Tasklet {
                 continue;
               }
 
-              isDeletableRecordZero = false;
+              recordDeleted = true;
 
               deleteRelatedData(conn, info, idValue, tableRecordDeleted);
               deleteTargetData(conn, info, idValue, tableRecordDeleted);
             }
 
-
-            // Terminate when the result set is empty.
-            if (isDeletableRecordZero) {
-              logMsg = isQueryResultCountZero ? "Record not found."
-                  : "Record(s) found, but no deletable one(s) only.";
-              dlogWithIndent(Level.INFO, logMsg, IDT_2);
+            // Terminate when the end of the target table is reached.
+            if (isQueryResultCountZero) {
               break;
-
-            } else {
-              dlogWithIndent(Level.INFO, "Record(s) deleted.", IDT_2);
             }
 
             conn.commit();
           }
         }
+
+        logMsg = !recordFound ? "Record not found."
+            : recordDeleted ? "Record(s) deleted."
+                : "Record(s) found, but no deletable one(s) only.";
+        dlogWithIndent(Level.INFO, logMsg, IDT_2);
       }
 
       tableRecordDeleted.keySet().stream().forEach(table -> dlogWithIndent(Level.INFO,
@@ -244,7 +254,14 @@ public class HousekeepDbTasklet implements Tasklet {
     return nonnullExcelPath;
   }
 
-  private String getMainSelectSql(HousekeepInfoBean info) {
+  /**
+   * Builds the select statement finding the next batch of housekeep target records.
+   *
+   * @param info the housekeep task settings
+   * @param lastProcessedId the id of the last record walked, or {@code null} for the first batch
+   * @return select statement
+   */
+  private String getMainSelectSql(HousekeepInfoBean info, @Nullable Object lastProcessedId) {
     // Build the WHERE clause.
     List<SqlConditionInterface> whereList = new ArrayList<>();
 
@@ -267,6 +284,14 @@ public class HousekeepDbTasklet implements Tasklet {
       if (StringUtils.isNotEmpty(info.getSoftDeleteColumn())) {
         whereList.add(new ColumnAndValueInfoBean(info.getSoftDeleteColumn(), false, "true"));
       }
+    }
+
+    if (lastProcessedId != null) {
+      // Keyset paging: continue after the last record walked. Both this comparison and the
+      // "order by" below use the id column, so the batches walk the table exactly once.
+      ColumnAndValueInfoBean idInfo = info.getIdColumnInfo().getColumnAndValueInfo(lastProcessedId);
+      whereList.add(new ColumnAndValueStringBean(
+          idInfo.getColumn() + " > " + idInfo.surroundWithQuotationMarks()));
     }
 
     String where = SqlUtil.getWhere(whereList);
@@ -442,11 +467,10 @@ public class HousekeepDbTasklet implements Tasklet {
     PreparedStatement delStmt = getStatement(conn, sql, "main table delete", IDT_3);
     int count = delStmt.executeUpdate();
 
-    if (count > 0 && !tableRecordDeleted.containsKey(info.getTable())) {
-      tableRecordDeleted.put(info.getTable(), 0);
-    }
-    tableRecordDeleted.put(info.getTable(),
-        Objects.requireNonNull(tableRecordDeleted.get(info.getTable())) + count);
+    // merge() also covers the case where the statement affected no rows, which happens when the
+    // record was already removed as a side effect of deleting a related-table record (a cascading
+    // foreign key, say). Accumulating through get() turned that into a NullPointerException.
+    tableRecordDeleted.merge(info.getTable(), count, Integer::sum);
 
     delStmt.close();
 

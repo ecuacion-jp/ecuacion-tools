@@ -66,6 +66,12 @@ class HousekeepDbTaskletMysqlTest extends AbstractHousekeepDbTaskletTest {
   }
 
   @Override
+  protected String localTimestampColumnType() {
+    // MySQL / MariaDB "datetime" already carries no time-zone offset.
+    return "datetime";
+  }
+
+  @Override
   protected String timestampDaysAgoExpr(int daysAgo) {
     return "now() - interval '" + daysAgo + "' day";
   }
