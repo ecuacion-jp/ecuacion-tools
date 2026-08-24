@@ -142,6 +142,16 @@ public class HousekeepInfoBean extends StringExcelTableBean {
     }
   }
 
+  /**
+   * Returns {@link #DELETE_KIND_SOFT} or {@link #DELETE_KIND_HARD}, for copying onto linked
+   * {@link RelatedTableInfoBean} rows after merging - see that class's Javadoc.
+   *
+   * @return {@link #DELETE_KIND_SOFT} or {@link #DELETE_KIND_HARD}
+   */
+  public String getIsSoftDeleteInternalValue() {
+    return isSoftDeleteInternalValue;
+  }
+
   public String getDbConnectionInfoId() {
     return dbConnectionInfoId;
   }

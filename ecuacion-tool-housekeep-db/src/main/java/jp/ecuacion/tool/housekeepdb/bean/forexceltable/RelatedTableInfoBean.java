@@ -23,6 +23,8 @@ import jp.ecuacion.lib.validation.constraints.NotEmptyWhen;
 import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
+import jp.ecuacion.tool.housekeepdb.tasklet.HousekeepDbTasklet;
+import jp.ecuacion.tool.housekeepdb.tasklet.HousekeepDbTasklet.AfterMergeValidation;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
@@ -30,11 +32,23 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Stores related tables settings.
+ *
+ * <p>{@code isSoftDeleteInternalValue} is no longer an Excel column here: it used to be a
+ *     VLOOKUP-hidden column duplicating the value from the Housekeep DB Settings sheet, but
+ *     {@link HousekeepDbTasklet} already links each row to its {@link HousekeepInfoBean} by task
+ *     ID, so it copies that value onto this field itself after linking (see
+ *     {@code getHousekeepInfoList()}), before running {@link AfterMergeValidation}-grouped
+ *     validation. The 2 constraints below that key off it are therefore in that group: they'd
+ *     otherwise fail every time, since this field is never populated at Excel-read time (unlike
+ *     the other 2 {@code @EmptyWhen} constraints, which key off
+ *     {@code softDeleteUpdateUserIdColumn} - a field of this same bean available from the start -
+ *     so they stay in the default group and run immediately, as before).</p>
  */
 // softDeleteColumn required for soft delete
 @NotEmptyWhen(propertyPath = "softDeleteColumn",
     conditionPropertyPath = "isSoftDeleteInternalValue", conditionValue = ConditionValue.STRING,
-    conditionValueString = HousekeepInfoBean.DELETE_KIND_SOFT)
+    conditionValueString = HousekeepInfoBean.DELETE_KIND_SOFT,
+    groups = AfterMergeValidation.class)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty.
 @EmptyWhen(
@@ -50,7 +64,8 @@ import org.jspecify.annotations.Nullable;
     propertyPath = {"softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn"},
     conditionPropertyPath = "isSoftDeleteInternalValue",
     conditionValue = ConditionValue.STRING,
-    conditionValueString = HousekeepInfoBean.DELETE_KIND_HARD)
+    conditionValueString = HousekeepInfoBean.DELETE_KIND_HARD,
+    groups = AfterMergeValidation.class)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty
 @EmptyWhen(
@@ -70,10 +85,9 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
 
   @NotEmpty
   private String taskId;
-  @NotEmpty
+  @NotEmpty(groups = AfterMergeValidation.class)
   @Pattern(regexp = "^" + HousekeepInfoBean.DELETE_KIND_HARD + "|"
-      + HousekeepInfoBean.DELETE_KIND_SOFT + "$")
-  @SuppressWarnings("UnusedVariable")
+      + HousekeepInfoBean.DELETE_KIND_SOFT + "$", groups = AfterMergeValidation.class)
   private String isSoftDeleteInternalValue;
   @NotEmpty
   @SuppressWarnings("UnusedVariable")
@@ -107,7 +121,7 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
 
   @Override
   protected @Nullable String[] getFieldNameArray() {
-    return new String[] {"taskId", "isSoftDeleteInternalValue", "relatedTableProcessPattern",
+    return new String[] {"taskId", "relatedTableProcessPattern",
         "relatedTableProcessPatternInternalValue", "targetTableColumn", "relatedTable",
         "relatedTableIdColumn", "relatedTableIdColumnNeedsQuotationMark", "softDeleteColumn",
         "softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn",
@@ -126,6 +140,17 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
 
   public String getTaskId() {
     return taskId;
+  }
+
+  /**
+   * Sets the soft/hard delete kind of the task this related-table row belongs to, copied from
+   * the linked {@link HousekeepInfoBean} after merging - see the class Javadoc.
+   *
+   * @param isSoftDeleteInternalValue {@link HousekeepInfoBean#DELETE_KIND_SOFT} or
+   *     {@link HousekeepInfoBean#DELETE_KIND_HARD}
+   */
+  public void setIsSoftDeleteInternalValue(String isSoftDeleteInternalValue) {
+    this.isSoftDeleteInternalValue = isSoftDeleteInternalValue;
   }
 
   public RelatedTableProcessPatternEnum getRelatedTableProcessPattern() {

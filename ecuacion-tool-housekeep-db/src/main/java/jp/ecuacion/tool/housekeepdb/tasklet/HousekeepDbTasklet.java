@@ -74,6 +74,16 @@ public class HousekeepDbTasklet implements Tasklet {
   public static final String PROP_MAX_SELECT_LINES =
       "jp.ecuacion.tool.housekeep-db.max-select-lines";
 
+  /**
+   * Marks constraints that depend on data only available after this tasklet links a bean read
+   * from one Excel sheet to its counterpart on another sheet (e.g. a {@code RelatedTableInfoBean}
+   * to its {@code HousekeepInfoBean} by task ID) - such data isn't there yet when beans are
+   * validated immediately at Excel-read time, so those constraints are deferred to this group and
+   * validated explicitly once the linking is done. Lives here, not on any one bean class, since
+   * more than one bean may need it.
+   */
+  public interface AfterMergeValidation {}
+
   private static final int IDT_1 = 1;
   private static final int IDT_2 = 2;
   private static final int IDT_3 = 3;
@@ -534,6 +544,16 @@ public class HousekeepDbTasklet implements Tasklet {
 
       hpBean.setRelatedRecordTableInfoList(relatedTableList.stream()
           .filter(bean -> bean.getTaskId().equals(hpBean.getTaskId())).toList());
+
+      // isSoftDeleteInternalValue on each related-table row is populated here, only now
+      // available since it's copied from the linked HousekeepInfoBean rather than read from an
+      // Excel column - see RelatedTableInfoBean's class Javadoc. The constraints depending on it
+      // are deferred to the AfterMergeValidation group for the same reason.
+      for (RelatedTableInfoBean relBean : hpBean.getRelatedRecordTableInfoList()) {
+        relBean.setIsSoftDeleteInternalValue(hpBean.getIsSoftDeleteInternalValue());
+        new Violations().validate(relBean, AfterMergeValidation.class)
+            .throwIfAny();
+      }
     }
 
     // Verify there are no unused records in "Related Table Settings" and
