@@ -149,7 +149,7 @@ public class LangExcelUtil {
 
     @SuppressWarnings("MutablePublicArray")
     public static final String[] HEADER_LABELS = new String[] {HousekeepDbSettings.TASK_ID,
-        HousekeepDbSettings.SOFT_OR_HARD_DELETE_INTERNAL_VALUE, RELATED_TABLE_PROCESS_PATTERN,
+        RELATED_TABLE_PROCESS_PATTERN,
         RELATED_TABLE_PROCESS_PATTERN_INTERNAL_VALUE, TARGET_TABLE_COLUMN_NAME, RELATED_TABLE_NAME,
         RELATED_TABLE_ID_COLUMN_NAME, RELATED_TABLE_ID_COLUMN_LITERAL_SYMBOL,
         HousekeepDbSettings.SOFT_DELETE_COLUMN_NAME,

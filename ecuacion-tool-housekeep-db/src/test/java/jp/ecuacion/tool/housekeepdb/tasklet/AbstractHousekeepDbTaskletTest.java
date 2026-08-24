@@ -16,6 +16,8 @@
 package jp.ecuacion.tool.housekeepdb.tasklet;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -27,6 +29,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Locale;
+import jp.ecuacion.lib.core.exception.ViolationException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
@@ -39,6 +43,7 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
@@ -81,9 +86,13 @@ abstract class AbstractHousekeepDbTaskletTest {
     }
   }
 
-  @SuppressWarnings("null")
   private static void runTasklet(Path excelFile) throws Exception {
-    RepeatStatus status = new HousekeepDbTasklet(excelFile.toString(), 1000)
+    runTasklet(excelFile, 1000);
+  }
+
+  @SuppressWarnings("null")
+  private static void runTasklet(Path excelFile, int maxSelectLines) throws Exception {
+    RepeatStatus status = new HousekeepDbTasklet(excelFile.toString(), maxSelectLines)
         .execute(mock(StepContribution.class), mock(ChunkContext.class));
 
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
@@ -296,7 +305,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "rt_parent",
               "num1", "(none)", null, null, null, null, null, null, null, null}),
-          List.<String[]>of(new String[] {"task-1", "HARD_DELETE", "Delete", "DELETE", "child_code",
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE", "child_code",
               "rt_child", "code", "quotes(')", null, null, null, null, null}),
           List.of());
 
@@ -318,7 +327,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "rt_parent2",
               "num1", "(none)", null, null, null, null, null, null, null, null}),
-          List.<String[]>of(new String[] {"task-1", "HARD_DELETE", "Check and Skip Delete",
+          List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
               "CHECK_AND_SKIP_DELETE", "child_code", "rt_child2", "code", "quotes(')", null, null,
               null, null, null}),
           List.of());
@@ -339,7 +348,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "rt_parent3",
               "num1", "(none)", null, null, null, null, null, null, null, null}),
-          List.<String[]>of(new String[] {"task-1", "HARD_DELETE", "Check and Skip Delete",
+          List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
               "CHECK_AND_SKIP_DELETE", "child_code", "rt_child3", "code", "quotes(')", null, null,
               null, null, null}),
           List.of());
@@ -423,6 +432,323 @@ abstract class AbstractHousekeepDbTaskletTest {
           List.of(), List.of());
 
       runTasklet(excel);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // paging (maxSelectLines)
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("paging (maxSelectLines)")
+  class Paging {
+
+    @Test
+    @DisplayName("processes every row across multiple select-and-commit iterations "
+        + "when there are more rows than maxSelectLines")
+    void processesAllRowsAcrossMultipleBatches() throws Exception {
+      execute("create table pg_basic (num1 integer primary key)");
+      for (int i = 1; i <= 5; i++) {
+        execute("insert into pg_basic values (" + i + ")");
+      }
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "pg_basic", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(), List.of());
+
+      // maxSelectLines=2 forces the while(true) loop to iterate 3 times for 5 rows.
+      runTasklet(excel, 2);
+
+      assertThat(countRows("select count(*) from pg_basic")).isZero();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // configuration validation errors (raised while building the housekeep task list,
+  // before any DB connection for the target tables is opened)
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("configuration validation errors")
+  class ConfigurationValidationErrors {
+
+    @Test
+    @DisplayName("duplicate task IDs in Housekeep DB Settings raise MSG_ERR_TASK_ID_DUPLICATED")
+    void duplicateTaskIdFails() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.of(
+              new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "cv_dup", "num1",
+                  "(none)", null, null, null, null, null, null, null, null},
+              new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "cv_dup", "num1",
+                  "(none)", null, null, null, null, null, null, null, null}),
+          List.of(), List.of());
+
+      assertThatExceptionOfType(ViolationException.class).isThrownBy(() -> runTasklet(excel))
+          .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
+              .extracting(BusinessViolation::getMessageId)
+              .containsExactly("MSG_ERR_TASK_ID_DUPLICATED"));
+    }
+
+    @Test
+    @DisplayName("an unknown dbConnectionInfoId raises MSG_ERR_DB_CONN_ID_NOT_FOUND")
+    void unknownDbConnectionIdFails() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "no-such-conn", "Hard Delete", "HARD_DELETE",
+              "cv_unknown_conn", "num1", "(none)", null, null, null, null, null, null, null,
+              null}),
+          List.of(), List.of());
+
+      assertThatExceptionOfType(ViolationException.class).isThrownBy(() -> runTasklet(excel))
+          .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
+              .extracting(BusinessViolation::getMessageId)
+              .containsExactly("MSG_ERR_DB_CONN_ID_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("a Related Table Settings row whose taskId matches no task "
+        + "raises MSG_ERR_DATA_NOT_USED_REL")
+    void orphanRelatedTableRowFails() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "cv_orphan_rel", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.<String[]>of(new String[] {"task-unknown", "Delete", "DELETE",
+              "child_code", "rt_orphan", "code", "quotes(')", null, null, null, null, null}),
+          List.of());
+
+      assertThatExceptionOfType(ViolationException.class).isThrownBy(() -> runTasklet(excel))
+          .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
+              .extracting(BusinessViolation::getMessageId)
+              .containsExactly("MSG_ERR_DATA_NOT_USED_REL"));
+    }
+
+    @Test
+    @DisplayName("a Search Condition Settings row whose taskId matches no task "
+        + "raises MSG_ERR_DATA_NOT_USED_COND")
+    void orphanSearchConditionRowFails() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "cv_orphan_cond", "num1", "(none)", null, null, null, null, null, null, null,
+              null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-unknown", "status", "quotes(')", "COMPLETED"}));
+
+      assertThatExceptionOfType(ViolationException.class).isThrownBy(() -> runTasklet(excel))
+          .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
+              .extracting(BusinessViolation::getMessageId)
+              .containsExactly("MSG_ERR_DATA_NOT_USED_COND"));
+    }
+
+    @Test
+    @DisplayName("an invalid DB Connection Settings row (missing required field) "
+        + "fails bean validation")
+    void invalidDbConnectionRowFails() throws Exception {
+      String[] row = dbConnectionRow("conn1");
+      row[1] = "";
+
+      Path excel = buildExcelFile(List.<String[]>of(row), List.of(), List.of(), List.of());
+
+      assertThatThrownBy(() -> runTasklet(excel)).isInstanceOf(ViolationException.class);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // excel path validation
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("excel path validation")
+  class ExcelPathValidation {
+
+    @SuppressWarnings("null")
+    @Test
+    @DisplayName("a null excelPath fails @NotEmpty validation")
+    void nullExcelPathFails() {
+      assertThatThrownBy(() -> new HousekeepDbTasklet(null, 1000).execute(
+          mock(StepContribution.class), mock(ChunkContext.class)))
+              .isInstanceOf(ViolationException.class);
+    }
+
+    @Test
+    @DisplayName("a path pointing to a non-existent file fails @FileExists validation")
+    void nonExistentFileFails() {
+      assertThatThrownBy(() -> new HousekeepDbTasklet("/no/such/file.xlsx", 1000)
+          .execute(mock(StepContribution.class), mock(ChunkContext.class)))
+              .isInstanceOf(ViolationException.class);
+    }
+
+    @Test
+    @DisplayName("a non-.xlsx extension fails @FileExtension validation")
+    void wrongExtensionFails(@TempDir Path tempDir) throws IOException {
+      Path file = tempDir.resolve("settings.txt");
+      Files.writeString(file, "not an excel file");
+
+      assertThatThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000)
+          .execute(mock(StepContribution.class), mock(ChunkContext.class)))
+              .isInstanceOf(ViolationException.class);
+    }
+
+    @Test
+    @DisplayName("a .xlsx file that isn't a real workbook raises MSG_ERR_EXCEL_PATH_CANNOT_OPEN")
+    void unopenableFileFails(@TempDir Path tempDir) throws IOException {
+      Path file = tempDir.resolve("corrupt.xlsx");
+      Files.writeString(file, "not actually an xlsx file");
+
+      assertThatExceptionOfType(ViolationException.class)
+          .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000)
+              .execute(mock(StepContribution.class), mock(ChunkContext.class)))
+          .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
+              .extracting(BusinessViolation::getMessageId)
+              .containsExactly("MSG_ERR_EXCEL_PATH_CANNOT_OPEN"));
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // related table settings - soft delete
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("related table settings - soft delete")
+  class RelatedTableSoftDelete {
+
+    @Test
+    @DisplayName("'Delete' pattern soft-deletes the related-table row (sets the flag) "
+        + "when the parent task is a soft delete")
+    void deletePatternSoftDeletesRelatedRow() throws Exception {
+      execute("create table rts_parent (num1 integer primary key, rem_flg boolean default "
+          + "false, child_code varchar(20))");
+      execute(
+          "create table rts_child (code varchar(20) primary key, rem_flg boolean default false)");
+      execute("insert into rts_parent values (1, false, 'c1')");
+      execute("insert into rts_child values ('c1', false)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
+              "rts_parent", "num1", "(none)", null, null, null, "rem_flg", null, null, null,
+              null}),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE",
+              "child_code", "rts_child", "code", "quotes(')", "rem_flg", null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from rts_parent where rem_flg = true")).isEqualTo(1);
+      assertThat(countRows("select count(*) from rts_child where rem_flg = true")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("also updates the related row's configured timestamp and user-id columns")
+    void updatesTimestampAndUserIdColumnsOnRelatedRow() throws Exception {
+      execute("create table rts_parent2 (num1 integer primary key, rem_flg boolean default "
+          + "false, child_code varchar(20))");
+      execute("create table rts_child2 (code varchar(20) primary key, rem_flg boolean default "
+          + "false, upd_at " + timestampColumnType() + ", upd_by varchar(20))");
+      execute("insert into rts_parent2 values (1, false, 'c1')");
+      execute("insert into rts_child2 values ('c1', false, null, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
+              "rts_parent2", "num1", "(none)", null, null, null, "rem_flg", null, null, null,
+              null}),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE",
+              "child_code", "rts_child2", "code", "quotes(')", "rem_flg", "upd_at", "upd_by",
+              "quotes(')", "SYSTEM"}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from rts_child2 where rem_flg = true "
+          + "and upd_at is not null and upd_by = 'SYSTEM'")).isEqualTo(1);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // related table settings - hard delete + related table's own soft-delete column
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("related table settings - hard delete + related table's soft-delete column")
+  class RelatedTableHardDeleteWithSoftDeleteColumn {
+
+    @Test
+    @DisplayName("only purges related rows already flagged")
+    void purgesFlaggedRelatedRows() throws Exception {
+      execute("create table rtf_parent (num1 integer primary key, child_code varchar(20))");
+      execute(
+          "create table rtf_child (code varchar(20) primary key, rem_flg boolean default false)");
+      execute("insert into rtf_parent values (1, 'c1')");
+      execute("insert into rtf_child values ('c1', true)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "rtf_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE",
+              "child_code", "rtf_child", "code", "quotes(')", "rem_flg", null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from rtf_child")).isZero();
+    }
+
+    @Test
+    @DisplayName("skips related rows not yet flagged")
+    void skipsUnflaggedRelatedRows() throws Exception {
+      execute("create table rtf_parent2 (num1 integer primary key, child_code varchar(20))");
+      execute("create table rtf_child2 (code varchar(20) primary key, rem_flg boolean default "
+          + "false)");
+      execute("insert into rtf_parent2 values (1, 'c1')");
+      execute("insert into rtf_child2 values ('c1', false)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "rtf_parent2", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE",
+              "child_code", "rtf_child2", "code", "quotes(')", "rem_flg", null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from rtf_child2")).isEqualTo(1);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // related table settings - multiple settings on one task
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("related table settings - multiple settings on one task")
+  class MultipleRelatedTableSettings {
+
+    @Test
+    @DisplayName("when a 'Check and Skip Delete' related row exists, neither the target row "
+        + "nor a co-configured 'Delete' pattern related row is touched")
+    void skipBlocksBothTargetAndCoConfiguredDeletePattern() throws Exception {
+      execute("create table mrt_parent (num1 integer primary key, child_code varchar(20), "
+          + "other_code varchar(20))");
+      execute("create table mrt_child_del (code varchar(20) primary key)");
+      execute("create table mrt_child_skip (code varchar(20) primary key)");
+      execute("insert into mrt_parent values (1, 'c1', 'o1')");
+      execute("insert into mrt_child_del values ('c1')");
+      execute("insert into mrt_child_skip values ('o1')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "mrt_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(
+              new String[] {"task-1", "Delete", "DELETE", "child_code",
+                  "mrt_child_del", "code", "quotes(')", null, null, null, null, null},
+              new String[] {"task-1", "Check and Skip Delete",
+                  "CHECK_AND_SKIP_DELETE", "other_code", "mrt_child_skip", "code", "quotes(')",
+                  null, null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from mrt_parent")).isEqualTo(1);
+      assertThat(countRows("select count(*) from mrt_child_del")).isEqualTo(1);
+      assertThat(countRows("select count(*) from mrt_child_skip")).isEqualTo(1);
     }
   }
 }

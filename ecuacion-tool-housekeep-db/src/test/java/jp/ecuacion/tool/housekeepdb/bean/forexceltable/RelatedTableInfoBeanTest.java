@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum;
+import jp.ecuacion.tool.housekeepdb.tasklet.HousekeepDbTasklet.AfterMergeValidation;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -35,15 +36,16 @@ class RelatedTableInfoBeanTest {
   private static final Validator validator =
       Validation.buildDefaultValidatorFactory().getValidator();
 
-  // Column order: taskId, isSoftDeleteInternalValue, relatedTableProcessPattern,
-  // relatedTableProcessPatternInternalValue, targetTableColumn, relatedTable,
-  // relatedTableIdColumn, relatedTableIdColumnNeedsQuotationMark, softDeleteColumn,
+  // Column order (isSoftDeleteInternalValue is not an Excel column - it's set via the setter
+  // after linking to a HousekeepInfoBean, so it's absent here): taskId,
+  // relatedTableProcessPattern, relatedTableProcessPatternInternalValue, targetTableColumn,
+  // relatedTable, relatedTableIdColumn, relatedTableIdColumnNeedsQuotationMark, softDeleteColumn,
   // softDeleteUpdateTimestampColumn, softDeleteUpdateUserIdColumn,
   // softDeleteUpdateUserIdColumnNeedsQuotationMark, softDeleteUpdateUserIdColumnValue
-  private static final String[] HARD_BASE = {"task1", "HARD_DELETE", "Delete", "DELETE", "col1",
-      "reltbl1", "relid1", "(none)", null, null, null, null, null};
-  private static final String[] SOFT_BASE = {"task1", "SOFT_DELETE", "Delete", "DELETE", "col1",
-      "reltbl1", "relid1", "(none)", "del_flg", null, null, null, null};
+  private static final String[] HARD_BASE = {"task1", "Delete", "DELETE", "col1", "reltbl1",
+      "relid1", "(none)", null, null, null, null, null};
+  private static final String[] SOFT_BASE = {"task1", "Delete", "DELETE", "col1", "reltbl1",
+      "relid1", "(none)", "del_flg", null, null, null, null};
 
   private static RelatedTableInfoBean bean(String[] base, int index, @Nullable String value) {
     String[] copy = Arrays.copyOf(base, base.length);
@@ -55,6 +57,18 @@ class RelatedTableInfoBeanTest {
     return new RelatedTableInfoBean(Arrays.asList(base));
   }
 
+  private static RelatedTableInfoBean hardBean() {
+    RelatedTableInfoBean b = bean(HARD_BASE);
+    b.setIsSoftDeleteInternalValue(HousekeepInfoBean.DELETE_KIND_HARD);
+    return b;
+  }
+
+  private static RelatedTableInfoBean softBean() {
+    RelatedTableInfoBean b = bean(SOFT_BASE);
+    b.setIsSoftDeleteInternalValue(HousekeepInfoBean.DELETE_KIND_SOFT);
+    return b;
+  }
+
   // -------------------------------------------------------------------------
   // @NotEmpty required fields
   // -------------------------------------------------------------------------
@@ -64,23 +78,22 @@ class RelatedTableInfoBeanTest {
   class RequiredFields {
 
     @Test
-    @DisplayName("all-null input fails @NotEmpty on exactly the 8 required columns")
+    @DisplayName("all-null input fails @NotEmpty on exactly the 7 required columns")
     void allNullFailsOnRequiredColumnsOnly() {
-      List<String> allNull = Arrays.asList(new String[13]);
+      List<String> allNull = Arrays.asList(new String[12]);
 
       @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
           validator.validate(new RelatedTableInfoBean(allNull));
 
-      assertThat(result).hasSize(8);
+      assertThat(result).hasSize(7);
       assertThat(result).allSatisfy(cv -> assertThat(
           cv.getConstraintDescriptor().getAnnotation().annotationType().getCanonicalName())
               .isEqualTo("jakarta.validation.constraints.NotEmpty"));
       assertThat(result.stream().map(cv -> cv.getPropertyPath().toString()).toList())
-          .containsExactlyInAnyOrder("taskId", "isSoftDeleteInternalValue",
-              "relatedTableProcessPattern", "relatedTableProcessPatternInternalValue",
-              "targetTableColumn", "relatedTable", "relatedTableIdColumn",
-              "relatedTableIdColumnNeedsQuotationMark");
+          .containsExactlyInAnyOrder("taskId", "relatedTableProcessPattern",
+              "relatedTableProcessPatternInternalValue", "targetTableColumn", "relatedTable",
+              "relatedTableIdColumn", "relatedTableIdColumnNeedsQuotationMark");
     }
   }
 
@@ -99,11 +112,55 @@ class RelatedTableInfoBeanTest {
     }
 
     @Test
-    @DisplayName("invalid isSoftDeleteInternalValue fails @Pattern")
-    void invalidSoftDeleteInternalValue() {
+    @DisplayName("invalid relatedTableIdColumnNeedsQuotationMark fails @Pattern")
+    void invalidLiteralSymbol() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
-          validator.validate(bean(HARD_BASE, 1, "UNEXPECTED"));
+          validator.validate(bean(HARD_BASE, 6, "UNEXPECTED"));
+
+      assertThat(result).hasSize(1);
+      assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
+          .annotationType().getCanonicalName()).isEqualTo("jakarta.validation.constraints.Pattern");
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // AfterMergeValidation group: constraints depending on isSoftDeleteInternalValue, which is
+  // only populated once this bean is linked to its HousekeepInfoBean (see the class Javadoc).
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("AfterMergeValidation group")
+  class AfterMergeValidationGroup {
+
+    @Test
+    @DisplayName("default group ignores isSoftDeleteInternalValue-dependent constraints "
+        + "even when the field is unset")
+    void defaultGroupIgnoresUnsetInternalValue() {
+      assertThat(validator.validate(bean(HARD_BASE))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("unset isSoftDeleteInternalValue fails @NotEmpty under AfterMergeValidation")
+    void unsetInternalValueFailsUnderGroup() {
+      @SuppressWarnings("null")
+      Set<ConstraintViolation<RelatedTableInfoBean>> result =
+          validator.validate(bean(HARD_BASE), AfterMergeValidation.class);
+
+      assertThat(result).hasSize(1);
+      assertThat(result.iterator().next().getPropertyPath().toString())
+          .isEqualTo("isSoftDeleteInternalValue");
+    }
+
+    @Test
+    @DisplayName("invalid isSoftDeleteInternalValue fails @Pattern under AfterMergeValidation")
+    void invalidInternalValueFailsUnderGroup() {
+      RelatedTableInfoBean b = bean(HARD_BASE);
+      b.setIsSoftDeleteInternalValue("UNEXPECTED");
+
+      @SuppressWarnings("null")
+      Set<ConstraintViolation<RelatedTableInfoBean>> result =
+          validator.validate(b, AfterMergeValidation.class);
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
@@ -111,15 +168,15 @@ class RelatedTableInfoBeanTest {
     }
 
     @Test
-    @DisplayName("invalid relatedTableIdColumnNeedsQuotationMark fails @Pattern")
-    void invalidLiteralSymbol() {
-      @SuppressWarnings("null")
-      Set<ConstraintViolation<RelatedTableInfoBean>> result =
-          validator.validate(bean(HARD_BASE, 7, "UNEXPECTED"));
+    @DisplayName("valid hard-delete combination passes under AfterMergeValidation")
+    void validHardCombinationPasses() {
+      assertThat(validator.validate(hardBean(), AfterMergeValidation.class)).isEmpty();
+    }
 
-      assertThat(result).hasSize(1);
-      assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
-          .annotationType().getCanonicalName()).isEqualTo("jakarta.validation.constraints.Pattern");
+    @Test
+    @DisplayName("valid soft-delete combination passes under AfterMergeValidation")
+    void validSoftCombinationPasses() {
+      assertThat(validator.validate(softBean(), AfterMergeValidation.class)).isEmpty();
     }
   }
 
@@ -134,9 +191,12 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("soft delete without softDeleteColumn fails with NotEmptyWhen")
     void softDeleteWithoutColumnFails() {
+      RelatedTableInfoBean b = bean(SOFT_BASE, 7, null);
+      b.setIsSoftDeleteInternalValue(HousekeepInfoBean.DELETE_KIND_SOFT);
+
       @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
-          validator.validate(bean(SOFT_BASE, 8, null));
+          validator.validate(b, AfterMergeValidation.class);
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
@@ -147,13 +207,13 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("soft delete with softDeleteColumn set passes")
     void softDeleteWithColumnPasses() {
-      assertThat(validator.validate(bean(SOFT_BASE))).isEmpty();
+      assertThat(validator.validate(softBean(), AfterMergeValidation.class)).isEmpty();
     }
 
     @Test
     @DisplayName("hard delete without softDeleteColumn passes (condition not satisfied)")
     void hardDeleteWithoutColumnPasses() {
-      assertThat(validator.validate(bean(HARD_BASE))).isEmpty();
+      assertThat(validator.validate(hardBean(), AfterMergeValidation.class)).isEmpty();
     }
   }
 
@@ -168,9 +228,12 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("hard delete with update-timestamp column set fails")
     void hardDeleteWithUpdateTimestampColumnFails() {
+      RelatedTableInfoBean b = bean(HARD_BASE, 8, "upd_at");
+      b.setIsSoftDeleteInternalValue(HousekeepInfoBean.DELETE_KIND_HARD);
+
       @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
-          validator.validate(bean(HARD_BASE, 9, "upd_at"));
+          validator.validate(b, AfterMergeValidation.class);
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
@@ -181,13 +244,16 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("hard delete with both update columns empty passes")
     void hardDeleteWithColumnsEmptyPasses() {
-      assertThat(validator.validate(bean(HARD_BASE))).isEmpty();
+      assertThat(validator.validate(hardBean(), AfterMergeValidation.class)).isEmpty();
     }
 
     @Test
     @DisplayName("soft delete with update-timestamp column set passes (condition not satisfied)")
     void softDeleteWithColumnsSetPasses() {
-      assertThat(validator.validate(bean(SOFT_BASE, 9, "upd_at"))).isEmpty();
+      RelatedTableInfoBean b = bean(SOFT_BASE, 8, "upd_at");
+      b.setIsSoftDeleteInternalValue(HousekeepInfoBean.DELETE_KIND_SOFT);
+
+      assertThat(validator.validate(b, AfterMergeValidation.class)).isEmpty();
     }
   }
 
@@ -208,8 +274,8 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("all three set passes")
     void allSetPasses() {
-      List<String> list = Arrays.asList("task1", "SOFT_DELETE", "Delete", "DELETE", "col1",
-          "reltbl1", "relid1", "(none)", "del_flg", null, "upd_by", "quotes(')", "SYSTEM");
+      List<String> list = Arrays.asList("task1", "Delete", "DELETE", "col1", "reltbl1", "relid1",
+          "(none)", "del_flg", null, "upd_by", "quotes(')", "SYSTEM");
 
       assertThat(validator.validate(new RelatedTableInfoBean(list))).isEmpty();
     }
@@ -219,7 +285,7 @@ class RelatedTableInfoBeanTest {
     void onlyUserIdColumnSetFails() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
-          validator.validate(bean(SOFT_BASE, 10, "upd_by"));
+          validator.validate(bean(SOFT_BASE, 9, "upd_by"));
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
@@ -239,7 +305,7 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("'DELETE' resolves to deleteRelatedTableRecord")
     void deleteResolvesToDeleteRelatedTableRecord() {
-      RelatedTableInfoBean b = bean(HARD_BASE, 3, "DELETE");
+      RelatedTableInfoBean b = bean(HARD_BASE, 2, "DELETE");
 
       assertThat(b.getRelatedTableProcessPattern())
           .isEqualTo(RelatedTableProcessPatternEnum.deleteRelatedTableRecord);
@@ -250,7 +316,7 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("any non-'DELETE' value resolves to skipTargetTableRecordDeletion")
     void otherResolvesToSkip() {
-      RelatedTableInfoBean b = bean(HARD_BASE, 3, "CHECK_AND_SKIP_DELETE");
+      RelatedTableInfoBean b = bean(HARD_BASE, 2, "CHECK_AND_SKIP_DELETE");
 
       assertThat(b.getRelatedTableProcessPattern())
           .isEqualTo(RelatedTableProcessPatternEnum.skipTargetTableRecordDeletion);
@@ -298,8 +364,8 @@ class RelatedTableInfoBeanTest {
     @Test
     @DisplayName("softDeleteUpdateUserIdColumnAndValueInfo is constructed when its column is set")
     void updateUserIdColumnAndValueInfoConstructedWhenSet() {
-      List<String> list = Arrays.asList("task1", "SOFT_DELETE", "Delete", "DELETE", "col1",
-          "reltbl1", "relid1", "(none)", "del_flg", null, "upd_by", "quotes(')", "SYSTEM");
+      List<String> list = Arrays.asList("task1", "Delete", "DELETE", "col1", "reltbl1", "relid1",
+          "(none)", "del_flg", null, "upd_by", "quotes(')", "SYSTEM");
       RelatedTableInfoBean b = new RelatedTableInfoBean(list);
       b.afterReading();
 
