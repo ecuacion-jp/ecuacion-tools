@@ -158,7 +158,6 @@ class RelatedTableInfoBeanTest {
       RelatedTableInfoBean b = bean(HARD_BASE);
       b.setIsSoftDeleteInternalValue("UNEXPECTED");
 
-      @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
           validator.validate(b, AfterMergeValidation.class);
 
@@ -194,7 +193,6 @@ class RelatedTableInfoBeanTest {
       RelatedTableInfoBean b = bean(SOFT_BASE, 7, null);
       b.setIsSoftDeleteInternalValue(HousekeepInfoBean.DELETE_KIND_SOFT);
 
-      @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
           validator.validate(b, AfterMergeValidation.class);
 
@@ -231,7 +229,6 @@ class RelatedTableInfoBeanTest {
       RelatedTableInfoBean b = bean(HARD_BASE, 8, "upd_at");
       b.setIsSoftDeleteInternalValue(HousekeepInfoBean.DELETE_KIND_HARD);
 
-      @SuppressWarnings("null")
       Set<ConstraintViolation<RelatedTableInfoBean>> result =
           validator.validate(b, AfterMergeValidation.class);
 
