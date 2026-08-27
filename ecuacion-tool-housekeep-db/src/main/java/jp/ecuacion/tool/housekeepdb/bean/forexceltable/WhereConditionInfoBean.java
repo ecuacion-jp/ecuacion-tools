@@ -16,7 +16,9 @@
 package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
+import jp.ecuacion.lib.validation.constraints.PatternWithDescription;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
@@ -29,9 +31,15 @@ import org.jspecify.annotations.Nullable;
 public class WhereConditionInfoBean extends StringExcelTableBean {
   @NotEmpty
   private String taskId;
+  // conditionColumn is embedded as-is (unquoted, unescaped) into generated SQL by
+  // ColumnAndValueInfoBean.getCondition(), so only unquoted SQL identifier characters are
+  // allowed.
   @NotEmpty
+  @PatternWithDescription(regexp = "^[A-Za-z_][A-Za-z0-9_]*$",
+      description = "letters, digits and underscores only, and must not start with a digit")
   private String conditionColumn;
   @NotEmpty
+  @Pattern(regexp = "^(\\(none\\)|quotes\\(\\'\\)$)")
   private String conditionColumnNeedsQuotationMark;
   @NotEmpty
   private String conditionColumnValue;

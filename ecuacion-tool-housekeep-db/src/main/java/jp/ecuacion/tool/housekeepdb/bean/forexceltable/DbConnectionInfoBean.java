@@ -18,6 +18,7 @@ package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.Arrays;
 import java.util.List;
+import jp.ecuacion.lib.validation.constraints.PatternWithDescription;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.jspecify.annotations.Nullable;
@@ -32,11 +33,16 @@ public class DbConnectionInfoBean extends StringExcelTableBean {
   private String id;
   @NotEmpty
   private String driverName;
+  // SqlUtil branches on this value with an exact-match check, throwing for anything else.
   @NotEmpty
+  @PatternWithDescription(regexp = "^(postgresql|mysql)$",
+      description = "\"postgresql\" or \"mysql\"")
   private String protocol;
   @NotEmpty
   private String server;
+  // Embedded as-is into the JDBC connection URL.
   @NotEmpty
+  @PatternWithDescription(regexp = "^[0-9]+$", description = "digits only")
   private String port;
   @NotEmpty
   private String database;

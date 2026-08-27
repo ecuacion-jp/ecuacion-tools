@@ -20,6 +20,7 @@ import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import jp.ecuacion.lib.validation.constraints.EmptyWhen;
 import jp.ecuacion.lib.validation.constraints.NotEmptyWhen;
+import jp.ecuacion.lib.validation.constraints.PatternWithDescription;
 import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
@@ -47,32 +48,26 @@ import org.jspecify.annotations.Nullable;
 // softDeleteColumn required for soft delete
 @NotEmptyWhen(propertyPath = "softDeleteColumn",
     conditionPropertyPath = "isSoftDeleteInternalValue", conditionValue = ConditionValue.STRING,
-    conditionValueString = HousekeepInfoBean.DELETE_KIND_SOFT,
-    groups = AfterMergeValidation.class)
+    conditionValueString = HousekeepInfoBean.DELETE_KIND_SOFT, groups = AfterMergeValidation.class)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty.
 @EmptyWhen(
     propertyPath = {"softDeleteUpdateUserIdColumnNeedsQuotationMark",
         "softDeleteUpdateUserIdColumnValue"},
-    conditionPropertyPath = "softDeleteUpdateUserIdColumn",
-    conditionValue = ConditionValue.EMPTY,
+    conditionPropertyPath = "softDeleteUpdateUserIdColumn", conditionValue = ConditionValue.EMPTY,
     notEmptyWhenConditionNotSatisfied = true)
 // fields related to soft delete must be null when isSoftDelete is hard
 // ("softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue" are
 // covered with the next @ConditionalEmpty)
-@EmptyWhen(
-    propertyPath = {"softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn"},
-    conditionPropertyPath = "isSoftDeleteInternalValue",
-    conditionValue = ConditionValue.STRING,
-    conditionValueString = HousekeepInfoBean.DELETE_KIND_HARD,
-    groups = AfterMergeValidation.class)
+@EmptyWhen(propertyPath = {"softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn"},
+    conditionPropertyPath = "isSoftDeleteInternalValue", conditionValue = ConditionValue.STRING,
+    conditionValueString = HousekeepInfoBean.DELETE_KIND_HARD, groups = AfterMergeValidation.class)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty
 @EmptyWhen(
     propertyPath = {"softDeleteUpdateUserIdColumnNeedsQuotationMark",
         "softDeleteUpdateUserIdColumnValue"},
-    conditionPropertyPath = "softDeleteUpdateUserIdColumn",
-    conditionValue = ConditionValue.EMPTY,
+    conditionPropertyPath = "softDeleteUpdateUserIdColumn", conditionValue = ConditionValue.EMPTY,
     notEmptyWhenConditionNotSatisfied = true)
 @SuppressWarnings("NullAway.Init")
 public class RelatedTableInfoBean extends StringExcelTableBean {
@@ -82,6 +77,12 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
       "CHECK_AND_SKIP_DELETE";
 
   public static final String EMPTY = "";
+
+  // Columns below are embedded as-is (unquoted, unescaped) into generated SQL by
+  // HousekeepDbTasklet / ColumnInfoBean, so only unquoted SQL identifier characters are allowed.
+  private static final String COLUMN_NAME_REGEXP = "^[A-Za-z_][A-Za-z0-9_]*$";
+  private static final String COLUMN_NAME_DESCRIPTION =
+      "letters, digits and underscores only, and must not start with a digit";
 
   @NotEmpty
   private String taskId;
@@ -98,16 +99,22 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
       + RELATED_TABLE_PROCESS_PATTERN_CHECK_AND_SKIP_DELETE + "$")
   private String relatedTableProcessPatternInternalValue;
   @NotEmpty
+  @PatternWithDescription(regexp = COLUMN_NAME_REGEXP, description = COLUMN_NAME_DESCRIPTION)
   private String targetTableColumn;
   @NotEmpty
+  @PatternWithDescription(regexp = COLUMN_NAME_REGEXP, description = COLUMN_NAME_DESCRIPTION)
   private String relatedTable;
   @NotEmpty
+  @PatternWithDescription(regexp = COLUMN_NAME_REGEXP, description = COLUMN_NAME_DESCRIPTION)
   private String relatedTableIdColumn;
   @NotEmpty
   @Pattern(regexp = "^(\\(none\\)|quotes\\(\\'\\)$)")
   private String relatedTableIdColumnNeedsQuotationMark;
+  @PatternWithDescription(regexp = COLUMN_NAME_REGEXP, description = COLUMN_NAME_DESCRIPTION)
   private String softDeleteColumn;
+  @PatternWithDescription(regexp = COLUMN_NAME_REGEXP, description = COLUMN_NAME_DESCRIPTION)
   private String softDeleteUpdateTimestampColumn;
+  @PatternWithDescription(regexp = COLUMN_NAME_REGEXP, description = COLUMN_NAME_DESCRIPTION)
   private String softDeleteUpdateUserIdColumn;
   @Pattern(regexp = "^(\\(none\\)|quotes\\(\\'\\)$)")
   private String softDeleteUpdateUserIdColumnNeedsQuotationMark;
