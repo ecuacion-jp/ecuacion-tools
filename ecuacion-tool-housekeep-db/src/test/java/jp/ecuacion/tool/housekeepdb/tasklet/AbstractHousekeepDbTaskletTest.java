@@ -675,6 +675,7 @@ abstract class AbstractHousekeepDbTaskletTest {
               .isInstanceOf(ViolationException.class);
     }
 
+    @SuppressWarnings("null")
     @Test
     @DisplayName("a path pointing to a non-existent file fails @FileExists validation")
     void nonExistentFileFails() {
@@ -683,6 +684,7 @@ abstract class AbstractHousekeepDbTaskletTest {
               .isInstanceOf(ViolationException.class);
     }
 
+    @SuppressWarnings("null")
     @Test
     @DisplayName("a non-.xlsx extension fails @FileExtension validation")
     void wrongExtensionFails(@TempDir Path tempDir) throws IOException {
@@ -694,6 +696,7 @@ abstract class AbstractHousekeepDbTaskletTest {
               .isInstanceOf(ViolationException.class);
     }
 
+    @SuppressWarnings("null")
     @Test
     @DisplayName("a .xlsx file that isn't a real workbook raises MSG_ERR_EXCEL_PATH_CANNOT_OPEN")
     void unopenableFileFails(@TempDir Path tempDir) throws IOException {
