@@ -99,7 +99,8 @@ public class CommandApiService {
     }
   }
 
-  private record ScriptDefinition(String scriptFilePath, AllowedHttpMethod allowedMethod) {}
+  private record ScriptDefinition(String scriptFilePath, AllowedHttpMethod allowedMethod) {
+  }
 
   private ConfigurableEnvironment env;
   private DetailLogger dtlLogger = new DetailLogger(this);
@@ -138,17 +139,16 @@ public class CommandApiService {
     this.apiKeyRequired = env.getProperty(PROP_API_KEY_REQUIRED, Boolean.class, true);
 
     if (this.apiKeyRequired && CommandApiKeyFileLocator.resolve(env) == null) {
-      String message =
-          "'" + PROP_API_KEY_REQUIRED + "' is true (either explicitly set, or defaulted for not "
-              + "being configured), which disables the API-key-less api/public/execute "
-              + "endpoint. But '" + CommandApiKeyFileLocator.PROP_API_KEY_FILE_PATH + "' is not "
-              + "configured, and no '" + CommandApiKeyFileLocator.DEFAULT_FILE_NAME + "' file was "
-              + "found in ./config/ or next to the deployed war either, so no key presented to "
-              + "api/key/execute can ever match and no script can ever be executed through "
-              + "either endpoint. Set '" + CommandApiKeyFileLocator.PROP_API_KEY_FILE_PATH
-              + "', place a '" + CommandApiKeyFileLocator.DEFAULT_FILE_NAME + "' file there, or "
-              + "set '" + PROP_API_KEY_REQUIRED + "=false' to allow api/public/execute "
-              + "instead.";
+      String message = "'" + PROP_API_KEY_REQUIRED
+          + "' is true (either explicitly set, or defaulted for not "
+          + "being configured), which disables the API-key-less api/public/execute "
+          + "endpoint. But '" + CommandApiKeyFileLocator.PROP_API_KEY_FILE_PATH + "' is not "
+          + "configured, and no '" + CommandApiKeyFileLocator.DEFAULT_FILE_NAME + "' file was "
+          + "found in ./config/ or next to the deployed war either, so no key presented to "
+          + "api/key/execute can ever match and no script can ever be executed through "
+          + "either endpoint. Set '" + CommandApiKeyFileLocator.PROP_API_KEY_FILE_PATH
+          + "', place a '" + CommandApiKeyFileLocator.DEFAULT_FILE_NAME + "' file there, or "
+          + "set '" + PROP_API_KEY_REQUIRED + "=false' to allow api/public/execute " + "instead.";
       dtlLogger.error(message);
       throw new IllegalStateException(message);
     }
@@ -230,7 +230,8 @@ public class CommandApiService {
   private Map<String, String> executeScript(HttpMethod requestMethod, String scriptId,
       @Nullable String parameters) throws Exception {
 
-    dtlLogger.info("===== executeScript started =====");
+    dtlLogger.info("-----");
+    dtlLogger.info("procedure started");
 
     // scriptId input validation
     if (!Pattern.compile("^[a-zA-Z0-9.\\-_]*$").matcher(scriptId).matches()) {
@@ -239,7 +240,7 @@ public class CommandApiService {
     }
 
     // Obtain the script definition from scriptId
-    dtlLogger.info("scriptId      : " + scriptId);
+    dtlLogger.info("  scriptId      : " + scriptId);
     ScriptDefinition scriptDefinition = resolveScriptDefinition(scriptId);
     if (scriptDefinition == null) {
       throwException(HttpStatus.BAD_REQUEST, "scriptId '" + scriptId + "' not found.");
@@ -270,11 +271,12 @@ public class CommandApiService {
     scriptFilePath = resolveEnvironmentVariables(scriptId, scriptFilePath);
 
     // Cause an error if scriptFilePath not found
-    dtlLogger.info("scriptFilePath: " + scriptFilePath);
+    dtlLogger.trace("  scriptFilePath: " + scriptFilePath);
     File scriptFile = new File(scriptFilePath);
     if (!scriptFile.exists()) {
-      throwServerConfigError("scriptFilePath '" + scriptFilePath + "' not found. (scriptId '"
-          + scriptId + "')", "scriptFilePath for scriptId '" + scriptId
+      throwServerConfigError(
+          "scriptFilePath '" + scriptFilePath + "' not found. (scriptId '" + scriptId + "')",
+          "scriptFilePath for scriptId '" + scriptId
               + "' was not found. See the server log for details.");
     }
 
@@ -287,7 +289,7 @@ public class CommandApiService {
     // Obtain paramsString
     String paramsString = parameters == null ? "" : parameters.replaceAll(",", " ");
     dtlLogger
-        .info("parameter(s)  : " + (paramsString.equals("") ? "(not specified)" : paramsString));
+        .trace("  parameter(s)  : " + (paramsString.equals("") ? "(not specified)" : paramsString));
 
     // paramsString input validation.
     // On Windows the script is run via "cmd.exe /c", which re-parses metacharacters
@@ -325,7 +327,7 @@ public class CommandApiService {
               + e.getMessage(),
           "Failed to start scriptId '" + scriptId + "'. See the server log for details.");
     }
-    dtlLogger.info("command start : " + scriptFile.getAbsolutePath() + " " + paramsString);
+    dtlLogger.debug("  command start : " + scriptFile.getAbsolutePath() + " " + paramsString);
 
     // Read the script's standard output and standard error, logging them and collecting them
     // for the response. Both streams are consumed concurrently (stderr on a separate thread)
@@ -338,7 +340,7 @@ public class CommandApiService {
           new BufferedReader(new InputStreamReader(p.getErrorStream(), Charset.defaultCharset()))) {
         String line;
         while ((line = reader.readLine()) != null) {
-          dtlLogger.info("stderr        : " + line);
+          dtlLogger.trace("  stderr        : " + line);
           stderrLines.add(line);
         }
       } catch (IOException e) {
@@ -352,7 +354,7 @@ public class CommandApiService {
         new BufferedReader(new InputStreamReader(p.getInputStream(), Charset.defaultCharset()))) {
       String line;
       while ((line = reader.readLine()) != null) {
-        dtlLogger.info("stdout        : " + line);
+        dtlLogger.trace("  stdout        : " + line);
         stdoutLines.add(line);
       }
     } catch (IOException e) {
@@ -370,13 +372,13 @@ public class CommandApiService {
     int rtn = p.waitFor();
     p.destroy();
 
-    dtlLogger.info("command end   : return code: " + rtn);
+    dtlLogger.trace("  return code   : " + rtn);
+    dtlLogger.info("procedure finished successfully");
 
     // Return the return code plus the script's captured output in a json format.
-    return Map.of(
-        "returnCode", Integer.toString(rtn),
-        "stdout", String.join(System.lineSeparator(), stdoutLines),
-        "stderr", String.join(System.lineSeparator(), stderrLines));
+    return Map.of("returnCode", Integer.toString(rtn), "stdout",
+        String.join(System.lineSeparator(), stdoutLines), "stderr",
+        String.join(System.lineSeparator(), stderrLines));
   }
 
   @SuppressWarnings("null")
@@ -431,8 +433,7 @@ public class CommandApiService {
       return new ScriptDefinition(rawValue.substring(PREFIX_GET.length()), AllowedHttpMethod.GET);
 
     } else if (hasPrefix(rawValue, PREFIX_POST)) {
-      return new ScriptDefinition(rawValue.substring(PREFIX_POST.length()),
-          AllowedHttpMethod.POST);
+      return new ScriptDefinition(rawValue.substring(PREFIX_POST.length()), AllowedHttpMethod.POST);
 
     } else if (hasPrefix(rawValue, PREFIX_ALL)) {
       return new ScriptDefinition(rawValue.substring(PREFIX_ALL.length()), AllowedHttpMethod.ALL);
@@ -476,8 +477,8 @@ public class CommandApiService {
       // variable that isn't set — both are a misconfigured script.<id> entry in
       // ecuacion-tool-command-api-scripts.properties, not a client-caused error.
       throw serverConfigError(
-          "Failed to resolve environment variable(s) for scriptId '" + scriptId + "' ("
-              + string + "): " + describeViolations(e),
+          "Failed to resolve environment variable(s) for scriptId '" + scriptId + "' (" + string
+              + "): " + describeViolations(e),
           "Failed to resolve environment variable(s) for scriptId '" + scriptId
               + "'. See the server log for details.");
     }
