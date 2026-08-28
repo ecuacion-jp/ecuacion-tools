@@ -92,15 +92,16 @@ public class HousekeepRelatedTableDeleter {
   }
 
   /**
-   * Deletes (or soft-deletes) the related-table records linked to target-table record {@code id}.
+   * Deletes (or soft-deletes) the related-table records linked to the current target-table
+   * record.
    *
    * @param conn the DB connection of the current task
    * @param info the housekeep task settings
-   * @param id the target-table record id
+   * @param mainSqlRs the current row of the target table's select result
    * @param tableRecordDeleted accumulates the delete count per related table, keyed by table name
    */
   @SuppressWarnings("null")
-  public void deleteRelatedData(Connection conn, HousekeepInfoBean info, Object id,
+  public void deleteRelatedData(Connection conn, HousekeepInfoBean info, ResultSet mainSqlRs,
       Map<String, Integer> tableRecordDeleted) throws SQLException {
     List<RelatedTableInfoBean> list = info.getRelatedRecordTableInfoList().stream()
         .filter(bean -> bean.getRelatedTableProcessPattern() == deleteRelatedTableRecord).toList();
@@ -110,8 +111,11 @@ public class HousekeepRelatedTableDeleter {
         tableRecordDeleted.put(relatedInfo.getRelatedTable(), 0);
       }
 
-      // Organize a delete (or update in case of soft delete) statement of a record linked to the id
-      // of the target table.
+      // The target-table column value this related-table row is linked by.
+      Object linkValue = mainSqlRs.getObject(relatedInfo.getTargetTableColumn());
+
+      // Organize a delete (or update in case of soft delete) statement of a record linked to the
+      // target table via that value.
 
       // Put parameters of the set clause in a update statement
       List<SqlConditionInterface> updateSetList = new ArrayList<>();
@@ -132,11 +136,13 @@ public class HousekeepRelatedTableDeleter {
         }
       }
 
-      // First retrieve the target column value from the target table.
+      // First retrieve the related row via the linking value, both to confirm it still exists
+      // (it may already be gone as the side effect of an earlier related-table delete, e.g. a
+      // cascading foreign key) and to read back the exact value to delete by.
       ColumnInfoBean fkCol = relatedInfo.getRelatedTableIdColumnInfo();
       String sqlTargetSelect =
           "select " + fkCol.getColumn() + " from " + relatedInfo.getRelatedTable() + " where "
-              + fkCol.getColumnAndValueInfo(id).getCondition();
+              + fkCol.getColumnAndValueInfo(linkValue).getCondition();
 
       String sqlName = "related table select";
       try (PreparedStatement stmt =
@@ -146,8 +152,14 @@ public class HousekeepRelatedTableDeleter {
         boolean recordFound = rs.next();
 
         String logMsg = !recordFound ? "Record not found."
-            : "Record(s) found. " + fkCol.getColumnAndValueInfo(id).getCondition();
+            : "Record(s) found. " + fkCol.getColumnAndValueInfo(linkValue).getCondition();
         LogUtil.dlogWithIndent(detailLogger, Level.DEBUG, logMsg, IDT_4);
+
+        if (!recordFound) {
+          // Nothing to delete - already gone, e.g. via an earlier related-table delete cascading
+          // onto this one.
+          continue;
+        }
 
         // where clause
         final Object val = rs.getObject(fkCol.getColumn());
