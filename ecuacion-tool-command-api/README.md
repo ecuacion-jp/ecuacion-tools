@@ -3,7 +3,7 @@
  ## What is it?
 
  `ecuacion-tool-command-api` receives commands through web API and execute them in the installed server.
- Linux or mac OS supported.
+ Linux, mac OS and Windows supported.
 
  - Script Parameters — parameters can be passed to the script through the `parameter=` query parameter.
  - Environment Variable Resolution in Script Path — script paths registered in `ecuacion-tool-command-api.properties` can contain `${ENV_VAR}` placeholders.
