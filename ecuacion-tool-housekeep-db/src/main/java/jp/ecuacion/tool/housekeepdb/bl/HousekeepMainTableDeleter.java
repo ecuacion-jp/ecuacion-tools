@@ -132,7 +132,7 @@ public class HousekeepMainTableDeleter {
 
             recordDeleted = true;
 
-            relatedTableDeleter.deleteRelatedData(conn, info, idValue, tableRecordDeleted);
+            relatedTableDeleter.deleteRelatedData(conn, info, rs, tableRecordDeleted);
             deleteTargetData(conn, info, idValue, tableRecordDeleted);
           }
 
