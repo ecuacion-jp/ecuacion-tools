@@ -15,9 +15,6 @@
  */
 package jp.ecuacion.tool.housekeepdb.bl;
 
-import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.deleteRelatedTableRecord;
-import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.skipTargetTableRecordDeletion;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -33,30 +30,29 @@ import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueStringBean;
-import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
-import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
+import jp.ecuacion.tool.housekeepdb.util.LogUtil;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.event.Level;
 
 /**
- * Connects to the DB configured for one housekeep task and deletes (or soft-deletes) its expired
- * records, in batches of up to {@code maxSelectLines} rows.
+ * Connects to the DB configured for one housekeep task, walks its target table in batches of up
+ * to {@code maxSelectLines} rows, and deletes (or soft-deletes) each expired record - delegating
+ * the related-table skip check and cleanup to {@link HousekeepRelatedTableDeleter}.
  */
-public class HousekeepRecordDeleter {
+public class HousekeepMainTableDeleter {
 
   private static final int IDT_1 = 1;
   private static final int IDT_2 = 2;
   private static final int IDT_3 = 3;
-  private static final int IDT_4 = 4;
-  private static final int IDT_5 = 5;
 
   private final DetailLogger detailLogger;
   private final int maxSelectLines;
+  private final HousekeepRelatedTableDeleter relatedTableDeleter;
 
   /**
    * Creates the deleter.
@@ -64,9 +60,10 @@ public class HousekeepRecordDeleter {
    * @param detailLogger the logger to write progress to
    * @param maxSelectLines the number of rows selected and committed per loop iteration
    */
-  public HousekeepRecordDeleter(DetailLogger detailLogger, int maxSelectLines) {
+  public HousekeepMainTableDeleter(DetailLogger detailLogger, int maxSelectLines) {
     this.detailLogger = detailLogger;
     this.maxSelectLines = maxSelectLines;
+    this.relatedTableDeleter = new HousekeepRelatedTableDeleter(detailLogger);
   }
 
   /**
@@ -82,7 +79,7 @@ public class HousekeepRecordDeleter {
     String logMsg = "DB Connection ID: " + info.getDbConnectionInfoId() + " / "
         + (info.isSoftDelete() ? "Soft Delete" : "Hard Delete") + " / " + "Table Name: "
         + info.getTable();
-    dlogWithIndent(Level.INFO, logMsg, IDT_1);
+    LogUtil.dlogWithIndent(detailLogger, Level.INFO, logMsg, IDT_1);
 
     Map<String, Integer> tableRecordDeleted = new LinkedHashMap<>();
 
@@ -99,13 +96,13 @@ public class HousekeepRecordDeleter {
 
       // Process in batches of maxSelectLines even when there are many records.
       while (true) {
-        dlogWithIndent(Level.INFO, "Find records from target table.", IDT_1);
+        LogUtil.dlogWithIndent(detailLogger, Level.INFO, "Find records from target table.", IDT_1);
 
         // Retrieve IDs up to maxSelectLines rows, continuing after the previous batch.
         String selectSql = getMainSelectSql(info, lastProcessedId);
 
         try (PreparedStatement stmt =
-            getStatement(conn, selectSql, "target table select", IDT_1)) {
+            LogUtil.getStatement(detailLogger, conn, selectSql, "target table select", IDT_1)) {
           ResultSet rs = stmt.executeQuery();
 
           // Flag to determine whether the query found any records.
@@ -118,7 +115,8 @@ public class HousekeepRecordDeleter {
 
             Object idValue = rs.getObject(info.getIdColumnInfo().getColumn());
             String idCol = info.getIdColumnInfo().getColumn();
-            dlogWithIndent(Level.DEBUG, "Record found. " + idCol + " = " + idValue, IDT_2);
+            LogUtil.dlogWithIndent(detailLogger, Level.DEBUG,
+                "Record found. " + idCol + " = " + idValue, IDT_2);
 
             // Advance the cursor before the skip check below. Skipped records are not deleted,
             // so they would otherwise be re-selected by every following batch and the records
@@ -126,14 +124,15 @@ public class HousekeepRecordDeleter {
             lastProcessedId = idValue;
 
             // Check for data that should be skipped.
-            if (needsSkipFromRelatedTableDataCheck(conn, info, rs)) {
-              dlogWithIndent(Level.DEBUG, "Not a housekeep target. Skipped", IDT_3);
+            if (relatedTableDeleter.needsSkipFromRelatedTableDataCheck(conn, info, rs)) {
+              LogUtil.dlogWithIndent(detailLogger, Level.DEBUG, "Not a housekeep target. Skipped",
+                  IDT_3);
               continue;
             }
 
             recordDeleted = true;
 
-            deleteRelatedData(conn, info, idValue, tableRecordDeleted);
+            relatedTableDeleter.deleteRelatedData(conn, info, idValue, tableRecordDeleted);
             deleteTargetData(conn, info, idValue, tableRecordDeleted);
           }
 
@@ -149,22 +148,12 @@ public class HousekeepRecordDeleter {
       logMsg = !recordFound ? "Record not found."
           : recordDeleted ? "Record(s) deleted."
               : "Record(s) found, but no deletable one(s) only.";
-      dlogWithIndent(Level.INFO, logMsg, IDT_2);
+      LogUtil.dlogWithIndent(detailLogger, Level.INFO, logMsg, IDT_2);
     }
 
-    tableRecordDeleted.keySet().stream().forEach(table -> dlogWithIndent(Level.INFO,
-        "Delete lines | table: " + table + ", count: " + tableRecordDeleted.get(table), IDT_1));
-  }
-
-  private void dlogWithIndent(Level logLevel, String message, int indents) {
-    final String indentString = "  ";
-
-    String indentsString = "";
-    for (int i = 0; i < indents; i++) {
-      indentsString += indentString;
-    }
-
-    detailLogger.log(logLevel, indentsString + message);
+    tableRecordDeleted.keySet().stream().forEach(table -> LogUtil.dlogWithIndent(detailLogger,
+        Level.INFO, "Delete lines | table: " + table + ", count: " + tableRecordDeleted.get(table),
+        IDT_1));
   }
 
   /**
@@ -230,126 +219,6 @@ public class HousekeepRecordDeleter {
     return conn;
   }
 
-  private PreparedStatement getStatement(Connection conn, String sql, String sqlName, int indents)
-      throws SQLException {
-
-    dlogWithIndent(Level.TRACE, sqlName + " SQL: " + sql, indents);
-
-    return conn.prepareStatement(sql);
-  }
-
-  /**
-   * Skip deleting if specified related-table record exists.
-   *
-   * <p>Returning true means that record is skipped to delete.</p>
-   */
-  private boolean needsSkipFromRelatedTableDataCheck(Connection connection, HousekeepInfoBean info,
-      ResultSet mainSqlRs) throws SQLException {
-    List<RelatedTableInfoBean> relatedSkipList = info.getRelatedRecordTableInfoList().stream()
-        .filter(bean -> bean.getRelatedTableProcessPattern() == skipTargetTableRecordDeletion)
-        .toList();
-
-    for (RelatedTableInfoBean relatedBean : relatedSkipList) {
-      Object value = mainSqlRs.getObject(relatedBean.getTargetTableColumn());
-
-      dlogWithIndent(Level.DEBUG, "Find records from related table.", IDT_3);
-      String selectSql = "select count(*) count from " + relatedBean.getRelatedTable() + " where "
-          + relatedBean.getRelatedTableIdColumnInfo().getColumnAndValueInfo(value).getCondition();
-      PreparedStatement stmt = getStatement(connection, selectSql, "related table select", IDT_3);
-      ResultSet rs = stmt.executeQuery();
-
-      rs.next();
-      Integer integer = rs.getInt("count");
-      if (integer > 0) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  @SuppressWarnings("null")
-  private void deleteRelatedData(Connection conn, HousekeepInfoBean info, Object id,
-      Map<String, Integer> tableRecordDeleted) throws SQLException {
-    List<RelatedTableInfoBean> list = info.getRelatedRecordTableInfoList().stream()
-        .filter(bean -> bean.getRelatedTableProcessPattern() == deleteRelatedTableRecord).toList();
-
-    for (RelatedTableInfoBean relatedInfo : list) {
-      if (!tableRecordDeleted.containsKey(relatedInfo.getRelatedTable())) {
-        tableRecordDeleted.put(relatedInfo.getRelatedTable(), 0);
-      }
-
-      // Organize a delete (or update in case of soft delete) statement of a record linked to the id
-      // of the target table.
-
-      // Put parameters of the set clause in a update statement
-      List<SqlConditionInterface> updateSetList = new ArrayList<>();
-
-      if (info.isSoftDelete()) {
-        // '<softDeleteColumn> = true'
-        updateSetList.add(relatedInfo.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
-
-        // '<SoftDeleteUpdateTimestampColumn> = now()'
-        if (!StringUtils.isEmpty(relatedInfo.getSoftDeleteUpdateTimestampColumn())) {
-          updateSetList.add(relatedInfo.getSoftDeleteUpdateTimestampColumnInfo()
-              .getTimestampColumnNowInfo(info.getDbConnectionInfo().getProtocol()));
-        }
-
-        // <SoftDeleteUpdateUserIdColumn = 'xxx'
-        if (!StringUtils.isEmpty(relatedInfo.getSoftDeleteUpdateUserIdColumn())) {
-          updateSetList.add(relatedInfo.getSoftDeleteUpdateUserIdColumnAndValueInfo());
-        }
-      }
-
-      // First retrieve the target column value from the target table.
-      ColumnInfoBean fkCol = relatedInfo.getRelatedTableIdColumnInfo();
-      String sqlTargetSelect =
-          "select " + fkCol.getColumn() + " from " + relatedInfo.getRelatedTable() + " where "
-              + fkCol.getColumnAndValueInfo(id).getCondition();
-
-      String sqlName = "related table select";
-      try (PreparedStatement stmt = getStatement(conn, sqlTargetSelect, sqlName, IDT_3);
-          ResultSet rs = stmt.executeQuery();) {
-
-        boolean recordFound = rs.next();
-
-        String logMsg = !recordFound ? "Record not found."
-            : "Record(s) found. " + fkCol.getColumnAndValueInfo(id).getCondition();
-        dlogWithIndent(Level.DEBUG, logMsg, IDT_4);
-
-        // where clause
-        final Object val = rs.getObject(fkCol.getColumn());
-        List<SqlConditionInterface> whereList = new ArrayList<>();
-        whereList.add(relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val));
-
-        // When hard-deleting and a soft-delete column is specified, also add a condition that
-        // the column is true to the WHERE clause.
-        if (!info.isSoftDelete() && !StringUtils.isEmpty(relatedInfo.getSoftDeleteColumn())) {
-          whereList.add(relatedInfo.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
-        }
-
-        // Delete records in the related table whose column contains the retrieved value.
-        String softDeleteSql =
-            "update " + relatedInfo.getRelatedTable() + SqlUtil.getUpdateSet(updateSetList);
-        String hardDeleteSql = "delete from " + relatedInfo.getRelatedTable();
-
-        String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
-        sql = sql + SqlUtil.getWhere(whereList);
-
-        PreparedStatement delStmt = getStatement(conn, sql, "related table delete", IDT_5);
-        int count = delStmt.executeUpdate();
-        tableRecordDeleted.put(relatedInfo.getRelatedTable(),
-            tableRecordDeleted.get(relatedInfo.getRelatedTable()) + count);
-
-        delStmt.close();
-
-        logDeleteLines(relatedInfo.getRelatedTable(), count,
-            relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val).getCondition(),
-            Level.TRACE, IDT_5);
-      }
-    }
-  }
-
   private void deleteTargetData(Connection conn, HousekeepInfoBean info, Object idValue,
       Map<String, Integer> tableRecordDeleted) throws SQLException {
 
@@ -382,7 +251,8 @@ public class HousekeepRecordDeleter {
     String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
     sql = sql + SqlUtil.getWhere(whereList);
 
-    PreparedStatement delStmt = getStatement(conn, sql, "main table delete", IDT_3);
+    PreparedStatement delStmt =
+        LogUtil.getStatement(detailLogger, conn, sql, "main table delete", IDT_3);
     int count = delStmt.executeUpdate();
 
     // merge() also covers the case where the statement affected no rows, which happens when the
@@ -392,16 +262,8 @@ public class HousekeepRecordDeleter {
 
     delStmt.close();
 
-    logDeleteLines(info.getTable(), count,
+    LogUtil.logDeleteLines(detailLogger, info.getTable(), count,
         info.getIdColumnInfo().getColumnAndValueInfo(idValue).getCondition(), Level.TRACE, IDT_3);
-  }
-
-  private void logDeleteLines(String table, int count, String condition, Level logLevel,
-      int indents) {
-    if (logLevel != null) {
-      dlogWithIndent(logLevel, table + ": " + count + " record(s) deleted. (" + condition + ")",
-          indents);
-    }
   }
 
   private String getDbConnectionUrl(DbConnectionInfoBean dbInfo) {

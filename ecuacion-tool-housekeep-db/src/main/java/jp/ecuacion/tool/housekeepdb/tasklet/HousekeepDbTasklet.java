@@ -29,7 +29,7 @@ import jp.ecuacion.lib.validation.constraints.FileExtension;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader;
-import jp.ecuacion.tool.housekeepdb.bl.HousekeepRecordDeleter;
+import jp.ecuacion.tool.housekeepdb.bl.HousekeepMainTableDeleter;
 import jp.ecuacion.util.excel.util.ExcelReadUtil;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -46,7 +46,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>Owns the excel path / property validation and the per-task loop; reading and linking the
  *     excel settings is delegated to {@link HousekeepConfigLoader}, and deleting the records of
- *     one task is delegated to {@link HousekeepRecordDeleter}.</p>
+ *     one task is delegated to {@link HousekeepMainTableDeleter}.</p>
  */
 @Component
 public class HousekeepDbTasklet implements Tasklet {
@@ -102,14 +102,14 @@ public class HousekeepDbTasklet implements Tasklet {
       detailLogger.warn("\"Housekeep DB Settings\" sheet has no data rows. Nothing to do.");
     }
 
-    HousekeepRecordDeleter recordDeleter =
-        new HousekeepRecordDeleter(detailLogger, maxSelectLines);
+    HousekeepMainTableDeleter mainTableDeleter =
+        new HousekeepMainTableDeleter(detailLogger, maxSelectLines);
 
     for (HousekeepInfoBean info : housekeepInfoList) {
       detailLogger.info("-----");
       detailLogger.info("task start : " + info.getTaskId());
 
-      recordDeleter.execute(dbConnectionInfoMap, info);
+      mainTableDeleter.execute(dbConnectionInfoMap, info);
 
       detailLogger.info("task finish: " + info.getTaskId());
     }
