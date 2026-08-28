@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum;
-import jp.ecuacion.tool.housekeepdb.tasklet.HousekeepDbTasklet.AfterMergeValidation;
+import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader.AfterMergeValidation;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

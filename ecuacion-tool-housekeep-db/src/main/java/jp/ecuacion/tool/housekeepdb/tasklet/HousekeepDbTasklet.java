@@ -15,49 +15,25 @@
  */
 package jp.ecuacion.tool.housekeepdb.tasklet;
 
-import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.deleteRelatedTableRecord;
-import static jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean.RelatedTableProcessPatternEnum.skipTargetTableRecordDeletion;
-
 import jakarta.validation.Validation;
 import jakarta.validation.constraints.NotEmpty;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.lib.validation.constraints.FileExists;
 import jp.ecuacion.lib.validation.constraints.FileExtension;
-import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
-import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueStringBean;
-import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
-import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
-import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
-import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
-import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
-import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
-import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
-import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
+import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader;
+import jp.ecuacion.tool.housekeepdb.bl.HousekeepMainTableDeleter;
 import jp.ecuacion.util.excel.util.ExcelReadUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.event.Level;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -67,6 +43,10 @@ import org.springframework.stereotype.Component;
 
 /**
  * Executes housekeeping DB.
+ *
+ * <p>Owns the excel path / property validation and the per-task loop; reading and linking the
+ *     excel settings is delegated to {@link HousekeepConfigLoader}, and deleting the records of
+ *     one task is delegated to {@link HousekeepMainTableDeleter}.</p>
  */
 @Component
 public class HousekeepDbTasklet implements Tasklet {
@@ -75,25 +55,7 @@ public class HousekeepDbTasklet implements Tasklet {
   public static final String PROP_MAX_SELECT_LINES =
       "jp.ecuacion.tool.housekeep-db.max-select-lines";
 
-  /**
-   * Marks constraints that depend on data only available after this tasklet links a bean read
-   * from one Excel sheet to its counterpart on another sheet (e.g. a {@code RelatedTableInfoBean}
-   * to its {@code HousekeepInfoBean} by task ID) - such data isn't there yet when beans are
-   * validated immediately at Excel-read time, so those constraints are deferred to this group and
-   * validated explicitly once the linking is done. Lives here, not on any one bean class, since
-   * more than one bean may need it.
-   */
-  public interface AfterMergeValidation {
-  }
-
-  private static final int IDT_1 = 1;
-  private static final int IDT_2 = 2;
-  private static final int IDT_3 = 3;
-  private static final int IDT_4 = 4;
-  private static final int IDT_5 = 5;
-
   private DetailLogger detailLogger = new DetailLogger(this);
-  private @Nullable LangExcelUtil lang;
   @NotEmpty
   @FileExists
   @FileExtension(".xlsx")
@@ -126,119 +88,36 @@ public class HousekeepDbTasklet implements Tasklet {
     detailLogger.info("housekeep-db start.");
     detailLogger.info("Excel File Path     : " + excelPath);
 
-    final Map<String, String> infoMap = getInfoMap(excelPath);
+    HousekeepConfigLoader configLoader = new HousekeepConfigLoader();
+    configLoader.load(excelPath);
 
-    lang = new LangExcelUtil(Locale.of(infoMap.get("locale")));
-
+    Map<String, String> infoMap = configLoader.getInfoMap();
     detailLogger.info("Format Excel Version: " + infoMap.get("format-version"));
     detailLogger.info("Locale              : " + infoMap.get("locale"));
 
-    final Map<String, DbConnectionInfoBean> dbConnectionInfoMap = getDbConnectionInfoMap(excelPath);
-    final List<HousekeepInfoBean> housekeepInfoList =
-        getHousekeepInfoList(excelPath, dbConnectionInfoMap);
+    Map<String, DbConnectionInfoBean> dbConnectionInfoMap = configLoader.getDbConnectionInfoMap();
+    List<HousekeepInfoBean> housekeepInfoList = configLoader.getHousekeepInfoList();
 
     if (housekeepInfoList.isEmpty()) {
       detailLogger.warn("\"Housekeep DB Settings\" sheet has no data rows. Nothing to do.");
     }
 
+    HousekeepMainTableDeleter mainTableDeleter =
+        new HousekeepMainTableDeleter(detailLogger, maxSelectLines);
+
     for (HousekeepInfoBean info : housekeepInfoList) {
       detailLogger.info("-----");
       detailLogger.info("task start : " + info.getTaskId());
-          
-      String logMsg = "DB Connection ID: " + info.getDbConnectionInfoId() + " / "
-          + (info.isSoftDelete() ? "Soft Delete" : "Hard Delete") + " / " + "Table Name: "
-          + info.getTable();
-      dlogWithIndent(Level.INFO, logMsg, IDT_1);
 
-      Map<String, Integer> tableRecordDeleted = new LinkedHashMap<>();
-
-      // DB Connection settings
-      try (Connection conn = connectionSettings(dbConnectionInfoMap, info)) {
-
-        // Paging cursor: the id of the last record walked. Records are walked in id order and
-        // each batch continues after this value, so the loop terminates by reaching the end of
-        // the table rather than by failing to delete anything.
-        @Nullable
-        Object lastProcessedId = null;
-        boolean recordFound = false;
-        boolean recordDeleted = false;
-
-        // Process in batches of maxSelectLines even when there are many records.
-        while (true) {
-          dlogWithIndent(Level.INFO, "Find records from target table.", IDT_1);
-
-          // Retrieve IDs up to maxSelectLines rows, continuing after the previous batch.
-          String selectSql = getMainSelectSql(info, lastProcessedId);
-
-          try (PreparedStatement stmt =
-              getStatement(conn, selectSql, "target table select", IDT_1)) {
-            ResultSet rs = stmt.executeQuery();
-
-            // Flag to determine whether the query found any records.
-            boolean isQueryResultCountZero = true;
-
-            // Process each retrieved record one by one.
-            while (rs.next()) {
-              isQueryResultCountZero = false;
-              recordFound = true;
-
-              Object idValue = rs.getObject(info.getIdColumnInfo().getColumn());
-              String idCol = info.getIdColumnInfo().getColumn();
-              dlogWithIndent(Level.DEBUG, "Record found. " + idCol + " = " + idValue, IDT_2);
-
-              // Advance the cursor before the skip check below. Skipped records are not deleted,
-              // so they would otherwise be re-selected by every following batch and the records
-              // after them never reached.
-              lastProcessedId = idValue;
-
-              // Check for data that should be skipped.
-              if (needsSkipFromRelatedTableDataCheck(conn, info, rs)) {
-                dlogWithIndent(Level.DEBUG, "Not a housekeep target. Skipped", IDT_3);
-                continue;
-              }
-
-              recordDeleted = true;
-
-              deleteRelatedData(conn, info, idValue, tableRecordDeleted);
-              deleteTargetData(conn, info, idValue, tableRecordDeleted);
-            }
-
-            // Terminate when the end of the target table is reached.
-            if (isQueryResultCountZero) {
-              break;
-            }
-
-            conn.commit();
-          }
-        }
-
-        logMsg = !recordFound ? "Record not found."
-            : recordDeleted ? "Record(s) deleted."
-                : "Record(s) found, but no deletable one(s) only.";
-        dlogWithIndent(Level.INFO, logMsg, IDT_2);
-      }
-
-      tableRecordDeleted.keySet().stream().forEach(table -> dlogWithIndent(Level.INFO,
-          "Delete lines | table: " + table + ", count: " + tableRecordDeleted.get(table), IDT_1));
+      mainTableDeleter.execute(dbConnectionInfoMap, info);
 
       detailLogger.info("task finish: " + info.getTaskId());
     }
-    
+
     detailLogger.info("-----");
     detailLogger.info("housekeep-db finished successfully.");
 
     return RepeatStatus.FINISHED;
-  }
-
-  private void dlogWithIndent(Level logLevel, String message, int indents) {
-    final String indentString = "  ";
-
-    String indentsString = "";
-    for (int i = 0; i < indents; i++) {
-      indentsString += indentString;
-    }
-
-    detailLogger.log(logLevel, indentsString + message);
   }
 
   private String validateExcelPath() {
@@ -258,367 +137,5 @@ public class HousekeepDbTasklet implements Tasklet {
     }
 
     return nonnullExcelPath;
-  }
-
-  /**
-   * Builds the select statement finding the next batch of housekeep target records.
-   *
-   * @param info the housekeep task settings
-   * @param lastProcessedId the id of the last record walked, or {@code null} for the first batch
-   * @return select statement
-   */
-  private String getMainSelectSql(HousekeepInfoBean info, @Nullable Object lastProcessedId) {
-    // Build the WHERE clause.
-    List<SqlConditionInterface> whereList = new ArrayList<>();
-
-    whereList.addAll(
-        info.getWhereConditionInfoList().stream().map(e -> e.getConditionColumnInfo()).toList());
-
-    if (info.timestampColumnDefines()) {
-      whereList.add(new ColumnAndValueStringBean(
-          SqlUtil.getExpirationCondition(info.getDbConnectionInfo().getProtocol(),
-              info.getTimestampColumn(), info.getDeleteTargetInDays())));
-    }
-
-    if (info.isSoftDelete()) {
-      // To avoid updating already-processed records, target only rows where the soft-delete
-      // flag is not set.
-      whereList.add(new ColumnAndValueInfoBean(info.getSoftDeleteColumn(), false, "false"));
-
-    } else {
-      // If hard delete and "soft-delete column name" is specified, add to the WHERE clause.
-      if (StringUtils.isNotEmpty(info.getSoftDeleteColumn())) {
-        whereList.add(new ColumnAndValueInfoBean(info.getSoftDeleteColumn(), false, "true"));
-      }
-    }
-
-    if (lastProcessedId != null) {
-      // Keyset paging: continue after the last record walked. Both this comparison and the
-      // "order by" below use the id column, so the batches walk the table exactly once.
-      ColumnAndValueInfoBean idInfo = info.getIdColumnInfo().getColumnAndValueInfo(lastProcessedId);
-      whereList.add(new ColumnAndValueStringBean(
-          idInfo.getColumn() + " > " + idInfo.surroundWithQuotationMarks()));
-    }
-
-    String where = SqlUtil.getWhere(whereList);
-
-    return "select * from " + info.getTable() + where + " order by "
-        + info.getIdColumnInfo().getColumn() + " limit " + maxSelectLines;
-  }
-
-  private Connection connectionSettings(Map<String, DbConnectionInfoBean> dbConnectionInfoMap,
-      HousekeepInfoBean info) throws ClassNotFoundException, SQLException {
-    DbConnectionInfoBean dbInfo = dbConnectionInfoMap.get(info.getDbConnectionInfoId());
-    if (dbInfo == null) {
-      new Violations().add(new BusinessViolation("MSG_ERR_DB_CONNECITON_INFO_ID_NOT_EXIST",
-          info.getDbConnectionInfoId())).throwIfAny();
-    }
-
-    Objects.requireNonNull(dbInfo);
-
-    Class.forName(dbInfo.getDriverName());
-    Connection conn = DriverManager.getConnection(getDbConnectionUrl(dbInfo), dbInfo.getUsername(),
-        dbInfo.getPassword());
-    conn.setAutoCommit(false);
-    return conn;
-  }
-
-  private PreparedStatement getStatement(Connection conn, String sql, String sqlName, int indents)
-      throws SQLException {
-
-    dlogWithIndent(Level.TRACE, sqlName + " SQL: " + sql, indents);
-
-    return conn.prepareStatement(sql);
-  }
-
-  /**
-   * Skip deleting if specified related-table record exists.
-   * 
-   * <p>Returning true means that record is skipped to delete.</p>
-   */
-  private boolean needsSkipFromRelatedTableDataCheck(Connection connection, HousekeepInfoBean info,
-      ResultSet mainSqlRs) throws SQLException {
-    List<RelatedTableInfoBean> relatedSkipList = info.getRelatedRecordTableInfoList().stream()
-        .filter(bean -> bean.getRelatedTableProcessPattern() == skipTargetTableRecordDeletion)
-        .toList();
-
-    for (RelatedTableInfoBean relatedBean : relatedSkipList) {
-      Object value = mainSqlRs.getObject(relatedBean.getTargetTableColumn());
-
-      dlogWithIndent(Level.DEBUG, "Find records from related table.", IDT_3);
-      String selectSql = "select count(*) count from " + relatedBean.getRelatedTable() + " where "
-          + relatedBean.getRelatedTableIdColumnInfo().getColumnAndValueInfo(value).getCondition();
-      PreparedStatement stmt = getStatement(connection, selectSql, "related table select", IDT_3);
-      ResultSet rs = stmt.executeQuery();
-
-      rs.next();
-      Integer integer = rs.getInt("count");
-      if (integer > 0) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  @SuppressWarnings("null")
-  private void deleteRelatedData(Connection conn, HousekeepInfoBean info, Object id,
-      Map<String, Integer> tableRecordDeleted) throws SQLException {
-    List<RelatedTableInfoBean> list = info.getRelatedRecordTableInfoList().stream()
-        .filter(bean -> bean.getRelatedTableProcessPattern() == deleteRelatedTableRecord).toList();
-
-    for (RelatedTableInfoBean relatedInfo : list) {
-      if (!tableRecordDeleted.containsKey(relatedInfo.getRelatedTable())) {
-        tableRecordDeleted.put(relatedInfo.getRelatedTable(), 0);
-      }
-
-      // Organize a delete (or update in case of soft delete) statement of a record linked to the id
-      // of the target table.
-
-      // Put parameters of the set clause in a update statement
-      List<SqlConditionInterface> updateSetList = new ArrayList<>();
-
-      if (info.isSoftDelete()) {
-        // '<softDeleteColumn> = true'
-        updateSetList.add(relatedInfo.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
-
-        // '<SoftDeleteUpdateTimestampColumn> = now()'
-        if (!StringUtils.isEmpty(relatedInfo.getSoftDeleteUpdateTimestampColumn())) {
-          updateSetList.add(relatedInfo.getSoftDeleteUpdateTimestampColumnInfo()
-              .getTimestampColumnNowInfo(info.getDbConnectionInfo().getProtocol()));
-        }
-
-        // <SoftDeleteUpdateUserIdColumn = 'xxx'
-        if (!StringUtils.isEmpty(relatedInfo.getSoftDeleteUpdateUserIdColumn())) {
-          updateSetList.add(relatedInfo.getSoftDeleteUpdateUserIdColumnAndValueInfo());
-        }
-      }
-
-      // First retrieve the target column value from the target table.
-      ColumnInfoBean fkCol = relatedInfo.getRelatedTableIdColumnInfo();
-      String sqlTargetSelect =
-          "select " + fkCol.getColumn() + " from " + relatedInfo.getRelatedTable() + " where "
-              + fkCol.getColumnAndValueInfo(id).getCondition();
-
-      String sqlName = "related table select";
-      try (PreparedStatement stmt = getStatement(conn, sqlTargetSelect, sqlName, IDT_3);
-          ResultSet rs = stmt.executeQuery();) {
-
-        boolean recordFound = rs.next();
-
-        String logMsg = !recordFound ? "Record not found."
-            : "Record(s) found. " + fkCol.getColumnAndValueInfo(id).getCondition();
-        dlogWithIndent(Level.DEBUG, logMsg, IDT_4);
-
-        // where clause
-        final Object val = rs.getObject(fkCol.getColumn());
-        List<SqlConditionInterface> whereList = new ArrayList<>();
-        whereList.add(relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val));
-
-        // When hard-deleting and a soft-delete column is specified, also add a condition that
-        // the column is true to the WHERE clause.
-        if (!info.isSoftDelete() && !StringUtils.isEmpty(relatedInfo.getSoftDeleteColumn())) {
-          whereList.add(relatedInfo.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
-        }
-
-        // Delete records in the related table whose column contains the retrieved value.
-        String softDeleteSql =
-            "update " + relatedInfo.getRelatedTable() + SqlUtil.getUpdateSet(updateSetList);
-        String hardDeleteSql = "delete from " + relatedInfo.getRelatedTable();
-
-        String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
-        sql = sql + SqlUtil.getWhere(whereList);
-
-        PreparedStatement delStmt = getStatement(conn, sql, "related table delete", IDT_5);
-        int count = delStmt.executeUpdate();
-        tableRecordDeleted.put(relatedInfo.getRelatedTable(),
-            tableRecordDeleted.get(relatedInfo.getRelatedTable()) + count);
-
-        delStmt.close();
-
-        logDeleteLines(relatedInfo.getRelatedTable(), count,
-            relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val).getCondition(),
-            Level.TRACE, IDT_5);
-      }
-    }
-  }
-
-  private void deleteTargetData(Connection conn, HousekeepInfoBean info, Object idValue,
-      Map<String, Integer> tableRecordDeleted) throws SQLException {
-
-    List<SqlConditionInterface> updateSetList = new ArrayList<>();
-    if (info.isSoftDelete()) {
-      updateSetList.add(info.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
-
-      if (!StringUtils.isEmpty(info.getSoftDeleteUpdateTimestampColumn())) {
-        updateSetList.add(info.getSoftDeleteUpdateTimestampColumnInfo()
-            .getTimestampColumnNowInfo(info.getDbConnectionInfo().getProtocol()));
-      }
-
-      if (!StringUtils.isEmpty(info.getSoftDeleteUpdateUserIdColumn())) {
-        updateSetList.add(info.getSoftDeleteUpdateUserIdColumnAndValueInfo());
-      }
-    }
-
-    String softDeleteSql = "update " + info.getTable() + SqlUtil.getUpdateSet(updateSetList);
-    String hardDeleteSql = "delete from " + info.getTable();
-
-    List<SqlConditionInterface> whereList = new ArrayList<>();
-    whereList.add(info.getIdColumnInfo().getColumnAndValueInfo(idValue));
-
-    // When hard-deleting and a soft-delete column is specified, also add a condition that
-    // the column is true.
-    if (!info.isSoftDelete() && !StringUtils.isEmpty(info.getSoftDeleteColumn())) {
-      whereList.add(info.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
-    }
-
-    String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
-    sql = sql + SqlUtil.getWhere(whereList);
-
-    PreparedStatement delStmt = getStatement(conn, sql, "main table delete", IDT_3);
-    int count = delStmt.executeUpdate();
-
-    // merge() also covers the case where the statement affected no rows, which happens when the
-    // record was already removed as a side effect of deleting a related-table record (a cascading
-    // foreign key, say). Accumulating through get() turned that into a NullPointerException.
-    tableRecordDeleted.merge(info.getTable(), count, Integer::sum);
-
-    delStmt.close();
-
-    logDeleteLines(info.getTable(), count,
-        info.getIdColumnInfo().getColumnAndValueInfo(idValue).getCondition(), Level.TRACE, IDT_3);
-  }
-
-  private void logDeleteLines(String table, int count, String condition, Level logLevel,
-      int indents) {
-    if (logLevel != null) {
-      dlogWithIndent(logLevel, table + ": " + count + " record(s) deleted. (" + condition + ")",
-          indents);
-    }
-  }
-
-  private String getDbConnectionUrl(DbConnectionInfoBean dbInfo) {
-    // "currentSchema" is a postgresql-specific JDBC URL parameter; MySQL / MariaDB have no
-    // equivalent (there, "database" and "schema" are the same thing).
-    String param =
-        dbInfo.getProtocol().equals("postgresql") && StringUtils.isNotEmpty(dbInfo.getSchema())
-            ? "?currentSchema=" + dbInfo.getSchema()
-            : "";
-    return "jdbc:" + dbInfo.getProtocol() + "://" + dbInfo.getServer() + ":" + dbInfo.getPort()
-        + "/" + dbInfo.getDatabase() + param;
-  }
-
-  private Map<String, String> getInfoMap(String filePath) throws Exception {
-    List<List<String>> list =
-        new StringOneLineHeaderExcelTableReader("Info", new String[] {"item", "value"})
-            .read(filePath);
-
-    return list.stream().collect(Collectors.toMap(l -> l.get(0), l -> l.get(1)));
-  }
-
-  @SuppressWarnings("null")
-  private Map<String, DbConnectionInfoBean> getDbConnectionInfoMap(String filePath)
-      throws Exception {
-
-    LangExcelUtil langLocal = Objects.requireNonNull(lang);
-    Map<String, DbConnectionInfoBean> dbConnectionInfoMap =
-        new StringOneLineHeaderExcelTableToBeanReader<DbConnectionInfoBean>(
-            DbConnectionInfoBean.class, langLocal.get(LangExcelUtil.DB_CONNECTION_SETTINGS),
-            langLocal.getHeaderLabels(DbConnectionInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath)
-                .stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
-
-    dbConnectionInfoMap.values().stream().forEach(info -> {
-      new Violations()
-          .addAll(Validation.buildDefaultValidatorFactory().getValidator().validate(info))
-          .throwIfAny();
-    });
-
-    return dbConnectionInfoMap;
-  }
-
-  private List<HousekeepInfoBean> getHousekeepInfoList(String filePath,
-      Map<String, DbConnectionInfoBean> dbConnectionMap) throws Exception {
-    LangExcelUtil langLocal = Objects.requireNonNull(lang);
-    List<HousekeepInfoBean> housekeepList =
-        new StringOneLineHeaderExcelTableToBeanReader<HousekeepInfoBean>(HousekeepInfoBean.class,
-            langLocal.get(LangExcelUtil.HOUSEKEEP_DB_SETTINGS),
-            langLocal.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath,
-                true);
-    List<WhereConditionInfoBean> whereConditionList =
-        new StringOneLineHeaderExcelTableToBeanReader<WhereConditionInfoBean>(
-            WhereConditionInfoBean.class, langLocal.get(LangExcelUtil.SEARCH_CONDITION_SETTINGS),
-            langLocal.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS))
-                .readToBean(filePath, true);
-    List<RelatedTableInfoBean> relatedTableList =
-        new StringOneLineHeaderExcelTableToBeanReader<RelatedTableInfoBean>(
-            RelatedTableInfoBean.class, langLocal.get(LangExcelUtil.RELATED_TABLE_SETTINGS),
-            langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath,
-                true);
-
-    // Set for detecting duplicate task IDs.
-    Set<String> housekeepInfoTaskIdSet = new HashSet<>();
-    for (HousekeepInfoBean hpBean : housekeepList) {
-      // Check for duplicate task IDs.
-      if (housekeepInfoTaskIdSet.contains(hpBean.getTaskId())) {
-        new Violations()
-            .add(new BusinessViolation("MSG_ERR_TASK_ID_DUPLICATED", hpBean.getTaskId()))
-            .throwIfAny();
-      }
-
-      housekeepInfoTaskIdSet.add(hpBean.getTaskId());
-
-      // DB Connection is required; error if not found.
-      if (!dbConnectionMap.containsKey(hpBean.getDbConnectionInfoId())) {
-        new Violations().add(new BusinessViolation("MSG_ERR_DB_CONN_ID_NOT_FOUND",
-            hpBean.getTaskId(), hpBean.getDbConnectionInfoId())).throwIfAny();
-      }
-
-      hpBean.setDbConnectionInfo(
-          Objects.requireNonNull(dbConnectionMap.get(hpBean.getDbConnectionInfoId())));
-
-      hpBean.setWhereConditionInfoList(whereConditionList.stream()
-          .filter(bean -> bean.getTaskId().equals(hpBean.getTaskId())).toList());
-
-      hpBean.setRelatedRecordTableInfoList(relatedTableList.stream()
-          .filter(bean -> bean.getTaskId().equals(hpBean.getTaskId())).toList());
-
-      // isSoftDeleteInternalValue on each related-table row is populated here, only now
-      // available since it's copied from the linked HousekeepInfoBean rather than read from an
-      // Excel column - see RelatedTableInfoBean's class Javadoc. The constraints depending on it
-      // are deferred to the AfterMergeValidation group for the same reason.
-      for (RelatedTableInfoBean relBean : hpBean.getRelatedRecordTableInfoList()) {
-        relBean.setIsSoftDeleteInternalValue(hpBean.getIsSoftDeleteInternalValue());
-        new Violations().validate(relBean, AfterMergeValidation.class).throwIfAny();
-      }
-    }
-
-    // Verify there are no unused records in "Related Table Settings" and
-    // "Search Condition Settings".
-    // If found, a task ID mismatch may mean the configuration is not as intended, so treat as
-    // an error.
-    // "DB Connection Settings" is limited to one per task and is required, so unused entries
-    // are unlikely to indicate a significant problem — treat as acceptable.
-    Set<RelatedTableInfoBean> relSet = new HashSet<>();
-    housekeepList.stream().forEach(bean -> relSet.addAll(bean.getRelatedRecordTableInfoList()));
-    for (RelatedTableInfoBean relBean : relatedTableList) {
-      // Since there is no key to match on, compare by object identity.
-      if (!relSet.contains(relBean)) {
-        new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_REL", relBean.getTaskId(),
-            langLocal.get(relBean.getRelatedTableProcessPatternStringKey()),
-            relBean.getTargetTableColumn(), relBean.getRelatedTable())).throwIfAny();
-      }
-    }
-
-    Set<WhereConditionInfoBean> condSet = new HashSet<>();
-    housekeepList.stream().forEach(bean -> condSet.addAll(bean.getWhereConditionInfoList()));
-    for (WhereConditionInfoBean condBean : whereConditionList) {
-      // Since there is no key to match on, compare by object identity.
-      if (!condSet.contains(condBean)) {
-        new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_COND",
-            condBean.getTaskId(), condBean.getConditionColumn())).throwIfAny();
-      }
-    }
-
-    return housekeepList;
   }
 }
