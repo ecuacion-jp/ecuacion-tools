@@ -24,8 +24,8 @@ import jp.ecuacion.lib.validation.constraints.PatternWithDescription;
 import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
-import jp.ecuacion.tool.housekeepdb.tasklet.HousekeepDbTasklet;
-import jp.ecuacion.tool.housekeepdb.tasklet.HousekeepDbTasklet.AfterMergeValidation;
+import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader;
+import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader.AfterMergeValidation;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
@@ -36,8 +36,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>{@code isSoftDeleteInternalValue} is no longer an Excel column here: it used to be a
  *     VLOOKUP-hidden column duplicating the value from the Housekeep DB Settings sheet, but
- *     {@link HousekeepDbTasklet} already links each row to its {@link HousekeepInfoBean} by task
- *     ID, so it copies that value onto this field itself after linking (see
+ *     {@link HousekeepConfigLoader} already links each row to its {@link HousekeepInfoBean} by
+ *     task ID, so it copies that value onto this field itself after linking (see
  *     {@code getHousekeepInfoList()}), before running {@link AfterMergeValidation}-grouped
  *     validation. The 2 constraints below that key off it are therefore in that group: they'd
  *     otherwise fail every time, since this field is never populated at Excel-read time (unlike
