@@ -42,6 +42,7 @@ import jp.ecuacion.lib.validation.constraints.FileExists;
 import jp.ecuacion.lib.validation.constraints.FileExtension;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueStringBean;
+import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
@@ -82,11 +83,14 @@ public class HousekeepDbTasklet implements Tasklet {
    * validated explicitly once the linking is done. Lives here, not on any one bean class, since
    * more than one bean may need it.
    */
-  public interface AfterMergeValidation {}
+  public interface AfterMergeValidation {
+  }
 
   private static final int IDT_1 = 1;
   private static final int IDT_2 = 2;
   private static final int IDT_3 = 3;
+  private static final int IDT_4 = 4;
+  private static final int IDT_5 = 5;
 
   private DetailLogger detailLogger = new DetailLogger(this);
   private @Nullable LangExcelUtil lang;
@@ -138,7 +142,9 @@ public class HousekeepDbTasklet implements Tasklet {
     }
 
     for (HousekeepInfoBean info : housekeepInfoList) {
-      detailLogger.info("--- task start : " + info.getTaskId());
+      detailLogger.info("-----");
+      detailLogger.info("task start : " + info.getTaskId());
+          
       String logMsg = "DB Connection ID: " + info.getDbConnectionInfoId() + " / "
           + (info.isSoftDelete() ? "Soft Delete" : "Hard Delete") + " / " + "Table Name: "
           + info.getTable();
@@ -215,12 +221,12 @@ public class HousekeepDbTasklet implements Tasklet {
       tableRecordDeleted.keySet().stream().forEach(table -> dlogWithIndent(Level.INFO,
           "Delete lines | table: " + table + ", count: " + tableRecordDeleted.get(table), IDT_1));
 
-      detailLogger.info("--- task finish: " + info.getTaskId());
+      detailLogger.info("task finish: " + info.getTaskId());
     }
-
-    detailLogger.info("housekeep-db finished successfully.");
-    detailLogger.info("===============");
     
+    detailLogger.info("-----");
+    detailLogger.info("housekeep-db finished successfully.");
+
     return RepeatStatus.FINISHED;
   }
 
@@ -339,9 +345,9 @@ public class HousekeepDbTasklet implements Tasklet {
     for (RelatedTableInfoBean relatedBean : relatedSkipList) {
       Object value = mainSqlRs.getObject(relatedBean.getTargetTableColumn());
 
+      dlogWithIndent(Level.DEBUG, "Find records from related table.", IDT_3);
       String selectSql = "select count(*) count from " + relatedBean.getRelatedTable() + " where "
           + relatedBean.getRelatedTableIdColumnInfo().getColumnAndValueInfo(value).getCondition();
-
       PreparedStatement stmt = getStatement(connection, selectSql, "related table select", IDT_3);
       ResultSet rs = stmt.executeQuery();
 
@@ -389,18 +395,23 @@ public class HousekeepDbTasklet implements Tasklet {
       }
 
       // First retrieve the target column value from the target table.
+      ColumnInfoBean fkCol = relatedInfo.getRelatedTableIdColumnInfo();
       String sqlTargetSelect =
-          "select " + relatedInfo.getTargetTableColumn() + " from " + info.getTable() + " where "
-              + info.getIdColumnInfo().getColumnAndValueInfo(id).getCondition();
+          "select " + fkCol.getColumn() + " from " + relatedInfo.getRelatedTable() + " where "
+              + fkCol.getColumnAndValueInfo(id).getCondition();
 
-      try (PreparedStatement stmt = getStatement(conn, sqlTargetSelect, "", IDT_3);
+      String sqlName = "related table select";
+      try (PreparedStatement stmt = getStatement(conn, sqlTargetSelect, sqlName, IDT_3);
           ResultSet rs = stmt.executeQuery();) {
 
-        // number of records is always one because 'id' is specified to the where clause.
-        rs.next();
+        boolean recordFound = rs.next();
+
+        String logMsg = !recordFound ? "Record not found."
+            : "Record(s) found. " + fkCol.getColumnAndValueInfo(id).getCondition();
+        dlogWithIndent(Level.DEBUG, logMsg, IDT_4);
 
         // where clause
-        final Object val = rs.getObject(relatedInfo.getTargetTableColumn());
+        final Object val = rs.getObject(fkCol.getColumn());
         List<SqlConditionInterface> whereList = new ArrayList<>();
         whereList.add(relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val));
 
@@ -418,7 +429,7 @@ public class HousekeepDbTasklet implements Tasklet {
         String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
         sql = sql + SqlUtil.getWhere(whereList);
 
-        PreparedStatement delStmt = getStatement(conn, sql, "", IDT_3);
+        PreparedStatement delStmt = getStatement(conn, sql, "related table delete", IDT_5);
         int count = delStmt.executeUpdate();
         tableRecordDeleted.put(relatedInfo.getRelatedTable(),
             tableRecordDeleted.get(relatedInfo.getRelatedTable()) + count);
@@ -427,7 +438,7 @@ public class HousekeepDbTasklet implements Tasklet {
 
         logDeleteLines(relatedInfo.getRelatedTable(), count,
             relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val).getCondition(),
-            Level.DEBUG, IDT_3);
+            Level.TRACE, IDT_5);
       }
     }
   }
@@ -531,16 +542,18 @@ public class HousekeepDbTasklet implements Tasklet {
     List<HousekeepInfoBean> housekeepList =
         new StringOneLineHeaderExcelTableToBeanReader<HousekeepInfoBean>(HousekeepInfoBean.class,
             langLocal.get(LangExcelUtil.HOUSEKEEP_DB_SETTINGS),
-            langLocal.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath);
+            langLocal.getHeaderLabels(HousekeepInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath,
+                true);
     List<WhereConditionInfoBean> whereConditionList =
         new StringOneLineHeaderExcelTableToBeanReader<WhereConditionInfoBean>(
             WhereConditionInfoBean.class, langLocal.get(LangExcelUtil.SEARCH_CONDITION_SETTINGS),
             langLocal.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS))
-                .readToBean(filePath);
+                .readToBean(filePath, true);
     List<RelatedTableInfoBean> relatedTableList =
         new StringOneLineHeaderExcelTableToBeanReader<RelatedTableInfoBean>(
             RelatedTableInfoBean.class, langLocal.get(LangExcelUtil.RELATED_TABLE_SETTINGS),
-            langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath);
+            langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath,
+                true);
 
     // Set for detecting duplicate task IDs.
     Set<String> housekeepInfoTaskIdSet = new HashSet<>();
@@ -575,8 +588,7 @@ public class HousekeepDbTasklet implements Tasklet {
       // are deferred to the AfterMergeValidation group for the same reason.
       for (RelatedTableInfoBean relBean : hpBean.getRelatedRecordTableInfoList()) {
         relBean.setIsSoftDeleteInternalValue(hpBean.getIsSoftDeleteInternalValue());
-        new Violations().validate(relBean, AfterMergeValidation.class)
-            .throwIfAny();
+        new Violations().validate(relBean, AfterMergeValidation.class).throwIfAny();
       }
     }
 
