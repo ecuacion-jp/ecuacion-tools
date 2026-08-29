@@ -154,6 +154,7 @@ public class SqlUtil {
    * @param list a list of {@code SqlConditionInterface}
    * @return set clause
    */
+  @SuppressWarnings("null")
   public static SqlFragment getUpdateSet(List<SqlConditionInterface> list) {
     String sql = " set " + StringUtil
         .getCsvWithSpace(list.stream().map(SqlConditionInterface::getSqlFragment).toList());
@@ -169,6 +170,28 @@ public class SqlUtil {
    */
   public static SqlFragment getUpdateSet(SqlConditionInterface... array) {
     return getUpdateSet(Arrays.asList(array));
+  }
+
+  /**
+   * Concatenates the bind values of several {@link SqlFragment}s, in argument order.
+   *
+   * <p>Use when a full statement's SQL text is built by concatenating multiple fragments (e.g. a
+   *     {@code getUpdateSet} SET-clause fragment followed by a {@code getWhere} WHERE-clause
+   *     fragment): the bind values must be concatenated in that same order for the Nth {@code ?}
+   *     in the combined text to line up with the Nth combined bind value. The caller is
+   *     responsible for concatenating each fragment's {@link SqlFragment#sql()} in this same
+   *     order - this method only handles the bind values.</p>
+   *
+   * @param fragments fragments, in the order their {@code sql()} text is concatenated
+   * @return the concatenated bind values
+   */
+  public static List<Object> concatBindValues(SqlFragment... fragments) {
+    List<Object> bindValues = new ArrayList<>();
+    for (SqlFragment fragment : fragments) {
+      bindValues.addAll(fragment.bindValues());
+    }
+
+    return bindValues;
   }
 
   private static List<Object> collectBindValues(List<SqlConditionInterface> list) {

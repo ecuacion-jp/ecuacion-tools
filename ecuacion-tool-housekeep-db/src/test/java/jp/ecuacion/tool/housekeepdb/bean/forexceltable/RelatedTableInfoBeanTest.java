@@ -370,4 +370,26 @@ class RelatedTableInfoBeanTest {
           .isEqualTo("upd_by = 'SYSTEM'");
     }
   }
+
+  @Nested
+  @DisplayName("DeleteTargetInfo interface")
+  class DeleteTargetInfoMethods {
+
+    @Test
+    @DisplayName("getTargetTable() delegates to getRelatedTable()")
+    void getTargetTableDelegatesToGetRelatedTable() {
+      RelatedTableInfoBean b = bean(HARD_BASE);
+
+      assertThat(b.getTargetTable()).isEqualTo(b.getRelatedTable());
+    }
+
+    @Test
+    @DisplayName("getDeleteKeyColumnInfo() delegates to getRelatedTableIdColumnInfo()")
+    void getDeleteKeyColumnInfoDelegatesToGetRelatedTableIdColumnInfo() {
+      RelatedTableInfoBean b = bean(HARD_BASE);
+      b.afterReading();
+
+      assertThat(b.getDeleteKeyColumnInfo()).isSameAs(b.getRelatedTableIdColumnInfo());
+    }
+  }
 }
