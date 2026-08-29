@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import org.assertj.core.data.TemporalUnitWithinOffset;
 import org.junit.jupiter.api.DisplayName;
@@ -120,40 +119,72 @@ class ColumnInfoBeanTest {
   }
 
   // -------------------------------------------------------------------------
-  // getTimestampColumnNowInfo
+  // getBoundCondition / getBoundGreaterThanCondition
   // -------------------------------------------------------------------------
 
   @Nested
-  @DisplayName("getTimestampColumnNowInfo(String)")
-  class GetTimestampColumnNowInfo {
+  @DisplayName("getBoundCondition(Object) / getBoundGreaterThanCondition(Object)")
+  class GetBoundCondition {
 
     @Test
-    @DisplayName("builds a quoted ColumnAndValueInfoBean holding the current timestamp")
-    void buildsBeanWithNow() {
-      ColumnInfoBean bean = new ColumnInfoBean("updated_at", false);
+    @DisplayName("getBoundCondition builds a \"column = ?\" fragment binding the value verbatim -"
+        + " needsQuotationMark plays no part, since binding sidesteps escaping entirely")
+    void buildsEqualityCondition() {
+      ColumnInfoBean bean = new ColumnInfoBean("id", true);
 
-      ColumnAndValueInfoBean result = bean.getTimestampColumnNowInfo("postgresql");
+      BoundCondition result = bean.getBoundCondition("abc\\");
 
-      assertThat(result.getColumn()).isEqualTo("updated_at");
-      assertThat(result.isNeedsQuotationMark()).isTrue();
-      OffsetDateTime parsed =
-          OffsetDateTime.parse((String) result.getValue(), DateTimeFormatter.ISO_DATE_TIME);
-      assertThat(parsed).isCloseTo(OffsetDateTime.now(ZoneId.systemDefault()),
-          new TemporalUnitWithinOffset(10, ChronoUnit.SECONDS));
+      assertThat(result.getSqlFragment()).isEqualTo("id = ?");
+      assertThat(result.getBindValue()).isEqualTo("abc\\");
     }
 
     @Test
-    @DisplayName("'mysql' protocol yields the offset-less timestamp that dialect accepts")
-    void buildsBeanWithNowForMysql() {
+    @DisplayName("getBoundGreaterThanCondition builds a \"column > ?\" fragment")
+    void buildsGreaterThanCondition() {
+      ColumnInfoBean bean = new ColumnInfoBean("id", true);
+
+      BoundCondition result = bean.getBoundGreaterThanCondition(42);
+
+      assertThat(result.getSqlFragment()).isEqualTo("id > ?");
+      assertThat(result.getBindValue()).isEqualTo(42);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // getBoundTimestampNowCondition
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("getBoundTimestampNowCondition(String)")
+  class GetBoundTimestampNowCondition {
+
+    @Test
+    @DisplayName("builds a bound condition holding the current time as an OffsetDateTime for"
+        + " 'postgresql'")
+    void buildsConditionWithNowForPostgresql() {
       ColumnInfoBean bean = new ColumnInfoBean("updated_at", false);
 
-      ColumnAndValueInfoBean result = bean.getTimestampColumnNowInfo("mysql");
+      BoundCondition result = bean.getBoundTimestampNowCondition("postgresql");
 
-      assertThat(result.isNeedsQuotationMark()).isTrue();
-      LocalDateTime parsed = LocalDateTime.parse((String) result.getValue(),
-          DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-      assertThat(parsed).isCloseTo(LocalDateTime.now(ZoneId.systemDefault()),
-          new TemporalUnitWithinOffset(10, ChronoUnit.SECONDS));
+      assertThat(result.getSqlFragment()).isEqualTo("updated_at = ?");
+      assertThat(result.getBindValue()).isInstanceOf(OffsetDateTime.class);
+      assertThat((OffsetDateTime) result.getBindValue()).isCloseTo(
+          OffsetDateTime.now(ZoneId.systemDefault()), new TemporalUnitWithinOffset(10,
+              ChronoUnit.SECONDS));
+    }
+
+    @Test
+    @DisplayName("builds a bound condition holding the current time as an offset-less"
+        + " LocalDateTime for 'mysql', matching the dialect's datetime columns")
+    void buildsConditionWithNowForMysql() {
+      ColumnInfoBean bean = new ColumnInfoBean("updated_at", false);
+
+      BoundCondition result = bean.getBoundTimestampNowCondition("mysql");
+
+      assertThat(result.getBindValue()).isInstanceOf(LocalDateTime.class);
+      assertThat((LocalDateTime) result.getBindValue()).isCloseTo(
+          LocalDateTime.now(ZoneId.systemDefault()), new TemporalUnitWithinOffset(10,
+              ChronoUnit.SECONDS));
     }
 
     @Test
@@ -161,7 +192,7 @@ class ColumnInfoBeanTest {
     void unrecognizedProtocolThrows() {
       ColumnInfoBean bean = new ColumnInfoBean("updated_at", false);
 
-      assertThatThrownBy(() -> bean.getTimestampColumnNowInfo("oracle"))
+      assertThatThrownBy(() -> bean.getBoundTimestampNowCondition("oracle"))
           .isInstanceOf(RuntimeException.class);
     }
   }

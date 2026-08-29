@@ -24,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
+import jp.ecuacion.tool.housekeepdb.bean.BoundCondition;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueStringBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
@@ -74,6 +75,42 @@ class SqlUtilTest {
   }
 
   // -------------------------------------------------------------------------
+  // getTimestampNowValue
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("getTimestampNowValue")
+  class GetTimestampNowValue {
+
+    @Test
+    @DisplayName("'postgresql' protocol returns an OffsetDateTime close to now")
+    void postgresql() {
+      Object result = SqlUtil.getTimestampNowValue("postgresql");
+
+      assertThat(result).isInstanceOf(OffsetDateTime.class);
+      assertThat((OffsetDateTime) result).isCloseTo(OffsetDateTime.now(ZoneId.systemDefault()),
+          new TemporalUnitWithinOffset(10, ChronoUnit.SECONDS));
+    }
+
+    @Test
+    @DisplayName("'mysql' protocol returns an offset-less LocalDateTime close to now")
+    void mysql() {
+      Object result = SqlUtil.getTimestampNowValue("mysql");
+
+      assertThat(result).isInstanceOf(LocalDateTime.class);
+      assertThat((LocalDateTime) result).isCloseTo(LocalDateTime.now(ZoneId.systemDefault()),
+          new TemporalUnitWithinOffset(10, ChronoUnit.SECONDS));
+    }
+
+    @Test
+    @DisplayName("unrecognized protocol throws RuntimeException")
+    void unrecognizedProtocol() {
+      assertThatThrownBy(() -> SqlUtil.getTimestampNowValue("oracle"))
+          .isInstanceOf(RuntimeException.class).hasMessageContaining("oracle");
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // getExpirationCondition
   // -------------------------------------------------------------------------
 
@@ -116,18 +153,21 @@ class SqlUtilTest {
   class GetWhere {
 
     @Test
-    @DisplayName("empty list returns an empty string (no where clause)")
+    @DisplayName("empty list returns an empty string (no where clause) and no bind values")
     void emptyList() {
-      assertThat(SqlUtil.getWhere(Collections.emptyList())).isEqualTo("");
+      SqlUtil.SqlFragment result = SqlUtil.getWhere(Collections.emptyList());
+
+      assertThat(result.sql()).isEqualTo("");
+      assertThat(result.bindValues()).isEmpty();
     }
 
     @Test
-    @DisplayName("single condition is prefixed with ' where '")
+    @DisplayName("single literal condition is prefixed with ' where '")
     void singleCondition() {
       List<SqlConditionInterface> list =
           List.of(new ColumnAndValueStringBean("col1 = 1"));
 
-      assertThat(SqlUtil.getWhere(list)).isEqualTo(" where col1 = 1");
+      assertThat(SqlUtil.getWhere(list).sql()).isEqualTo(" where col1 = 1");
     }
 
     @Test
@@ -136,7 +176,7 @@ class SqlUtilTest {
       List<SqlConditionInterface> list = List.of(new ColumnAndValueStringBean("col1 = 1"),
           new ColumnAndValueStringBean("col2 = 2"));
 
-      assertThat(SqlUtil.getWhere(list)).isEqualTo(" where col1 = 1 and col2 = 2");
+      assertThat(SqlUtil.getWhere(list).sql()).isEqualTo(" where col1 = 1 and col2 = 2");
     }
 
     @Test
@@ -149,12 +189,38 @@ class SqlUtilTest {
     }
 
     @Test
-    @DisplayName("condition built from ColumnAndValueInfoBean renders 'column = value'")
+    @DisplayName("condition built from ColumnAndValueInfoBean renders 'column = value' (literal,"
+        + " no bind value)")
     void withColumnAndValueInfoBean() {
       List<SqlConditionInterface> list =
           List.of(new ColumnAndValueInfoBean("id", true, "abc"));
 
-      assertThat(SqlUtil.getWhere(list)).isEqualTo(" where id = 'abc'");
+      SqlUtil.SqlFragment result = SqlUtil.getWhere(list);
+      assertThat(result.sql()).isEqualTo(" where id = 'abc'");
+      assertThat(result.bindValues()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("condition built from BoundCondition renders 'column = ?' and collects the bind"
+        + " value")
+    void withBoundCondition() {
+      List<SqlConditionInterface> list = List.of(new BoundCondition("id", 42));
+
+      SqlUtil.SqlFragment result = SqlUtil.getWhere(list);
+      assertThat(result.sql()).isEqualTo(" where id = ?");
+      assertThat(result.bindValues()).containsExactly(42);
+    }
+
+    @Test
+    @DisplayName("bind values are collected in the same left-to-right order as their '?'"
+        + " placeholders, skipping literal (non-bound) conditions in between")
+    void bindValuesPreserveOrderAmongMixedConditions() {
+      List<SqlConditionInterface> list = List.of(new BoundCondition("a", 1),
+          new ColumnAndValueStringBean("b = 2"), new BoundCondition("c", 3));
+
+      SqlUtil.SqlFragment result = SqlUtil.getWhere(list);
+      assertThat(result.sql()).isEqualTo(" where a = ? and b = 2 and c = ?");
+      assertThat(result.bindValues()).containsExactly(1, 3);
     }
   }
 
@@ -167,18 +233,21 @@ class SqlUtilTest {
   class GetUpdateSet {
 
     @Test
-    @DisplayName("empty list still renders the 'set ' prefix")
+    @DisplayName("empty list still renders the 'set ' prefix, with no bind values")
     void emptyList() {
-      assertThat(SqlUtil.getUpdateSet(Collections.emptyList())).isEqualTo(" set ");
+      SqlUtil.SqlFragment result = SqlUtil.getUpdateSet(Collections.emptyList());
+
+      assertThat(result.sql()).isEqualTo(" set ");
+      assertThat(result.bindValues()).isEmpty();
     }
 
     @Test
-    @DisplayName("single assignment")
+    @DisplayName("single literal assignment")
     void singleAssignment() {
       List<SqlConditionInterface> list =
           List.of(new ColumnAndValueInfoBean("deleted", false, "true"));
 
-      assertThat(SqlUtil.getUpdateSet(list)).isEqualTo(" set deleted = true");
+      assertThat(SqlUtil.getUpdateSet(list).sql()).isEqualTo(" set deleted = true");
     }
 
     @Test
@@ -187,7 +256,8 @@ class SqlUtilTest {
       List<SqlConditionInterface> list = List.of(new ColumnAndValueInfoBean("deleted", false, "true"),
           new ColumnAndValueInfoBean("updated_by", true, "user1"));
 
-      assertThat(SqlUtil.getUpdateSet(list)).isEqualTo(" set deleted = true, updated_by = 'user1'");
+      assertThat(SqlUtil.getUpdateSet(list).sql())
+          .isEqualTo(" set deleted = true, updated_by = 'user1'");
     }
 
     @Test
@@ -195,6 +265,17 @@ class SqlUtilTest {
     void varargsOverload() {
       assertThat(SqlUtil.getUpdateSet(new ColumnAndValueInfoBean("deleted", false, "true")))
           .isEqualTo(SqlUtil.getUpdateSet(List.of(new ColumnAndValueInfoBean("deleted", false, "true"))));
+    }
+
+    @Test
+    @DisplayName("a bound assignment renders 'column = ?' and collects the bind value")
+    void withBoundCondition() {
+      List<SqlConditionInterface> list =
+          List.of(new BoundCondition("deleted", Boolean.TRUE));
+
+      SqlUtil.SqlFragment result = SqlUtil.getUpdateSet(list);
+      assertThat(result.sql()).isEqualTo(" set deleted = ?");
+      assertThat(result.bindValues()).containsExactly(Boolean.TRUE);
     }
   }
 }
