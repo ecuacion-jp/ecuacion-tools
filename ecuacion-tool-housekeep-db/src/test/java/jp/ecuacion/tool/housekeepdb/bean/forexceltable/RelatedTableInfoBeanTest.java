@@ -366,7 +366,7 @@ class RelatedTableInfoBeanTest {
       RelatedTableInfoBean b = new RelatedTableInfoBean(list);
       b.afterReading();
 
-      assertThat(b.getSoftDeleteUpdateUserIdColumnAndValueInfo().getCondition())
+      assertThat(b.getSoftDeleteUpdateUserIdColumnAndValueInfo().getSqlFragment())
           .isEqualTo("upd_by = 'SYSTEM'");
     }
   }

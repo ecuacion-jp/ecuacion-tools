@@ -28,13 +28,13 @@ import java.util.Objects;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
-import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueStringBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.util.LogUtil;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
+import jp.ecuacion.tool.housekeepdb.util.SqlUtil.SqlFragment;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.event.Level;
@@ -99,10 +99,10 @@ public class HousekeepMainTableDeleter {
         LogUtil.dlogWithIndent(detailLogger, Level.INFO, "Find records from target table.", IDT_1);
 
         // Retrieve IDs up to maxSelectLines rows, continuing after the previous batch.
-        String selectSql = getMainSelectSql(info, lastProcessedId);
+        SqlFragment selectSql = getMainSelectSql(info, lastProcessedId);
 
-        try (PreparedStatement stmt =
-            LogUtil.getStatement(detailLogger, conn, selectSql, "target table select", IDT_1)) {
+        try (PreparedStatement stmt = LogUtil.getStatement(detailLogger, conn, selectSql.sql(),
+            selectSql.bindValues(), "target table select", IDT_1)) {
           ResultSet rs = stmt.executeQuery();
 
           // Flag to determine whether the query found any records.
@@ -161,9 +161,9 @@ public class HousekeepMainTableDeleter {
    *
    * @param info the housekeep task settings
    * @param lastProcessedId the id of the last record walked, or {@code null} for the first batch
-   * @return select statement
+   * @return select statement, with the WHERE clause's bind values (if any)
    */
-  private String getMainSelectSql(HousekeepInfoBean info, @Nullable Object lastProcessedId) {
+  private SqlFragment getMainSelectSql(HousekeepInfoBean info, @Nullable Object lastProcessedId) {
     // Build the WHERE clause.
     List<SqlConditionInterface> whereList = new ArrayList<>();
 
@@ -179,27 +179,29 @@ public class HousekeepMainTableDeleter {
     if (info.isSoftDelete()) {
       // To avoid updating already-processed records, target only rows where the soft-delete
       // flag is not set.
-      whereList.add(new ColumnAndValueInfoBean(info.getSoftDeleteColumn(), false, "false"));
+      whereList.add(info.getSoftDeleteColumnInfo().getBoundCondition(Boolean.FALSE));
 
     } else {
       // If hard delete and "soft-delete column name" is specified, add to the WHERE clause.
       if (StringUtils.isNotEmpty(info.getSoftDeleteColumn())) {
-        whereList.add(new ColumnAndValueInfoBean(info.getSoftDeleteColumn(), false, "true"));
+        whereList.add(info.getSoftDeleteColumnInfo().getBoundCondition(Boolean.TRUE));
       }
     }
 
     if (lastProcessedId != null) {
       // Keyset paging: continue after the last record walked. Both this comparison and the
       // "order by" below use the id column, so the batches walk the table exactly once.
-      ColumnAndValueInfoBean idInfo = info.getIdColumnInfo().getColumnAndValueInfo(lastProcessedId);
-      whereList.add(new ColumnAndValueStringBean(
-          idInfo.getColumn() + " > " + idInfo.surroundWithQuotationMarks()));
+      // lastProcessedId was read back from the DB (not typed into the excel config), so it's
+      // bound as a JDBC parameter rather than embedded as SQL literal text - see
+      // BoundCondition's class Javadoc.
+      whereList.add(info.getIdColumnInfo().getBoundGreaterThanCondition(lastProcessedId));
     }
 
-    String where = SqlUtil.getWhere(whereList);
+    SqlFragment where = SqlUtil.getWhere(whereList);
 
-    return "select * from " + info.getTable() + where + " order by "
+    String sql = "select * from " + info.getTable() + where.sql() + " order by "
         + info.getIdColumnInfo().getColumn() + " limit " + maxSelectLines;
+    return new SqlFragment(sql, where.bindValues());
   }
 
   private Connection connectionSettings(Map<String, DbConnectionInfoBean> dbConnectionInfoMap,
@@ -224,11 +226,11 @@ public class HousekeepMainTableDeleter {
 
     List<SqlConditionInterface> updateSetList = new ArrayList<>();
     if (info.isSoftDelete()) {
-      updateSetList.add(info.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
+      updateSetList.add(info.getSoftDeleteColumnInfo().getBoundCondition(Boolean.TRUE));
 
       if (!StringUtils.isEmpty(info.getSoftDeleteUpdateTimestampColumn())) {
         updateSetList.add(info.getSoftDeleteUpdateTimestampColumnInfo()
-            .getTimestampColumnNowInfo(info.getDbConnectionInfo().getProtocol()));
+            .getBoundTimestampNowCondition(info.getDbConnectionInfo().getProtocol()));
       }
 
       if (!StringUtils.isEmpty(info.getSoftDeleteUpdateUserIdColumn())) {
@@ -236,23 +238,34 @@ public class HousekeepMainTableDeleter {
       }
     }
 
-    String softDeleteSql = "update " + info.getTable() + SqlUtil.getUpdateSet(updateSetList);
+    SqlFragment set = SqlUtil.getUpdateSet(updateSetList);
+    String softDeleteSql = "update " + info.getTable() + set.sql();
     String hardDeleteSql = "delete from " + info.getTable();
 
+    // idValue was read back from the DB (not typed into the excel config), so it's bound as a
+    // JDBC parameter rather than embedded as SQL literal text - see BoundCondition's class
+    // Javadoc.
     List<SqlConditionInterface> whereList = new ArrayList<>();
-    whereList.add(info.getIdColumnInfo().getColumnAndValueInfo(idValue));
+    whereList.add(info.getIdColumnInfo().getBoundCondition(idValue));
 
     // When hard-deleting and a soft-delete column is specified, also add a condition that
     // the column is true.
     if (!info.isSoftDelete() && !StringUtils.isEmpty(info.getSoftDeleteColumn())) {
-      whereList.add(info.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
+      whereList.add(info.getSoftDeleteColumnInfo().getBoundCondition(Boolean.TRUE));
     }
 
-    String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
-    sql = sql + SqlUtil.getWhere(whereList);
+    SqlFragment where = SqlUtil.getWhere(whereList);
+    String sql = (info.isSoftDelete() ? softDeleteSql : hardDeleteSql) + where.sql();
+
+    // set.bindValues() is empty when hard-deleting (updateSetList is only populated for soft
+    // delete), so it's safe to always include it regardless of which of softDeleteSql /
+    // hardDeleteSql was chosen above.
+    List<Object> bindValues = new ArrayList<>();
+    bindValues.addAll(set.bindValues());
+    bindValues.addAll(where.bindValues());
 
     PreparedStatement delStmt =
-        LogUtil.getStatement(detailLogger, conn, sql, "main table delete", IDT_3);
+        LogUtil.getStatement(detailLogger, conn, sql, bindValues, "main table delete", IDT_3);
     int count = delStmt.executeUpdate();
 
     // merge() also covers the case where the statement affected no rows, which happens when the
@@ -263,7 +276,7 @@ public class HousekeepMainTableDeleter {
     delStmt.close();
 
     LogUtil.logDeleteLines(detailLogger, info.getTable(), count,
-        info.getIdColumnInfo().getColumnAndValueInfo(idValue).getCondition(), Level.TRACE, IDT_3);
+        info.getIdColumnInfo().getColumn() + " = " + idValue, Level.TRACE, IDT_3);
   }
 
   private String getDbConnectionUrl(DbConnectionInfoBean dbInfo) {

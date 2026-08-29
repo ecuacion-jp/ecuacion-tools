@@ -56,7 +56,7 @@ class WhereConditionInfoBeanTest {
       WhereConditionInfoBean b = bean("task1", "col1", "quotes(')", "abc");
       b.afterReading();
 
-      assertThat(b.getConditionColumnInfo().getCondition()).isEqualTo("col1 = 'abc'");
+      assertThat(b.getConditionColumnInfo().getSqlFragment()).isEqualTo("col1 = 'abc'");
     }
 
     @Test
@@ -65,7 +65,7 @@ class WhereConditionInfoBeanTest {
       WhereConditionInfoBean b = bean("task1", "col1", "(none)", "123");
       b.afterReading();
 
-      assertThat(b.getConditionColumnInfo().getCondition()).isEqualTo("col1 = 123");
+      assertThat(b.getConditionColumnInfo().getSqlFragment()).isEqualTo("col1 = 123");
     }
 
     @Test
