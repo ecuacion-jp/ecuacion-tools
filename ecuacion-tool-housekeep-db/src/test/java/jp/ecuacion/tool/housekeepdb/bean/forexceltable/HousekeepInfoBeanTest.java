@@ -419,7 +419,7 @@ class HousekeepInfoBeanTest {
       HousekeepInfoBean b = new HousekeepInfoBean(list);
       b.afterReading();
 
-      assertThat(b.getSoftDeleteUpdateUserIdColumnAndValueInfo().getCondition())
+      assertThat(b.getSoftDeleteUpdateUserIdColumnAndValueInfo().getSqlFragment())
           .isEqualTo("upd_by = 'SYSTEM'");
     }
   }

@@ -24,10 +24,19 @@ import org.junit.jupiter.api.Test;
 class ColumnAndValueStringBeanTest {
 
   @Test
-  @DisplayName("getCondition returns the constructor string verbatim, with no processing")
-  void getConditionReturnsVerbatim() {
+  @DisplayName("getSqlFragment returns the constructor string verbatim, with no processing")
+  void getSqlFragmentReturnsVerbatim() {
     ColumnAndValueStringBean bean = new ColumnAndValueStringBean("col1 > 0 and col2 is null");
 
-    assertThat(bean.getCondition()).isEqualTo("col1 > 0 and col2 is null");
+    assertThat(bean.getSqlFragment()).isEqualTo("col1 > 0 and col2 is null");
+  }
+
+  @Test
+  @DisplayName("getBindValue() is always null - the fragment is a pre-built literal with no"
+      + " placeholder")
+  void bindValueIsAlwaysNull() {
+    ColumnAndValueStringBean bean = new ColumnAndValueStringBean("col1 > 0");
+
+    assertThat(bean.getBindValue()).isNull();
   }
 }

@@ -65,11 +65,11 @@ class ColumnAndValueInfoBeanTest {
   }
 
   // -------------------------------------------------------------------------
-  // surroundWithQuotationMarks / getCondition
+  // surroundWithQuotationMarks / getSqlFragment / getBindValue
   // -------------------------------------------------------------------------
 
   @Nested
-  @DisplayName("surroundWithQuotationMarks / getCondition")
+  @DisplayName("surroundWithQuotationMarks / getSqlFragment / getBindValue")
   class SurroundWithQuotationMarks {
 
     @Test
@@ -78,7 +78,7 @@ class ColumnAndValueInfoBeanTest {
       ColumnAndValueInfoBean bean = new ColumnAndValueInfoBean("num1", false, 123);
 
       assertThat(bean.surroundWithQuotationMarks()).isEqualTo("123");
-      assertThat(bean.getCondition()).isEqualTo("num1 = 123");
+      assertThat(bean.getSqlFragment()).isEqualTo("num1 = 123");
     }
 
     @Test
@@ -87,16 +87,27 @@ class ColumnAndValueInfoBeanTest {
       ColumnAndValueInfoBean bean = new ColumnAndValueInfoBean("char1", true, "abc");
 
       assertThat(bean.surroundWithQuotationMarks()).isEqualTo("'abc'");
-      assertThat(bean.getCondition()).isEqualTo("char1 = 'abc'");
+      assertThat(bean.getSqlFragment()).isEqualTo("char1 = 'abc'");
     }
 
     @Test
-    @DisplayName("an embedded single quote is escaped by doubling it (SQL injection guard)")
+    @DisplayName("an embedded single quote is escaped by doubling it (defense-in-depth against"
+        + " excel-config mistakes - this bean is only ever used for trusted excel-authored"
+        + " values, see the class Javadoc)")
     void embeddedQuoteIsEscaped() {
       ColumnAndValueInfoBean bean = new ColumnAndValueInfoBean("char1", true, "o'brien");
 
       assertThat(bean.surroundWithQuotationMarks()).isEqualTo("'o''brien'");
-      assertThat(bean.getCondition()).isEqualTo("char1 = 'o''brien'");
+      assertThat(bean.getSqlFragment()).isEqualTo("char1 = 'o''brien'");
+    }
+
+    @Test
+    @DisplayName("getBindValue() is always null - the fragment embeds the value as a literal, so"
+        + " there is nothing to bind")
+    void bindValueIsAlwaysNull() {
+      ColumnAndValueInfoBean bean = new ColumnAndValueInfoBean("char1", true, "abc");
+
+      assertThat(bean.getBindValue()).isNull();
     }
   }
 
