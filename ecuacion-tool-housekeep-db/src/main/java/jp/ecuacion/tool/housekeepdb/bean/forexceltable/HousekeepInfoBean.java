@@ -55,7 +55,7 @@ import org.jspecify.annotations.Nullable;
     conditionPropertyPath = "softDeleteUpdateUserIdColumn", conditionValue = ConditionValue.EMPTY,
     notEmptyWhenConditionNotSatisfied = true)
 @SuppressWarnings("NullAway.Init")
-public class HousekeepInfoBean extends StringExcelTableBean {
+public class HousekeepInfoBean extends StringExcelTableBean implements DeleteTargetInfo {
 
   public static final String DELETE_KIND_SOFT = "SOFT_DELETE";
   public static final String DELETE_KIND_HARD = "HARD_DELETE";
@@ -171,14 +171,22 @@ public class HousekeepInfoBean extends StringExcelTableBean {
     return table;
   }
 
+  @Override
+  public String getTargetTable() {
+    return getTable();
+  }
+
+  @Override
   public String getSoftDeleteColumn() {
     return softDeleteColumn;
   }
 
+  @Override
   public String getSoftDeleteUpdateTimestampColumn() {
     return softDeleteUpdateTimestampColumn;
   }
 
+  @Override
   public String getSoftDeleteUpdateUserIdColumn() {
     return softDeleteUpdateUserIdColumn;
   }
@@ -228,14 +236,22 @@ public class HousekeepInfoBean extends StringExcelTableBean {
     return idColumnInfo;
   }
 
+  @Override
+  public ColumnInfoBean getDeleteKeyColumnInfo() {
+    return getIdColumnInfo();
+  }
+
+  @Override
   public ColumnInfoBean getSoftDeleteColumnInfo() {
     return softDeleteColumnInfo;
   }
 
+  @Override
   public ColumnInfoBean getSoftDeleteUpdateTimestampColumnInfo() {
     return softDeleteUpdateTimestampColumnInfo;
   }
 
+  @Override
   public ColumnAndValueInfoBean getSoftDeleteUpdateUserIdColumnAndValueInfo() {
     return softDeleteUpdateUserIdColumnAndValueInfo;
   }
