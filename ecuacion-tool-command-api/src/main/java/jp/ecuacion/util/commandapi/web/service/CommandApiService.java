@@ -18,6 +18,7 @@ package jp.ecuacion.util.commandapi.web.service;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -60,6 +62,18 @@ public class CommandApiService {
 
   private static final String PROP_API_KEY_REQUIRED =
       "jp.ecuacion.tool.command-api.api-key-required";
+
+  /**
+   * Upper bound, in seconds, on how long a script may run before it's forcibly killed (see
+   * {@link #executeScript}). Defaults to {@value #DEFAULT_SCRIPT_TIMEOUT_SECONDS} when unset.
+   * Without this, a hanging script (or a script hung by a crafted parameter) would occupy its
+   * calling thread indefinitely, and repeated calls could exhaust the server's worker thread
+   * pool.
+   */
+  private static final String PROP_SCRIPT_TIMEOUT_SECONDS =
+      "jp.ecuacion.tool.command-api.script-timeout-seconds";
+
+  private static final long DEFAULT_SCRIPT_TIMEOUT_SECONDS = 60;
 
   private static final String PREFIX_GET = "GET:";
   private static final String PREFIX_POST = "POST:";
@@ -105,6 +119,7 @@ public class CommandApiService {
   private ConfigurableEnvironment env;
   private DetailLogger dtlLogger = new DetailLogger(this);
   private final boolean apiKeyRequired;
+  private final long scriptTimeoutSeconds;
 
   /**
    * Constructs a new instance.
@@ -137,6 +152,15 @@ public class CommandApiService {
     }
 
     this.apiKeyRequired = env.getProperty(PROP_API_KEY_REQUIRED, Boolean.class, true);
+
+    this.scriptTimeoutSeconds =
+        env.getProperty(PROP_SCRIPT_TIMEOUT_SECONDS, Long.class, DEFAULT_SCRIPT_TIMEOUT_SECONDS);
+    if (this.scriptTimeoutSeconds <= 0) {
+      String message = "'" + PROP_SCRIPT_TIMEOUT_SECONDS + "' must be a positive number of "
+          + "seconds, but was " + this.scriptTimeoutSeconds + ".";
+      dtlLogger.error(message);
+      throw new IllegalStateException(message);
+    }
 
     if (this.apiKeyRequired && CommandApiKeyFileLocator.resolve(env) == null) {
       String message = "'" + PROP_API_KEY_REQUIRED
@@ -330,47 +354,54 @@ public class CommandApiService {
     dtlLogger.debug("  command start : " + scriptFile.getAbsolutePath() + " " + paramsString);
 
     // Read the script's standard output and standard error, logging them and collecting them
-    // for the response. Both streams are consumed concurrently (stderr on a separate thread)
-    // before waitFor(), since reading them one after another can deadlock
-    // the child process if the buffer of the not-yet-read stream fills up.
+    // for the response. Both streams are consumed concurrently, each on its own thread, rather
+    // than synchronously here before waitFor(): reading them one after another can deadlock the
+    // child process if the buffer of the not-yet-read stream fills up, and reading either of
+    // them synchronously would also block this thread indefinitely if the script hangs without
+    // closing that stream (which the timeout handling below relies on being able to interrupt).
+    List<String> stdoutLines = new ArrayList<>();
+    AtomicReference<IOException> stdoutException = new AtomicReference<>();
+    Thread stdoutThread =
+        startStreamReaderThread(p.getInputStream(), "stdout", stdoutLines, stdoutException);
+
     List<String> stderrLines = new ArrayList<>();
     AtomicReference<IOException> stderrException = new AtomicReference<>();
-    Thread stderrThread = new Thread(() -> {
-      try (BufferedReader reader =
-          new BufferedReader(new InputStreamReader(p.getErrorStream(), Charset.defaultCharset()))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-          dtlLogger.trace("  stderr        : " + line);
-          stderrLines.add(line);
-        }
-      } catch (IOException e) {
-        stderrException.set(e);
-      }
-    });
-    stderrThread.start();
+    Thread stderrThread =
+        startStreamReaderThread(p.getErrorStream(), "stderr", stderrLines, stderrException);
 
-    List<String> stdoutLines = new ArrayList<>();
-    try (BufferedReader reader =
-        new BufferedReader(new InputStreamReader(p.getInputStream(), Charset.defaultCharset()))) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        dtlLogger.trace("  stdout        : " + line);
-        stdoutLines.add(line);
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    // Bound how long a script may run: without this, a hanging script (or a script hung by a
+    // crafted parameter) would occupy this thread indefinitely, and repeated calls could
+    // exhaust the server's worker thread pool. destroyForcibly() closes the process's streams,
+    // which is what unblocks the reader threads above if the script produced no (or partial)
+    // output.
+    boolean finishedInTime = p.waitFor(scriptTimeoutSeconds, TimeUnit.SECONDS);
+    if (!finishedInTime) {
+      p.destroyForcibly();
+      stdoutThread.join();
+      stderrThread.join();
+      throwException(HttpStatus.GATEWAY_TIMEOUT,
+          "scriptId '" + scriptId + "' did not finish within " + scriptTimeoutSeconds
+              + " second(s) and was forcibly terminated.");
     }
 
-    // stderrThread only ever writes stderrLines, and always completes (join() below) before
-    // stderrLines is read after this point, so no further synchronization is needed.
+    final int rtn = p.exitValue();
+
+    // Both reader threads only ever write to their own lines list, and always complete (either
+    // via the join() above, on the timeout path, or here) before that list is read after this
+    // point, so no further synchronization is needed. Joined before destroy() below: the process
+    // has already exited, but its output may not be fully drained from the pipe yet, and
+    // destroy() closing the streams while a reader thread is still mid-read would surface as a
+    // spurious "Stream closed" IOException there.
+    stdoutThread.join();
     stderrThread.join();
+    p.destroy();
+    if (stdoutException.get() != null) {
+      throw new RuntimeException(stdoutException.get());
+    }
+
     if (stderrException.get() != null) {
       throw new RuntimeException(stderrException.get());
     }
-
-    // wait for the end of the process
-    int rtn = p.waitFor();
-    p.destroy();
 
     dtlLogger.trace("  return code   : " + rtn);
     dtlLogger.info("procedure finished successfully");
@@ -384,6 +415,31 @@ public class CommandApiService {
   @SuppressWarnings("null")
   private boolean isWindows() {
     return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+  }
+
+  /**
+   * Starts and returns a thread that reads {@code stream} line by line into {@code lines}
+   * (logging each line at TRACE, prefixed with {@code streamLabel}), recording any read failure
+   * into {@code exceptionRef} rather than throwing it (the thread has no caller to propagate to).
+   *
+   * @param streamLabel {@code "stdout"} or {@code "stderr"}, purely for the log line prefix
+   */
+  private Thread startStreamReaderThread(InputStream stream, String streamLabel,
+      List<String> lines, AtomicReference<IOException> exceptionRef) {
+    Thread thread = new Thread(() -> {
+      try (BufferedReader reader =
+          new BufferedReader(new InputStreamReader(stream, Charset.defaultCharset()))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          dtlLogger.trace("  " + streamLabel + "        : " + line);
+          lines.add(line);
+        }
+      } catch (IOException e) {
+        exceptionRef.set(e);
+      }
+    });
+    thread.start();
+    return thread;
   }
 
   /**
@@ -459,7 +515,8 @@ public class CommandApiService {
   }
 
   /**
-   * Searches ${XXX} format (not $XXX) and replaces it to the environment valuable value.
+   * Searches {@code ${NAME}} format (not {@code $NAME}) and replaces it with the environment
+   * variable's value.
    *
    * @param scriptId the scriptId {@code string} was configured under, used only to identify
    *     which script definition is misconfigured if resolution fails

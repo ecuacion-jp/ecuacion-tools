@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
@@ -216,6 +217,45 @@ class CommandApiServiceTest {
     assertTrue(Objects.requireNonNull(ex.getReason()).contains("Failed to start"));
     // The resolved absolute path is server-side detail; only scriptId is safe to hand back.
     assertFalse(Objects.requireNonNull(ex.getReason()).contains(dir.toString()));
+  }
+
+  @Test
+  void constructorThrowsWhenScriptTimeoutSecondsIsNotPositive() {
+    MockEnvironment env = new MockEnvironment();
+    env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
+        Map.of(SCRIPT_ID, "ALL:/tmp/unused.sh")));
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+    env.setProperty("jp.ecuacion.tool.command-api.script-timeout-seconds", "0");
+
+    IllegalStateException ex =
+        assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
+
+    assertTrue(Objects.requireNonNull(ex.getMessage()).contains("script-timeout-seconds"));
+  }
+
+  @Test
+  void hangingScriptIsKilledAfterTimeout() throws Exception {
+    // A script that never exits on its own (no output either, exercising the case the read
+    // threads must be unblocked from too) is killed once script-timeout-seconds elapses.
+    Path script = createExecutableScript("#!/bin/bash\nsleep 60\n");
+
+    MockEnvironment env = new MockEnvironment();
+    env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
+        Map.of(SCRIPT_ID, "ALL:" + script)));
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+    env.setProperty("jp.ecuacion.tool.command-api.script-timeout-seconds", "1");
+    CommandApiService service = new CommandApiService(env);
+
+    long start = System.nanoTime();
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+    long elapsedSeconds = Duration.ofNanos(System.nanoTime() - start).toSeconds();
+
+    assertEquals(HttpStatus.GATEWAY_TIMEOUT, ex.getStatusCode());
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains(SCRIPT_ID));
+    // Well under the script's own 60s sleep, proving it was killed rather than waited out.
+    assertTrue(elapsedSeconds < 10, "expected the timeout to fire quickly, took " + elapsedSeconds
+        + "s");
   }
 
   @Test
