@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import jp.ecuacion.lib.core.util.StringUtil;
@@ -41,7 +42,9 @@ public class SqlUtil {
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   /**
-   * Provides current date-time string considering database kinds.
+   * Provides current date-time string considering database kinds, for literal embedding (see
+   * {@link #getExpirationCondition}, the one remaining caller that still builds a literal SQL
+   * fragment rather than a JDBC-bound one).
    *
    * @param protocol database kind like 'postgresql'
    * @return date-time string
@@ -53,6 +56,30 @@ public class SqlUtil {
     } else if (protocol.equals("mysql")) {
       // MySQL / MariaDB datetime literals don't accept an offset suffix, unlike postgres.
       return LocalDateTime.now(ZoneId.systemDefault()).format(MYSQL_TIMESTAMP_FORMATTER);
+
+    } else {
+      throw new RuntimeException("Protocol not recognized. protocol: " + protocol);
+    }
+  }
+
+  /**
+   * Provides the current date-time as a live object considering database kinds, for JDBC
+   * parameter binding (see {@link jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean
+   * #getBoundTimestampNowCondition}). Mirrors {@link #getTimestampNow}'s protocol-based type
+   * choice - postgres accepts an offset, MySQL / MariaDB datetime columns don't - but returns a
+   * {@code java.time} object instead of pre-formatted text, since a bound parameter is typed by
+   * the driver rather than parsed from literal SQL text.
+   *
+   * @param protocol database kind like 'postgresql'
+   * @return {@link OffsetDateTime} for {@code "postgresql"}, {@link LocalDateTime} for
+   *     {@code "mysql"}
+   */
+  public static Object getTimestampNowValue(String protocol) {
+    if (protocol.equals("postgresql")) {
+      return OffsetDateTime.now(ZoneId.systemDefault());
+
+    } else if (protocol.equals("mysql")) {
+      return LocalDateTime.now(ZoneId.systemDefault());
 
     } else {
       throw new RuntimeException("Protocol not recognized. protocol: " + protocol);
@@ -87,53 +114,72 @@ public class SqlUtil {
   }
 
   /**
-   * Creates where clause.
-   * 
-   * @param list a list of {@code SqlConditionInterface}
-   * @return where clause
+   * A joined WHERE / SET clause and the bind values its {@code ?} placeholders need, in the
+   * matching left-to-right order - see {@link SqlConditionInterface}'s class Javadoc for why that
+   * order is guaranteed to line up.
+   *
+   * @param sql the joined clause text (including the leading {@code " where "} / {@code " set "})
+   * @param bindValues bind values in the same order as the {@code ?} placeholders in {@code sql}
    */
-  public static String getWhere(List<SqlConditionInterface> list) {
-    StringBuilder sb = new StringBuilder();
-
-    sb.append(StringUtil.getSeparatedValuesString(
-        list.stream().map(bean -> bean.getCondition()).toList(), " and "));
-
-    return (StringUtils.isEmpty(sb.toString()) ? "" : " where ") +  sb.toString();
+  public record SqlFragment(String sql, List<Object> bindValues) {
   }
 
   /**
    * Creates where clause.
-   * 
+   *
+   * @param list a list of {@code SqlConditionInterface}
+   * @return where clause
+   */
+  public static SqlFragment getWhere(List<SqlConditionInterface> list) {
+    String joined = StringUtil.getSeparatedValuesString(
+        list.stream().map(SqlConditionInterface::getSqlFragment).toList(), " and ");
+
+    String sql = (StringUtils.isEmpty(joined) ? "" : " where ") + joined;
+    return new SqlFragment(sql, collectBindValues(list));
+  }
+
+  /**
+   * Creates where clause.
+   *
    * @param array an array of {@code SqlConditionInterface}
    * @return where clause
    */
-  public static String getWhere(SqlConditionInterface... array) {
+  public static SqlFragment getWhere(SqlConditionInterface... array) {
     return getWhere(Arrays.asList(array));
   }
 
   /**
    * Creates set clause in update sentence.
-   * 
+   *
    * @param list a list of {@code SqlConditionInterface}
    * @return set clause
    */
-  @SuppressWarnings("null")
-  public static String getUpdateSet(List<SqlConditionInterface> list) {
-    StringBuilder sb = new StringBuilder();
+  public static SqlFragment getUpdateSet(List<SqlConditionInterface> list) {
+    String sql = " set " + StringUtil
+        .getCsvWithSpace(list.stream().map(SqlConditionInterface::getSqlFragment).toList());
 
-    sb.append(" set ");
-    sb.append(StringUtil.getCsvWithSpace(list.stream().map(bean -> bean.getCondition()).toList()));
-
-    return sb.toString();
+    return new SqlFragment(sql, collectBindValues(list));
   }
 
   /**
    * Creates set clause in update sentence.
-   * 
+   *
    * @param array an array of {@code SqlConditionInterface}
    * @return set clause
    */
-  public static String getUpdateSet(SqlConditionInterface... array) {
+  public static SqlFragment getUpdateSet(SqlConditionInterface... array) {
     return getUpdateSet(Arrays.asList(array));
+  }
+
+  private static List<Object> collectBindValues(List<SqlConditionInterface> list) {
+    List<Object> bindValues = new ArrayList<>();
+    for (SqlConditionInterface condition : list) {
+      Object bindValue = condition.getBindValue();
+      if (bindValue != null) {
+        bindValues.add(bindValue);
+      }
+    }
+
+    return bindValues;
   }
 }

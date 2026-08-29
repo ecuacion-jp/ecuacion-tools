@@ -15,8 +15,13 @@
  */
 package jp.ecuacion.tool.housekeepdb.bean;
 
+import org.jspecify.annotations.Nullable;
+
 /**
- * Stores condition string.
+ * Stores a pre-built, literal condition string with no bind value - e.g. the java-computed
+ * expiration-check inequality from {@code SqlUtil#getExpirationCondition}, which embeds only
+ * values this tool itself formatted (not attacker- or even excel-config-controlled), so there is
+ * nothing to bind.
  */
 public class ColumnAndValueStringBean implements SqlConditionInterface {
 
@@ -24,7 +29,7 @@ public class ColumnAndValueStringBean implements SqlConditionInterface {
 
   /**
    * Constructs a new instance.
-   * 
+   *
    * @param conditionString conditionString
    */
   public ColumnAndValueStringBean(String conditionString) {
@@ -32,8 +37,12 @@ public class ColumnAndValueStringBean implements SqlConditionInterface {
   }
 
   @Override
-  public String getCondition() {
+  public String getSqlFragment() {
     return conditionString;
   }
 
+  @Override
+  public @Nullable Object getBindValue() {
+    return null;
+  }
 }

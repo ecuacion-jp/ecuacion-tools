@@ -32,7 +32,7 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
   @NotEmpty
   private String taskId;
   // conditionColumn is embedded as-is (unquoted, unescaped) into generated SQL by
-  // ColumnAndValueInfoBean.getCondition(), so only unquoted SQL identifier characters are
+  // ColumnAndValueInfoBean.getSqlFragment(), so only unquoted SQL identifier characters are
   // allowed.
   @NotEmpty
   @PatternWithDescription(regexp = "^[A-Za-z_][A-Za-z0-9_]*$",

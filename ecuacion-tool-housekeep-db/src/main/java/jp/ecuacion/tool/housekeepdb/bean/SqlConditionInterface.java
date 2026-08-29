@@ -15,15 +15,34 @@
  */
 package jp.ecuacion.tool.housekeepdb.bean;
 
+import org.jspecify.annotations.Nullable;
+
 /**
- * Proivdes interface for an SQL condition.
+ * Proivdes interface for an SQL condition, usable as one item of a WHERE / SET clause.
+ *
+ * <p>A condition is either bound (its {@link #getSqlFragment()} contains exactly one {@code ?}
+ *     placeholder and {@link #getBindValue()} returns the value to bind there - see
+ *     {@link BoundCondition}) or literal (the value is embedded directly in the fragment text and
+ *     {@link #getBindValue()} returns {@code null}). {@link SqlUtil#getWhere} /
+ *     {@link SqlUtil#getUpdateSet} rely on this: they join every fragment in list order to build
+ *     the SQL text, and separately collect the non-null bind values in that same order, so the
+ *     Nth {@code ?} in the joined text always lines up with the Nth collected value.</p>
  */
 public interface SqlConditionInterface {
-  
+
   /**
-   * Builds string and returns a condition part o fcondition statement.
-   * 
-   * @return condition string
+   * Builds and returns a condition part of a WHERE / SET clause - either {@code "column = ?"}
+   * (bound) or {@code "column = 'literal'"} (literal), depending on the implementation.
+   *
+   * @return condition fragment
    */
-  public String getCondition();
+  public String getSqlFragment();
+
+  /**
+   * Returns the value to bind to this fragment's {@code ?} placeholder, or {@code null} if the
+   * fragment has no placeholder (the value, if any, is already embedded in the fragment text).
+   *
+   * @return the bind value, or {@code null}
+   */
+  public @Nullable Object getBindValue();
 }

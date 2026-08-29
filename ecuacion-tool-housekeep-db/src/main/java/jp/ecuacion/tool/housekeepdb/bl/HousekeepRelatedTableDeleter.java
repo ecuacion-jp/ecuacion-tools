@@ -32,6 +32,7 @@ import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
 import jp.ecuacion.tool.housekeepdb.util.LogUtil;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
+import jp.ecuacion.tool.housekeepdb.util.SqlUtil.SqlFragment;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.event.Level;
 
@@ -78,20 +79,24 @@ public class HousekeepRelatedTableDeleter {
         .toList();
 
     for (RelatedTableInfoBean relatedBean : relatedSkipList) {
+      // value below is read back from the DB (not typed into the excel config), so it's bound as
+      // a JDBC parameter rather than embedded as SQL literal text - see BoundCondition's class
+      // Javadoc.
       Object value = mainSqlRs.getObject(relatedBean.getTargetTableColumn());
 
       List<SqlConditionInterface> whereList = new ArrayList<>();
-      whereList.add(relatedBean.getRelatedTableIdColumnInfo().getColumnAndValueInfo(value));
+      whereList.add(relatedBean.getRelatedTableIdColumnInfo().getBoundCondition(value));
 
       if (info.isSoftDelete()) {
-        whereList.add(relatedBean.getSoftDeleteColumnInfo().getColumnAndValueInfo("false"));
+        whereList.add(relatedBean.getSoftDeleteColumnInfo().getBoundCondition(Boolean.FALSE));
       }
 
       LogUtil.dlogWithIndent(detailLogger, Level.DEBUG, "Find records from related table.", IDT_3);
-      String selectSql = "select count(*) count from " + relatedBean.getRelatedTable()
-          + SqlUtil.getWhere(whereList);
-      PreparedStatement stmt =
-          LogUtil.getStatement(detailLogger, connection, selectSql, "related table select", IDT_3);
+      SqlFragment where = SqlUtil.getWhere(whereList);
+      String selectSql =
+          "select count(*) count from " + relatedBean.getRelatedTable() + where.sql();
+      PreparedStatement stmt = LogUtil.getStatement(detailLogger, connection, selectSql,
+          where.bindValues(), "related table select", IDT_3);
       ResultSet rs = stmt.executeQuery();
 
       rs.next();
@@ -124,7 +129,9 @@ public class HousekeepRelatedTableDeleter {
         tableRecordDeleted.put(relatedInfo.getRelatedTable(), 0);
       }
 
-      // The target-table column value this related-table row is linked by.
+      // The target-table column value this related-table row is linked by. Read back from the DB
+      // (not typed into the excel config), so it's bound as a JDBC parameter rather than embedded
+      // as SQL literal text - see BoundCondition's class Javadoc.
       Object linkValue = mainSqlRs.getObject(relatedInfo.getTargetTableColumn());
 
       // Organize a delete (or update in case of soft delete) statement of a record linked to the
@@ -135,12 +142,12 @@ public class HousekeepRelatedTableDeleter {
 
       if (info.isSoftDelete()) {
         // '<softDeleteColumn> = true'
-        updateSetList.add(relatedInfo.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
+        updateSetList.add(relatedInfo.getSoftDeleteColumnInfo().getBoundCondition(Boolean.TRUE));
 
         // '<SoftDeleteUpdateTimestampColumn> = now()'
         if (!StringUtils.isEmpty(relatedInfo.getSoftDeleteUpdateTimestampColumn())) {
           updateSetList.add(relatedInfo.getSoftDeleteUpdateTimestampColumnInfo()
-              .getTimestampColumnNowInfo(info.getDbConnectionInfo().getProtocol()));
+              .getBoundTimestampNowCondition(info.getDbConnectionInfo().getProtocol()));
         }
 
         // <SoftDeleteUpdateUserIdColumn = 'xxx'
@@ -153,20 +160,20 @@ public class HousekeepRelatedTableDeleter {
       // (it may already be gone as the side effect of an earlier related-table delete, e.g. a
       // cascading foreign key) and to read back the exact value to delete by.
       ColumnInfoBean fkCol = relatedInfo.getRelatedTableIdColumnInfo();
-      String sqlTargetSelect =
-          "select " + fkCol.getColumn() + " from " + relatedInfo.getRelatedTable() + " where "
-              + fkCol.getColumnAndValueInfo(linkValue).getCondition();
+      SqlFragment linkWhere = SqlUtil.getWhere(fkCol.getBoundCondition(linkValue));
+      String sqlTargetSelect = "select " + fkCol.getColumn() + " from "
+          + relatedInfo.getRelatedTable() + linkWhere.sql();
 
       String sqlName = "related table select";
       try (
-          PreparedStatement stmt =
-              LogUtil.getStatement(detailLogger, conn, sqlTargetSelect, sqlName, IDT_3);
+          PreparedStatement stmt = LogUtil.getStatement(detailLogger, conn, sqlTargetSelect,
+              linkWhere.bindValues(), sqlName, IDT_3);
           ResultSet rs = stmt.executeQuery();) {
 
         boolean recordFound = rs.next();
 
         String logMsg = !recordFound ? "Record not found."
-            : "Record(s) found. " + fkCol.getColumnAndValueInfo(linkValue).getCondition();
+            : "Record(s) found. " + fkCol.getColumn() + " = " + linkValue;
         LogUtil.dlogWithIndent(detailLogger, Level.DEBUG, logMsg, IDT_4);
 
         if (!recordFound) {
@@ -178,24 +185,31 @@ public class HousekeepRelatedTableDeleter {
         // where clause
         final Object val = rs.getObject(fkCol.getColumn());
         List<SqlConditionInterface> whereList = new ArrayList<>();
-        whereList.add(relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val));
+        whereList.add(relatedInfo.getRelatedTableIdColumnInfo().getBoundCondition(val));
 
         // When hard-deleting and a soft-delete column is specified, also add a condition that
         // the column is true to the WHERE clause.
         if (!info.isSoftDelete() && !StringUtils.isEmpty(relatedInfo.getSoftDeleteColumn())) {
-          whereList.add(relatedInfo.getSoftDeleteColumnInfo().getColumnAndValueInfo("true"));
+          whereList.add(relatedInfo.getSoftDeleteColumnInfo().getBoundCondition(Boolean.TRUE));
         }
 
         // Delete records in the related table whose column contains the retrieved value.
-        String softDeleteSql =
-            "update " + relatedInfo.getRelatedTable() + SqlUtil.getUpdateSet(updateSetList);
+        SqlFragment set = SqlUtil.getUpdateSet(updateSetList);
+        String softDeleteSql = "update " + relatedInfo.getRelatedTable() + set.sql();
         String hardDeleteSql = "delete from " + relatedInfo.getRelatedTable();
 
-        String sql = info.isSoftDelete() ? softDeleteSql : hardDeleteSql;
-        sql = sql + SqlUtil.getWhere(whereList);
+        SqlFragment where = SqlUtil.getWhere(whereList);
+        String sql = (info.isSoftDelete() ? softDeleteSql : hardDeleteSql) + where.sql();
 
-        PreparedStatement delStmt =
-            LogUtil.getStatement(detailLogger, conn, sql, "related table delete", IDT_5);
+        // set.bindValues() is empty when hard-deleting (updateSetList is only populated for soft
+        // delete), so it's safe to always include it regardless of which of softDeleteSql /
+        // hardDeleteSql was chosen above.
+        List<Object> bindValues = new ArrayList<>();
+        bindValues.addAll(set.bindValues());
+        bindValues.addAll(where.bindValues());
+
+        PreparedStatement delStmt = LogUtil.getStatement(detailLogger, conn, sql, bindValues,
+            "related table delete", IDT_5);
         int count = delStmt.executeUpdate();
         tableRecordDeleted.put(relatedInfo.getRelatedTable(),
             tableRecordDeleted.get(relatedInfo.getRelatedTable()) + count);
@@ -203,8 +217,8 @@ public class HousekeepRelatedTableDeleter {
         delStmt.close();
 
         LogUtil.logDeleteLines(detailLogger, relatedInfo.getRelatedTable(), count,
-            relatedInfo.getRelatedTableIdColumnInfo().getColumnAndValueInfo(val).getCondition(),
-            Level.TRACE, IDT_5);
+            relatedInfo.getRelatedTableIdColumnInfo().getColumn() + " = " + val, Level.TRACE,
+            IDT_5);
       }
     }
   }
