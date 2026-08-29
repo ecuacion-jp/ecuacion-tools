@@ -61,6 +61,12 @@ public class HousekeepRelatedTableDeleter {
    *
    * <p>Returning true means that record is skipped to delete.</p>
    *
+   * <p>When the task is a soft-delete one, a related record already soft-deleted doesn't count as
+   *     "existing" - only a not-yet-soft-deleted row blocks the main record's deletion (the
+   *     related-table row's {@code softDeleteColumn} is required in that case - see
+   *     {@link RelatedTableInfoBean}'s class Javadoc). For a hard-delete task, plain existence is
+   *     checked as before.</p>
+   *
    * @param connection the DB connection of the current task
    * @param info the housekeep task settings
    * @param mainSqlRs the current row of the target table's select result
@@ -74,9 +80,16 @@ public class HousekeepRelatedTableDeleter {
     for (RelatedTableInfoBean relatedBean : relatedSkipList) {
       Object value = mainSqlRs.getObject(relatedBean.getTargetTableColumn());
 
+      List<SqlConditionInterface> whereList = new ArrayList<>();
+      whereList.add(relatedBean.getRelatedTableIdColumnInfo().getColumnAndValueInfo(value));
+
+      if (info.isSoftDelete()) {
+        whereList.add(relatedBean.getSoftDeleteColumnInfo().getColumnAndValueInfo("false"));
+      }
+
       LogUtil.dlogWithIndent(detailLogger, Level.DEBUG, "Find records from related table.", IDT_3);
-      String selectSql = "select count(*) count from " + relatedBean.getRelatedTable() + " where "
-          + relatedBean.getRelatedTableIdColumnInfo().getColumnAndValueInfo(value).getCondition();
+      String selectSql = "select count(*) count from " + relatedBean.getRelatedTable()
+          + SqlUtil.getWhere(whereList);
       PreparedStatement stmt =
           LogUtil.getStatement(detailLogger, connection, selectSql, "related table select", IDT_3);
       ResultSet rs = stmt.executeQuery();
@@ -145,8 +158,9 @@ public class HousekeepRelatedTableDeleter {
               + fkCol.getColumnAndValueInfo(linkValue).getCondition();
 
       String sqlName = "related table select";
-      try (PreparedStatement stmt =
-          LogUtil.getStatement(detailLogger, conn, sqlTargetSelect, sqlName, IDT_3);
+      try (
+          PreparedStatement stmt =
+              LogUtil.getStatement(detailLogger, conn, sqlTargetSelect, sqlName, IDT_3);
           ResultSet rs = stmt.executeQuery();) {
 
         boolean recordFound = rs.next();
