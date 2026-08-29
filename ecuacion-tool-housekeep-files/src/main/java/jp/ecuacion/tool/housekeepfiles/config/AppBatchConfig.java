@@ -28,7 +28,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 
 /**
@@ -36,7 +35,6 @@ import org.springframework.transaction.PlatformTransactionManager;
  */
 @Configuration
 @ComponentScan(basePackages = "jp.ecuacion.splib.batch.config")
-@PropertySource(value = "classpath:application-profile.properties")
 @SuppressWarnings("NullAway.Init")
 public class AppBatchConfig extends SplibAppParentBatchConfig {
 
