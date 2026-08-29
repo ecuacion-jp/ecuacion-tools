@@ -15,19 +15,27 @@
  */
 package jp.ecuacion.tool.housekeepfiles.tasklet;
 
-import java.util.Map;
+import jakarta.validation.Validation;
+import jakarta.validation.constraints.NotEmpty;
+import java.io.IOException;
 import java.util.Objects;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.lib.validation.constraints.FileExists;
+import jp.ecuacion.lib.validation.constraints.FileExtension;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
+import jp.ecuacion.util.excel.util.ExcelReadUtil;
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.jspecify.annotations.Nullable;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
@@ -36,9 +44,17 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class HousekeepFilesTasklet implements Tasklet {
+
+  public static final String PROP_EXCEL_PATH = "jp.ecuacion.tool.housekeep-files.excel-path";
+
   HousekeepFilesBlf blf = new HousekeepFilesBlf();
   @Nullable
   HousekeepFilesForm form;
+
+  @NotEmpty
+  @FileExists
+  @FileExtension(".xlsx")
+  private final @Nullable String excelPath;
 
   // Not set when this tasklet is instantiated directly (e.g. in tests) instead of through Spring.
   @Autowired(required = false)
@@ -46,25 +62,23 @@ public class HousekeepFilesTasklet implements Tasklet {
   Environment env;
 
   /**
+   * Creates the tasklet, reading the excel file path from the {@link #PROP_EXCEL_PATH} property.
+   *
+   * @param excelPath the excel file path, or {@code null} if unset
+   */
+  public HousekeepFilesTasklet(
+      @Value("${" + PROP_EXCEL_PATH + ":#{null}}") @Nullable String excelPath) {
+    this.excelPath = excelPath;
+  }
+
+  /**
    * Executes housekeeping files.
    */
   @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
-    Map<String, Object> paramMap = chunkContext.getStepContext().getJobParameters();
 
-    String excelPath = (String) paramMap.get("excelPath");
-
-    execute(Objects.requireNonNull(excelPath));
-
-    return RepeatStatus.FINISHED;
-  }
-
-  /**
-   * Housekeeps files.
-   */
-  @SuppressWarnings("unused")
-  public void execute(String excelFilePath) throws Exception {
+    String excelPath = validateExcelPath();
 
     // AbstractTaskSftp is instantiated by reflection outside of Spring's DI, so it cannot read
     // this property from the Environment directly. Bridge it through a JVM system property here,
@@ -77,32 +91,30 @@ public class HousekeepFilesTasklet implements Tasklet {
           Objects.requireNonNull(env).getProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING)));
     }
 
-    // Check the first argument.
-    if (excelFilePath == null || excelFilePath.equals("")) {
-      new Violations()
-          .add(new BusinessViolation("MSG_ERR_PARAM_NULL_OR_EMPTY", "1st argument(excelFilePath)"))
-          .throwIfAny();
-
-    } else if (!excelFilePath.contains(".")) {
-      // No file extension found.
-      new Violations().add(new BusinessViolation("MSG_ERR_1ST_ARG_HAS_NO_EXTENSION", excelFilePath))
-          .throwIfAny();
-    }
-
-    Objects.requireNonNull(excelFilePath);
-
-    // Determine the number of parameters based on the file extension in the first argument path.
-    String extension = excelFilePath.substring(excelFilePath.lastIndexOf("."));
-
-    if (extension.equals(".xlsx")) {
-      form = getFormFromExcel(excelFilePath);
-
-    } else {
-      new Violations().add(new BusinessViolation("MSG_ERR_EXTENSION_NOT_EXPECTED", extension))
-          .throwIfAny();
-    }
+    form = getFormFromExcel(excelPath);
 
     blf.execute(Objects.requireNonNull(form));
+
+    return RepeatStatus.FINISHED;
+  }
+
+  private String validateExcelPath() {
+    new Violations().addAll(Validation.buildDefaultValidatorFactory().getValidator().validate(this))
+        .messageParameters(Violations.newMessageParameters().isMessageWithItemName(true))
+        .throwIfAny();
+
+    String nonnullExcelPath = Objects.requireNonNull(excelPath);
+
+    try (Workbook workbook = ExcelReadUtil.openForRead(nonnullExcelPath)) {
+      // Only verifying the file can be opened as an excel file here.
+      // Its content is read later.
+    } catch (EncryptedDocumentException | IOException e) {
+      new Violations()
+          .add(new BusinessViolation("MSG_ERR_EXCEL_PATH_CANNOT_OPEN", nonnullExcelPath))
+          .throwIfAny();
+    }
+
+    return nonnullExcelPath;
   }
 
   /**

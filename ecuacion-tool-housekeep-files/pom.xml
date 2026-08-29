@@ -59,6 +59,12 @@
 			<artifactId>ecuacion-util-excel-table</artifactId>
 		</dependency>
 
+		<!-- ecuacion-lib -->
+		<dependency>
+			<groupId>jp.ecuacion.lib</groupId>
+			<artifactId>ecuacion-lib-validation-business-messages</artifactId>
+		</dependency>
+
 		<!-- other -->
 
 		<!-- Added for SFTP -->

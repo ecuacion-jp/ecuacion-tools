@@ -16,80 +16,82 @@
 package jp.ecuacion.tool.housekeepfiles.tasklet;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
-import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
-import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
-import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.StepContribution;
 
 /** Tests for {@link HousekeepFilesTasklet}. */
 @DisplayName("HousekeepFilesTasklet")
 class HousekeepFilesTaskletTest {
 
-  /**
-   * Tasklet whose Excel reading and business logic are stubbed out, to test only the launch
-   * parameter check.
-   */
-  private HousekeepFilesTasklet taskletWithStubbedExcelAndBlf() {
-    HousekeepFilesTasklet tasklet = new HousekeepFilesTasklet() {
-      @SuppressWarnings({"NullAway", "null"})
-      @Override
-      protected HousekeepFilesForm getFormFromExcel(String excelFilePath) {
-        return null;
-      }
-    };
-
-    tasklet.blf = new HousekeepFilesBlf() {
-      @Override
-      public void execute(HousekeepFilesForm form) throws Exception {
-        // Do nothing and return.
-      }
-    };
-
-    return tasklet;
-  }
-
   @Nested
-  @DisplayName("execute(): launch parameter check")
-  class ExecuteLaunchParameterCheck {
+  @DisplayName("execute(): excel path validation")
+  class ExcelPathValidation {
 
-    @SuppressWarnings({"NullAway", "null"})
+    @SuppressWarnings("null")
     @Test
-    @DisplayName("null excelPath throws ViolationException with MSG_ERR_PARAM_NULL_OR_EMPTY")
-    void nullArgument() {
-      assertThatThrownBy(() -> taskletWithStubbedExcelAndBlf().execute(null))
-          .isInstanceOfSatisfying(ViolationException.class,
-              ex -> assertThat(ex.getViolations().getBusinessViolations())
-                  .extracting(BusinessViolation::getMessageId)
-                  .containsExactly("MSG_ERR_PARAM_NULL_OR_EMPTY"));
+    @DisplayName("a null excelPath fails @NotEmpty validation")
+    void nullExcelPathFails() {
+      assertThatThrownBy(() -> new HousekeepFilesTasklet(null).execute(
+          mock(StepContribution.class), mock(ChunkContext.class)))
+              .isInstanceOf(ViolationException.class);
     }
 
+    @SuppressWarnings("null")
     @Test
-    @DisplayName("empty excelPath throws ViolationException with MSG_ERR_PARAM_NULL_OR_EMPTY")
-    void emptyArgument() {
-      assertThatThrownBy(() -> taskletWithStubbedExcelAndBlf().execute(""))
-          .isInstanceOfSatisfying(ViolationException.class,
-              ex -> assertThat(ex.getViolations().getBusinessViolations())
-                  .extracting(BusinessViolation::getMessageId)
-                  .containsExactly("MSG_ERR_PARAM_NULL_OR_EMPTY"));
+    @DisplayName("an empty excelPath fails @NotEmpty validation")
+    void emptyExcelPathFails() {
+      assertThatThrownBy(() -> new HousekeepFilesTasklet("").execute(
+          mock(StepContribution.class), mock(ChunkContext.class)))
+              .isInstanceOf(ViolationException.class);
     }
-  }
 
-  @Nested
-  @DisplayName("execute(): Excel config file check")
-  class ExecuteExcelConfigFileCheck {
-
+    @SuppressWarnings("null")
     @Test
-    @DisplayName("nonexistent Excel file throws RuntimeException caused by FileNotFoundException")
-    void fileDoesNotExist() {
-      assertThatThrownBy(() -> new HousekeepFilesTasklet().execute("./testpath/test.xlsx"))
-          .isInstanceOf(RuntimeException.class)
-          .hasCauseInstanceOf(FileNotFoundException.class);
+    @DisplayName("a path pointing to a non-existent file fails @FileExists validation")
+    void nonExistentFileFails() {
+      assertThatThrownBy(() -> new HousekeepFilesTasklet("/no/such/file.xlsx")
+          .execute(mock(StepContribution.class), mock(ChunkContext.class)))
+              .isInstanceOf(ViolationException.class);
+    }
+
+    @SuppressWarnings("null")
+    @Test
+    @DisplayName("a non-.xlsx extension fails @FileExtension validation")
+    void wrongExtensionFails(@TempDir Path tempDir) throws IOException {
+      Path file = tempDir.resolve("settings.txt");
+      Files.writeString(file, "not an excel file");
+
+      assertThatThrownBy(() -> new HousekeepFilesTasklet(file.toString())
+          .execute(mock(StepContribution.class), mock(ChunkContext.class)))
+              .isInstanceOf(ViolationException.class);
+    }
+
+    @SuppressWarnings("null")
+    @Test
+    @DisplayName("a .xlsx file that isn't a real workbook raises MSG_ERR_EXCEL_PATH_CANNOT_OPEN")
+    void unopenableFileFails(@TempDir Path tempDir) throws IOException {
+      Path file = tempDir.resolve("corrupt.xlsx");
+      Files.writeString(file, "not actually an xlsx file");
+
+      assertThatExceptionOfType(ViolationException.class)
+          .isThrownBy(() -> new HousekeepFilesTasklet(file.toString())
+              .execute(mock(StepContribution.class), mock(ChunkContext.class)))
+          .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
+              .extracting(BusinessViolation::getMessageId)
+              .containsExactly("MSG_ERR_EXCEL_PATH_CANNOT_OPEN"));
     }
   }
 }
