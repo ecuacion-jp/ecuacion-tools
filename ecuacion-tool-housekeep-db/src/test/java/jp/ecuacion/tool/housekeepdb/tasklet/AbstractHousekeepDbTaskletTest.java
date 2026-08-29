@@ -397,6 +397,58 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       assertThat(countRows("select count(*) from rt_parent3")).isZero();
     }
+
+    @Test
+    @DisplayName("'Check and Skip Delete' pattern treats an already-soft-deleted related row as "
+        + "absent, and soft-deletes the target row")
+    void checkAndSkipDeletePatternSoftDeletesWhenRelatedRowIsSoftDeleted() throws Exception {
+      execute("create table rt_parent_sd (num1 integer primary key, "
+          + "rem_flg boolean default false, child_code varchar(20))");
+      execute("create table rt_child_sd (code varchar(20) primary key, "
+          + "child_rem_flg boolean default false)");
+      execute("insert into rt_parent_sd values (1, false, 'c1')");
+      execute("insert into rt_child_sd values ('c1', true)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
+              "rt_parent_sd", "num1", "(none)", null, null, null, "rem_flg", null, null, null,
+              null}),
+          List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
+              "CHECK_AND_SKIP_DELETE", "child_code", "rt_child_sd", "code", "quotes(')",
+              "child_rem_flg", null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from rt_parent_sd where rem_flg = true"))
+          .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("'Check and Skip Delete' pattern leaves the target row untouched when a "
+        + "not-yet-soft-deleted related row exists")
+    void checkAndSkipDeletePatternSkipsWhenRelatedRowIsNotSoftDeleted() throws Exception {
+      execute("create table rt_parent_sd2 (num1 integer primary key, "
+          + "rem_flg boolean default false, child_code varchar(20))");
+      execute("create table rt_child_sd2 (code varchar(20) primary key, "
+          + "child_rem_flg boolean default false)");
+      execute("insert into rt_parent_sd2 values (1, false, 'c1')");
+      execute("insert into rt_child_sd2 values ('c1', false)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
+              "rt_parent_sd2", "num1", "(none)", null, null, null, "rem_flg", null, null, null,
+              null}),
+          List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
+              "CHECK_AND_SKIP_DELETE", "child_code", "rt_child_sd2", "code", "quotes(')",
+              "child_rem_flg", null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from rt_parent_sd2 where rem_flg = false"))
+          .isEqualTo(1);
+    }
   }
 
   // -------------------------------------------------------------------------
