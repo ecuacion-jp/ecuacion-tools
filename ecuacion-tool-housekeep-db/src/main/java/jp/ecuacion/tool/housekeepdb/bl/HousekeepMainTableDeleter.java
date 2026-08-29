@@ -52,6 +52,7 @@ public class HousekeepMainTableDeleter {
 
   private final DetailLogger detailLogger;
   private final int maxSelectLines;
+  private final RecordDeleter recordDeleter;
   private final HousekeepRelatedTableDeleter relatedTableDeleter;
 
   /**
@@ -63,7 +64,8 @@ public class HousekeepMainTableDeleter {
   public HousekeepMainTableDeleter(DetailLogger detailLogger, int maxSelectLines) {
     this.detailLogger = detailLogger;
     this.maxSelectLines = maxSelectLines;
-    this.relatedTableDeleter = new HousekeepRelatedTableDeleter(detailLogger);
+    this.recordDeleter = new RecordDeleter(detailLogger);
+    this.relatedTableDeleter = new HousekeepRelatedTableDeleter(detailLogger, recordDeleter);
   }
 
   /**
@@ -133,7 +135,8 @@ public class HousekeepMainTableDeleter {
             recordDeleted = true;
 
             relatedTableDeleter.deleteRelatedData(conn, info, rs, tableRecordDeleted);
-            deleteTargetData(conn, info, idValue, tableRecordDeleted);
+            recordDeleter.deleteOrSoftDeleteOne(conn, info, info.isSoftDelete(),
+                info.getDbConnectionInfo().getProtocol(), idValue, tableRecordDeleted, IDT_3);
           }
 
           // Terminate when the end of the target table is reached.
@@ -219,64 +222,6 @@ public class HousekeepMainTableDeleter {
         dbInfo.getPassword());
     conn.setAutoCommit(false);
     return conn;
-  }
-
-  private void deleteTargetData(Connection conn, HousekeepInfoBean info, Object idValue,
-      Map<String, Integer> tableRecordDeleted) throws SQLException {
-
-    List<SqlConditionInterface> updateSetList = new ArrayList<>();
-    if (info.isSoftDelete()) {
-      updateSetList.add(info.getSoftDeleteColumnInfo().getBoundCondition(Boolean.TRUE));
-
-      if (!StringUtils.isEmpty(info.getSoftDeleteUpdateTimestampColumn())) {
-        updateSetList.add(info.getSoftDeleteUpdateTimestampColumnInfo()
-            .getBoundTimestampNowCondition(info.getDbConnectionInfo().getProtocol()));
-      }
-
-      if (!StringUtils.isEmpty(info.getSoftDeleteUpdateUserIdColumn())) {
-        updateSetList.add(info.getSoftDeleteUpdateUserIdColumnAndValueInfo());
-      }
-    }
-
-    SqlFragment set = SqlUtil.getUpdateSet(updateSetList);
-    String softDeleteSql = "update " + info.getTable() + set.sql();
-    String hardDeleteSql = "delete from " + info.getTable();
-
-    // idValue was read back from the DB (not typed into the excel config), so it's bound as a
-    // JDBC parameter rather than embedded as SQL literal text - see BoundCondition's class
-    // Javadoc.
-    List<SqlConditionInterface> whereList = new ArrayList<>();
-    whereList.add(info.getIdColumnInfo().getBoundCondition(idValue));
-
-    // When hard-deleting and a soft-delete column is specified, also add a condition that
-    // the column is true.
-    if (!info.isSoftDelete() && !StringUtils.isEmpty(info.getSoftDeleteColumn())) {
-      whereList.add(info.getSoftDeleteColumnInfo().getBoundCondition(Boolean.TRUE));
-    }
-
-    SqlFragment where = SqlUtil.getWhere(whereList);
-    String sql = (info.isSoftDelete() ? softDeleteSql : hardDeleteSql) + where.sql();
-
-    // set.bindValues() is empty when hard-deleting (updateSetList is only populated for soft
-    // delete), so it's safe to always include it regardless of which of softDeleteSql /
-    // hardDeleteSql was chosen above.
-    List<Object> bindValues = new ArrayList<>();
-    bindValues.addAll(set.bindValues());
-    bindValues.addAll(where.bindValues());
-
-    PreparedStatement delStmt =
-        LogUtil.getStatement(detailLogger, conn, sql, bindValues, "main table delete", IDT_3);
-    int count = delStmt.executeUpdate();
-
-    // merge() also covers the case where the statement affected no rows, which happens when the
-    // record was already removed as a side effect of deleting a related-table record (a cascading
-    // foreign key, say). Accumulating through get() turned that into a NullPointerException.
-    tableRecordDeleted.merge(info.getTable(), count, Integer::sum);
-
-    delStmt.close();
-
-    LogUtil.logDeleteLines(detailLogger, info.getTable(), count,
-        info.getIdColumnInfo().getColumn() + " = " + idValue, Level.TRACE, IDT_3);
   }
 
   private String getDbConnectionUrl(DbConnectionInfoBean dbInfo) {
