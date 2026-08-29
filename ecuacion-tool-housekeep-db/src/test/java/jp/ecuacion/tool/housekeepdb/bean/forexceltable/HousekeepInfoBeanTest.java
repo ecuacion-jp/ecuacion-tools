@@ -423,4 +423,26 @@ class HousekeepInfoBeanTest {
           .isEqualTo("upd_by = 'SYSTEM'");
     }
   }
+
+  @Nested
+  @DisplayName("DeleteTargetInfo interface")
+  class DeleteTargetInfoMethods {
+
+    @Test
+    @DisplayName("getTargetTable() delegates to getTable()")
+    void getTargetTableDelegatesToGetTable() {
+      HousekeepInfoBean b = bean(HARD_BASE);
+
+      assertThat(b.getTargetTable()).isEqualTo(b.getTable());
+    }
+
+    @Test
+    @DisplayName("getDeleteKeyColumnInfo() delegates to getIdColumnInfo()")
+    void getDeleteKeyColumnInfoDelegatesToGetIdColumnInfo() {
+      HousekeepInfoBean b = bean(HARD_BASE);
+      b.afterReading();
+
+      assertThat(b.getDeleteKeyColumnInfo()).isSameAs(b.getIdColumnInfo());
+    }
+  }
 }

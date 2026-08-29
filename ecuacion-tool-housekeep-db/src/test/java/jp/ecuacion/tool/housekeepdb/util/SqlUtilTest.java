@@ -278,4 +278,38 @@ class SqlUtilTest {
       assertThat(result.bindValues()).containsExactly(Boolean.TRUE);
     }
   }
+
+  // -------------------------------------------------------------------------
+  // concatBindValues
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("concatBindValues")
+  class ConcatBindValues {
+
+    @Test
+    @DisplayName("concatenates each fragment's bind values in argument order")
+    void concatenatesInOrder() {
+      SqlUtil.SqlFragment set = SqlUtil.getUpdateSet(List.of(new BoundCondition("a", 1)));
+      SqlUtil.SqlFragment where = SqlUtil.getWhere(List.of(new BoundCondition("b", 2)));
+
+      assertThat(SqlUtil.concatBindValues(set, where)).containsExactly(1, 2);
+    }
+
+    @Test
+    @DisplayName("fragments with no bind values contribute nothing")
+    void skipsFragmentsWithNoBindValues() {
+      SqlUtil.SqlFragment literalOnly =
+          SqlUtil.getWhere(List.of(new ColumnAndValueStringBean("a = 1")));
+      SqlUtil.SqlFragment bound = SqlUtil.getWhere(List.of(new BoundCondition("b", 2)));
+
+      assertThat(SqlUtil.concatBindValues(literalOnly, bound)).containsExactly(2);
+    }
+
+    @Test
+    @DisplayName("no arguments returns an empty list")
+    void noArguments() {
+      assertThat(SqlUtil.concatBindValues()).isEmpty();
+    }
+  }
 }

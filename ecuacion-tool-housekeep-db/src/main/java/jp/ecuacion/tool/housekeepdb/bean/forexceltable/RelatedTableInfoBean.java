@@ -70,7 +70,7 @@ import org.jspecify.annotations.Nullable;
     conditionPropertyPath = "softDeleteUpdateUserIdColumn", conditionValue = ConditionValue.EMPTY,
     notEmptyWhenConditionNotSatisfied = true)
 @SuppressWarnings("NullAway.Init")
-public class RelatedTableInfoBean extends StringExcelTableBean {
+public class RelatedTableInfoBean extends StringExcelTableBean implements DeleteTargetInfo {
 
   public static final String RELATED_TABLE_PROCESS_PATTERN_DELETE = "DELETE";
   public static final String RELATED_TABLE_PROCESS_PATTERN_CHECK_AND_SKIP_DELETE =
@@ -185,14 +185,22 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
     return relatedTable;
   }
 
+  @Override
+  public String getTargetTable() {
+    return getRelatedTable();
+  }
+
+  @Override
   public String getSoftDeleteColumn() {
     return softDeleteColumn;
   }
 
+  @Override
   public String getSoftDeleteUpdateTimestampColumn() {
     return softDeleteUpdateTimestampColumn;
   }
 
+  @Override
   public String getSoftDeleteUpdateUserIdColumn() {
     return softDeleteUpdateUserIdColumn;
   }
@@ -209,14 +217,22 @@ public class RelatedTableInfoBean extends StringExcelTableBean {
     return relatedTableIdColumnInfo;
   }
 
+  @Override
+  public ColumnInfoBean getDeleteKeyColumnInfo() {
+    return getRelatedTableIdColumnInfo();
+  }
+
+  @Override
   public ColumnInfoBean getSoftDeleteColumnInfo() {
     return softDeleteColumnInfo;
   }
 
+  @Override
   public ColumnInfoBean getSoftDeleteUpdateTimestampColumnInfo() {
     return softDeleteUpdateTimestampColumnInfo;
   }
 
+  @Override
   public ColumnAndValueInfoBean getSoftDeleteUpdateUserIdColumnAndValueInfo() {
     return softDeleteUpdateUserIdColumnAndValueInfo;
   }
