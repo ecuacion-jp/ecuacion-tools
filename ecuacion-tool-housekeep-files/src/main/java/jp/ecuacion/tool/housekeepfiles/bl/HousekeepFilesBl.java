@@ -207,8 +207,7 @@ public class HousekeepFilesBl {
       }
       // Further filter to entries whose last-modified date satisfies the elapsed-time condition.
       // Exclude entries that have not yet passed the required period.
-      if (!dateUtil.hasDesignatedTermPassed(fi.getLastUpdTimeInMillis(), taskRec.getUnit(),
-          taskRec.getValue())) {
+      if (!dateUtil.hasDesignatedTermPassed(fi.getLastUpdTimeInMillis(), taskRec.getValue())) {
         continue;
       }
 
@@ -391,14 +390,12 @@ public class HousekeepFilesBl {
     logWithTaskId(taskId, "remoteServer          = " + rec.getRemoteServer());
     logWithTaskId(taskId, "pathFrom              = " + rec.getSrcPath());
     logWithTaskId(taskId, "isSrcPathDir         = " + rec.getIsSrcPathDir());
-    logWithTaskId(taskId, "unit                  = " + rec.getUnit());
     logWithTaskId(taskId, "value                 = " + rec.getValue());
     logWithTaskId(taskId, "actionForNoSrcPath   = " + rec.getActionForNoSrcPath());
     logWithTaskId(taskId, "pathTo                = " + rec.getDestPath());
     logWithTaskId(taskId, "isDestPathDir           = " + rec.getIsDestPathDir());
     logWithTaskId(taskId, "doesOverwriteDestPath   = " + rec.getDoesOverwriteDestPath());
     logWithTaskId(taskId, "actionForToFileExists = " + rec.getActionForDestFileExists());
-    logWithTaskId(taskId, "options               = " + rec.options);
   }
 
   private void logTaskFinishMsg(HousekeepFilesTaskRecord taskRec,

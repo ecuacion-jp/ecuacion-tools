@@ -43,9 +43,9 @@ public class HousekeepFilesForm {
 
   private static final String[] HEADER_LABELS_TASK = new String[] {"タスクID", "タスク名",
       "処理パターン\n日本語名", "処理パターン", "接続先サーバ", "元パス",
-      "元パスがディレクトリ", "元パス処理実施対象\n経過期間単位", "元パス処理実施対象\n経過期間値",
-      "元パス存在なし時処理", "先パス", "先パスがディレクトリ", "先パス存在時上書き",
-      "先パス存在時処理", "options"};
+      "元パスディレクトリ", "元パス実施保留日数",
+      "元パス存在なし時処理", "先パス", "先パスディレクトリ", "先パス存在時上書き",
+      "先パス存在時処理"};
   private static final String[] HEADER_LABELS_AUTH =
       new String[] {"サーバ名", "protocol", "port", "認証方式", "ユーザ名",
           "password / passphrase", "秘密鍵パス"};
