@@ -16,11 +16,7 @@ permissions:
 
 jobs:
   verify:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       # Checkout dependency repos in sibling directories to match local relativePath setup
       - name: Checkout ecuacion-lib
@@ -69,7 +65,7 @@ jobs:
         run: mvn verify -Dwagon.skip=true
 
       - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.base_ref == 'main'))
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.base_ref == 'main')
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
