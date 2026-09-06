@@ -19,6 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -36,6 +39,10 @@ import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
+import org.apache.poi.poifs.crypt.EncryptionInfo;
+import org.apache.poi.poifs.crypt.EncryptionMode;
+import org.apache.poi.poifs.crypt.Encryptor;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -44,6 +51,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
@@ -140,6 +148,58 @@ abstract class AbstractHousekeepDbTaskletTest {
       }
       return path;
     }
+  }
+
+  /** The ROOT logger's level as found before {@link #attachLogCapture()} last changed it. */
+  private static ch.qos.logback.classic.@Nullable Level levelBeforeCapture;
+
+  /**
+   * Attaches a started {@link ListAppender} to the ROOT logger, capturing every log event
+   * emitted anywhere during the test - the production code's logging (see the classes in
+   * {@code jp.ecuacion.tool.housekeepdb.bl} / {@code jp.ecuacion.tool.housekeepdb.tasklet}) uses
+   * per-class loggers that propagate up to root, so attaching here rather than to one named
+   * logger catches all of it.
+   *
+   * <p>Also lowers the ROOT logger's level to {@code DEBUG} for the duration of the capture (the
+   *     effective ambient level in this test run is {@code INFO}, which would otherwise silently
+   *     drop the {@code DEBUG}-level messages under test) - the previous level is restored by
+   *     {@link #detachLogCapture}.</p>
+   *
+   * <p>Callers must detach the returned appender once done asserting (see
+   *     {@link #detachLogCapture}) - appenders left attached (or a level left lowered) would leak
+   *     into later tests.</p>
+   *
+   * @return the started appender; {@link ListAppender#list} accumulates captured events
+   */
+  protected static ListAppender<ILoggingEvent> attachLogCapture() {
+    ch.qos.logback.classic.Logger rootLogger =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(
+            ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+
+    levelBeforeCapture = rootLogger.getLevel();
+    rootLogger.setLevel(ch.qos.logback.classic.Level.DEBUG);
+
+    ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    appender.setContext(rootLogger.getLoggerContext());
+    appender.start();
+    rootLogger.addAppender(appender);
+
+    return appender;
+  }
+
+  /**
+   * Detaches and stops an appender previously returned by {@link #attachLogCapture()}, and
+   * restores the ROOT logger's level to what it was before that call.
+   *
+   * @param appender the appender to detach
+   */
+  protected static void detachLogCapture(ListAppender<ILoggingEvent> appender) {
+    ch.qos.logback.classic.Logger rootLogger =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(
+            ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+    rootLogger.detachAppender(appender);
+    appender.stop();
+    rootLogger.setLevel(levelBeforeCapture);
   }
 
   private static void writeSheet(XSSFWorkbook wb, String sheetName, String[] headers,
@@ -541,12 +601,23 @@ abstract class AbstractHousekeepDbTaskletTest {
   class EmptySettings {
 
     @Test
-    @DisplayName("with no rows in Housekeep DB Settings, finishes without error")
+    @DisplayName("with no rows in Housekeep DB Settings, finishes without error and logs the "
+        + "\"nothing to do\" warning")
     void finishesWithoutErrorWhenNoTasksConfigured() throws Exception {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")), List.of(),
           List.of(), List.of());
 
-      runTasklet(excel);
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      try {
+        runTasklet(excel);
+
+        assertThat(appender.list)
+            .anyMatch(event -> event.getLevel() == ch.qos.logback.classic.Level.WARN
+                && event.getFormattedMessage()
+                    .equals("\"Housekeep DB Settings\" sheet has no data rows. Nothing to do."));
+      } finally {
+        detachLogCapture(appender);
+      }
     }
   }
 
@@ -619,6 +690,138 @@ abstract class AbstractHousekeepDbTaskletTest {
       runTasklet(excel, 2);
 
       assertThat(countRows("select count(*) from pg_soft where rem_flg = true")).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("skip targets and a deletable record mixed within a single batch: the deletable "
+        + "one is deleted, the skip targets around it are left alone")
+    void skipAndDeleteMixedWithinOneBatch() throws Exception {
+      execute("create table pg_mix_parent (num1 integer primary key, child_code varchar(20))");
+      execute("create table pg_mix_child (code varchar(20) primary key)");
+      execute("insert into pg_mix_parent values (1, 'c1'), (2, 'c2'), (3, 'c3')");
+      // num1 = 1 and 3 are skip targets; num1 = 2 has no related record and is deletable.
+      execute("insert into pg_mix_child values ('c1'), ('c3')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "pg_mix_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
+              "CHECK_AND_SKIP_DELETE", "child_code", "pg_mix_child", "code", "quotes(')", null,
+              null, null, null, null}),
+          List.of());
+
+      // maxSelectLines=3 puts all 3 rows in one batch, so skip+delete mixing happens within it.
+      runTasklet(excel, 3);
+
+      assertThat(countRows("select count(*) from pg_mix_parent where num1 = 2")).isZero();
+      assertThat(countRows("select count(*) from pg_mix_parent")).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("every found record is a skip target: zero deletions, "
+        + "exercising the \"found, but no deletable one(s) only\" log branch")
+    void allFoundRecordsSkippedYieldsZeroDeletions() throws Exception {
+      execute("create table pg_allskip_parent (num1 integer primary key, child_code varchar(20))");
+      execute("create table pg_allskip_child (code varchar(20) primary key)");
+      execute("insert into pg_allskip_parent values (1, 'c1'), (2, 'c2')");
+      execute("insert into pg_allskip_child values ('c1'), ('c2')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "pg_allskip_parent", "num1", "(none)", null, null, null, null, null, null, null,
+              null}),
+          List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
+              "CHECK_AND_SKIP_DELETE", "child_code", "pg_allskip_child", "code", "quotes(')", null,
+              null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from pg_allskip_parent")).isEqualTo(2);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // record-not-found logging (log-content assertions for the recent fix making "Record not
+  // found." fire on any empty batch, not only when the very first one is empty)
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("record-not-found logging")
+  class RecordNotFoundLogging {
+
+    @Test
+    @DisplayName("\"Record not found.\" is logged exactly once, from the final empty batch that "
+        + "follows successful deletes, alongside the post-loop delete-count summary")
+    void recordNotFoundLoggedAfterSuccessfulDeletesAndSummaryStillLogged() throws Exception {
+      execute("create table log_basic (num1 integer primary key)");
+      for (int i = 1; i <= 4; i++) {
+        execute("insert into log_basic values (" + i + ")");
+      }
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "log_basic", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(), List.of());
+
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      try {
+        // maxSelectLines=2 makes batches [row1,row2] delete, [row3,row4] delete, [] -> break.
+        runTasklet(excel, 2);
+      } finally {
+        detachLogCapture(appender);
+      }
+
+      // HousekeepMainTableDeleter and HousekeepRelatedTableDeleter share the same underlying
+      // logger (both log through the one DetailLogger instance HousekeepDbTasklet constructs for
+      // itself and threads through every bl class), so logger name can't tell their messages
+      // apart. HousekeepRelatedTableDeleter.needsSkipFromRelatedTableDataCheck() also logs
+      // "Record not found." (unconditionally, once per processed row, when its skip-pattern
+      // related-table list is empty - which it is here, since this task configures none) - but at
+      // a different indent depth (IDT_5 = 5) than HousekeepMainTableDeleter's own empty-batch
+      // message (IDT_3 = 3), so match on the exact indented text (SplibLogUtil indents with 2
+      // spaces per level) to isolate the message under test.
+      List<String> rawMessages =
+          appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+      String mainTableDeleterRecordNotFound = "      Record not found.";
+
+      assertThat(rawMessages).filteredOn(msg -> msg.equals(mainTableDeleterRecordNotFound))
+          .hasSize(1);
+      // The post-loop per-table delete-count summary ("Delete records : N record(s) from
+      // <table>") is only logged when at least one record was actually found/deleted.
+      assertThat(rawMessages).anyMatch(msg -> msg.contains("record(s) from log_basic"));
+
+      assertThat(countRows("select count(*) from log_basic")).isZero();
+    }
+
+    @Test
+    @DisplayName("when no record is ever found, \"Record not found.\" is logged but the post-loop "
+        + "delete-count summary is suppressed")
+    void recordNotFoundLoggedButNoSummaryWhenNothingEverFound() throws Exception {
+      execute("create table log_empty (num1 integer primary key)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "log_empty", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(), List.of());
+
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      try {
+        runTasklet(excel);
+      } finally {
+        detachLogCapture(appender);
+      }
+
+      // getFormattedMessage() carries the log line's leading indentation (SplibLogUtil.log()
+      // prefixes messages with spaces per indent depth) - trim it so the assertions below match
+      // on message content regardless of indent depth.
+      @SuppressWarnings("null")
+      List<String> messages = appender.list.stream()
+          .map(event -> event.getFormattedMessage().trim()).toList();
+
+      assertThat(messages).anyMatch(msg -> msg.equals("Record not found."));
+      assertThat(messages).noneMatch(msg -> msg.contains("record(s) from log_empty"));
+      assertThat(messages).noneMatch(msg -> msg.contains("no deletable one(s) only"));
     }
   }
 
@@ -754,6 +957,44 @@ abstract class AbstractHousekeepDbTaskletTest {
     void unopenableFileFails(@TempDir Path tempDir) throws IOException {
       Path file = tempDir.resolve("corrupt.xlsx");
       Files.writeString(file, "not actually an xlsx file");
+
+      assertThatExceptionOfType(ViolationException.class)
+          .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000)
+              .execute(mock(StepContribution.class), mock(ChunkContext.class)))
+          .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
+              .extracting(BusinessViolation::getMessageId)
+              .containsExactly("MSG_ERR_EXCEL_PATH_CANNOT_OPEN"));
+    }
+
+    @SuppressWarnings("null")
+    @Test
+    @DisplayName("a genuinely password-encrypted .xlsx file also raises "
+        + "MSG_ERR_EXCEL_PATH_CANNOT_OPEN, via EncryptedDocumentException rather than the plain "
+        + "corrupt-file IOException path exercised above")
+    void encryptedFileFails(@TempDir Path tempDir) throws Exception {
+      Path file = tempDir.resolve("encrypted.xlsx");
+
+      byte[] plainXlsxBytes;
+      try (XSSFWorkbook wb = new XSSFWorkbook();
+          ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+        wb.createSheet("Sheet1");
+        wb.write(baos);
+        plainXlsxBytes = baos.toByteArray();
+      }
+
+      try (POIFSFileSystem fs = new POIFSFileSystem()) {
+        EncryptionInfo info = new EncryptionInfo(EncryptionMode.agile);
+        Encryptor encryptor = info.getEncryptor();
+        encryptor.confirmPassword("test-password");
+
+        try (OutputStream os = encryptor.getDataStream(fs)) {
+          os.write(plainXlsxBytes);
+        }
+
+        try (OutputStream fos = Files.newOutputStream(file)) {
+          fs.writeFilesystem(fos);
+        }
+      }
 
       assertThatExceptionOfType(ViolationException.class)
           .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000)
@@ -911,6 +1152,63 @@ abstract class AbstractHousekeepDbTaskletTest {
       assertThat(countRows("select count(*) from mrt_child_del")).isEqualTo(1);
       assertThat(countRows("select count(*) from mrt_child_skip")).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("2 'Delete' pattern related rows on the same task both get deleted")
+    void twoDeletePatternRelatedRowsBothDeleted() throws Exception {
+      execute("create table mrt2_parent (num1 integer primary key, child_x_code varchar(20), "
+          + "child_y_code varchar(20))");
+      execute("create table mrt2_child_x (code varchar(20) primary key)");
+      execute("create table mrt2_child_y (code varchar(20) primary key)");
+      execute("insert into mrt2_parent values (1, 'x1', 'y1')");
+      execute("insert into mrt2_child_x values ('x1')");
+      execute("insert into mrt2_child_y values ('y1')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "mrt2_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(
+              new String[] {"task-1", "Delete", "DELETE", "child_x_code", "mrt2_child_x", "code",
+                  "quotes(')", null, null, null, null, null},
+              new String[] {"task-1", "Delete", "DELETE", "child_y_code", "mrt2_child_y", "code",
+                  "quotes(')", null, null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from mrt2_parent")).isZero();
+      assertThat(countRows("select count(*) from mrt2_child_x")).isZero();
+      assertThat(countRows("select count(*) from mrt2_child_y")).isZero();
+    }
+
+    @Test
+    @DisplayName("2 'Check and Skip Delete' related rows on the same task: the target is still "
+        + "skipped when only the SECOND one has a blocking row, proving both are actually "
+        + "checked rather than the loop stopping after the first (unblocked) one")
+    void twoSkipPatternRelatedRowsBothChecked() throws Exception {
+      execute("create table mrt3_parent (num1 integer primary key, skip1_code varchar(20), "
+          + "skip2_code varchar(20))");
+      execute("create table mrt3_skip1 (code varchar(20) primary key)");
+      execute("create table mrt3_skip2 (code varchar(20) primary key)");
+      execute("insert into mrt3_parent values (1, 's1', 's2')");
+      // mrt3_skip1 has no row for 's1' (would not block on its own); mrt3_skip2 has a row for
+      // 's2' (blocks). Both settings must be checked for the target to end up skipped.
+      execute("insert into mrt3_skip2 values ('s2')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "mrt3_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(
+              new String[] {"task-1", "Check and Skip Delete", "CHECK_AND_SKIP_DELETE",
+                  "skip1_code", "mrt3_skip1", "code", "quotes(')", null, null, null, null, null},
+              new String[] {"task-1", "Check and Skip Delete", "CHECK_AND_SKIP_DELETE",
+                  "skip2_code", "mrt3_skip2", "code", "quotes(')", null, null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from mrt3_parent")).isEqualTo(1);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -942,6 +1240,54 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       assertThat(countRows("select count(*) from cas_child")).isZero();
       assertThat(countRows("select count(*) from cas_parent")).isZero();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // related table settings - one related row removed as a side effect of another
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("related table settings - one related row removed as a side effect of another")
+  class RelatedRowRemovedAsSideEffect {
+
+    @Test
+    @DisplayName("finishes normally when deleting one 'Delete' pattern related row cascades away "
+        + "another 'Delete' pattern related row on the same task before that row's own "
+        + "processing reaches it")
+    void secondRelatedRowAlreadyGoneBeforeItsOwnProcessing() throws Exception {
+      execute("create table rt2_child_a (code varchar(20) primary key)");
+      // "on delete cascade" here targets rt2_child_a, not the housekeep target table, so this
+      // covers HousekeepRelatedTableDeleter.deleteRelatedData()'s !recordFound branch on the
+      // related table itself, unlike TargetRecordRemovedAsSideEffect above (which cascades away
+      // the target row).
+      execute("create table rt2_child_b (code varchar(20) primary key, "
+          + "a_code varchar(20) references rt2_child_a (code) on delete cascade)");
+      execute("create table rt2_parent (num1 integer primary key, child_a_code varchar(20), "
+          + "child_b_code varchar(20))");
+      execute("insert into rt2_child_a values ('a1')");
+      execute("insert into rt2_child_b values ('b1', 'a1')");
+      execute("insert into rt2_parent values (1, 'a1', 'b1')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "rt2_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          // table_a's row is listed first, so it is processed first and its deletion cascades
+          // away table_b's row before table_b's own related-table row is processed - see
+          // HousekeepRelatedTableDeleter.deleteRelatedData()'s stream filter, which preserves
+          // excel row order (a simple .filter().toList() over the linked list).
+          List.of(
+              new String[] {"task-1", "Delete", "DELETE", "child_a_code", "rt2_child_a", "code",
+                  "quotes(')", null, null, null, null, null},
+              new String[] {"task-1", "Delete", "DELETE", "child_b_code", "rt2_child_b", "code",
+                  "quotes(')", null, null, null, null, null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from rt2_child_a")).isZero();
+      assertThat(countRows("select count(*) from rt2_child_b")).isZero();
+      assertThat(countRows("select count(*) from rt2_parent")).isZero();
     }
   }
 
