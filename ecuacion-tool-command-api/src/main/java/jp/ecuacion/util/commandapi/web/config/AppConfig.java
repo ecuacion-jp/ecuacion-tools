@@ -24,8 +24,7 @@ import org.springframework.context.annotation.PropertySources;
  * Provides app config.
  */
 @Configuration
-@ComponentScan(basePackages = "jp.ecuacion.splib.core.config"
-    + ",jp.ecuacion.splib.rest.config"
+@ComponentScan(basePackages = "jp.ecuacion.splib.rest.config"
     + ",jp.ecuacion.splib.jpa.config")
 @PropertySources({
   @PropertySource(value = "classpath:application-builtin.properties")
