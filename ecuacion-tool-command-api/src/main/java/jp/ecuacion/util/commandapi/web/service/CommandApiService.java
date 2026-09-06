@@ -23,11 +23,13 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -75,6 +77,18 @@ public class CommandApiService {
 
   private static final long DEFAULT_SCRIPT_TIMEOUT_SECONDS = 60;
 
+  /**
+   * Upper bound, in bytes, on how much of a script's stdout (and, independently, stderr) is
+   * accumulated for the response (see {@link #startStreamReaderThread}). Defaults to
+   * {@value #DEFAULT_SCRIPT_MAX_OUTPUT_BYTES} when unset. Without this, a script producing a
+   * large amount of output (e.g. {@code cat}-ing a large file, or an infinite-output loop) could
+   * exhaust the JVM heap holding it all for the response.
+   */
+  private static final String PROP_SCRIPT_MAX_OUTPUT_BYTES =
+      "jp.ecuacion.tool.command-api.script-max-output-bytes";
+
+  private static final long DEFAULT_SCRIPT_MAX_OUTPUT_BYTES = 1024 * 1024;
+
   private static final String PREFIX_GET = "GET:";
   private static final String PREFIX_POST = "POST:";
   private static final String PREFIX_ALL = "ALL:";
@@ -120,6 +134,7 @@ public class CommandApiService {
   private DetailLogger dtlLogger = new DetailLogger(this);
   private final boolean apiKeyRequired;
   private final long scriptTimeoutSeconds;
+  private final long scriptMaxOutputBytes;
 
   /**
    * Constructs a new instance.
@@ -158,6 +173,15 @@ public class CommandApiService {
     if (this.scriptTimeoutSeconds <= 0) {
       String message = "'" + PROP_SCRIPT_TIMEOUT_SECONDS + "' must be a positive number of "
           + "seconds, but was " + this.scriptTimeoutSeconds + ".";
+      dtlLogger.error(message);
+      throw new IllegalStateException(message);
+    }
+
+    this.scriptMaxOutputBytes = env.getProperty(PROP_SCRIPT_MAX_OUTPUT_BYTES, Long.class,
+        DEFAULT_SCRIPT_MAX_OUTPUT_BYTES);
+    if (this.scriptMaxOutputBytes <= 0) {
+      String message = "'" + PROP_SCRIPT_MAX_OUTPUT_BYTES + "' must be a positive number of "
+          + "bytes, but was " + this.scriptMaxOutputBytes + ".";
       dtlLogger.error(message);
       throw new IllegalStateException(message);
     }
@@ -361,13 +385,15 @@ public class CommandApiService {
     // closing that stream (which the timeout handling below relies on being able to interrupt).
     List<String> stdoutLines = new ArrayList<>();
     AtomicReference<IOException> stdoutException = new AtomicReference<>();
-    Thread stdoutThread =
-        startStreamReaderThread(p.getInputStream(), "stdout", stdoutLines, stdoutException);
+    AtomicBoolean stdoutTruncated = new AtomicBoolean();
+    Thread stdoutThread = startStreamReaderThread(p.getInputStream(), "stdout", stdoutLines,
+        stdoutException, stdoutTruncated);
 
     List<String> stderrLines = new ArrayList<>();
     AtomicReference<IOException> stderrException = new AtomicReference<>();
-    Thread stderrThread =
-        startStreamReaderThread(p.getErrorStream(), "stderr", stderrLines, stderrException);
+    AtomicBoolean stderrTruncated = new AtomicBoolean();
+    Thread stderrThread = startStreamReaderThread(p.getErrorStream(), "stderr", stderrLines,
+        stderrException, stderrTruncated);
 
     // Bound how long a script may run: without this, a hanging script (or a script hung by a
     // crafted parameter) would occupy this thread indefinitely, and repeated calls could
@@ -406,10 +432,22 @@ public class CommandApiService {
     dtlLogger.trace("  return code   : " + rtn);
     dtlLogger.info("procedure finished successfully");
 
-    // Return the return code plus the script's captured output in a json format.
-    return Map.of("returnCode", Integer.toString(rtn), "stdout",
-        String.join(System.lineSeparator(), stdoutLines), "stderr",
-        String.join(System.lineSeparator(), stderrLines));
+    // Return the return code plus the script's captured output in a json format. "*Truncated"
+    // is included only when output actually was truncated, rather than always being present as
+    // "false", so the common (untruncated) case isn't cluttered with a field that never matters.
+    Map<String, String> result = new LinkedHashMap<>();
+    result.put("returnCode", Integer.toString(rtn));
+    result.put("stdout", String.join(System.lineSeparator(), stdoutLines));
+    result.put("stderr", String.join(System.lineSeparator(), stderrLines));
+    if (stdoutTruncated.get()) {
+      result.put("stdoutTruncated", Boolean.toString(true));
+    }
+
+    if (stderrTruncated.get()) {
+      result.put("stderrTruncated", Boolean.toString(true));
+    }
+
+    return result;
   }
 
   @SuppressWarnings("null")
@@ -422,17 +460,33 @@ public class CommandApiService {
    * (logging each line at TRACE, prefixed with {@code streamLabel}), recording any read failure
    * into {@code exceptionRef} rather than throwing it (the thread has no caller to propagate to).
    *
+   * <p>Once the total size of lines already added to {@code lines} reaches
+   * {@link #scriptMaxOutputBytes}, further lines are logged (still) but no longer added to
+   * {@code lines}, and {@code truncated} is set — this bounds how much of a large-output script
+   * gets held in memory for the response. Reading continues regardless (to keep draining the
+   * stream, which the child process needs in order to make progress at all), just without
+   * growing {@code lines} further.</p>
+   *
    * @param streamLabel {@code "stdout"} or {@code "stderr"}, purely for the log line prefix
    */
   private Thread startStreamReaderThread(InputStream stream, String streamLabel,
-      List<String> lines, AtomicReference<IOException> exceptionRef) {
+      List<String> lines, AtomicReference<IOException> exceptionRef, AtomicBoolean truncated) {
     Thread thread = new Thread(() -> {
       try (BufferedReader reader =
           new BufferedReader(new InputStreamReader(stream, Charset.defaultCharset()))) {
         String line;
+        long accumulatedBytes = 0;
         while ((line = reader.readLine()) != null) {
           dtlLogger.trace("  " + streamLabel + "        : " + line);
-          lines.add(line);
+          if (!truncated.get()) {
+            long lineBytes = line.getBytes(Charset.defaultCharset()).length;
+            if (accumulatedBytes + lineBytes > scriptMaxOutputBytes) {
+              truncated.set(true);
+            } else {
+              accumulatedBytes += lineBytes;
+              lines.add(line);
+            }
+          }
         }
       } catch (IOException e) {
         exceptionRef.set(e);
