@@ -23,18 +23,21 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: ecuacion-jp/ecuacion-lib
+          ref: develop
           path: ecuacion-lib
 
       - name: Checkout ecuacion-utils
         uses: actions/checkout@v5
         with:
           repository: ecuacion-jp/ecuacion-utils
+          ref: develop
           path: ecuacion-utils
 
       - name: Checkout ecuacion-splib
         uses: actions/checkout@v5
         with:
           repository: ecuacion-jp/ecuacion-splib
+          ref: develop
           path: ecuacion-splib
 
       - name: Checkout
