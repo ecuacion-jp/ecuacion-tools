@@ -15,19 +15,33 @@
  */
 package jp.ecuacion.tool.housekeepfiles.exceptionhandler;
 
-import jp.ecuacion.lib.core.util.MailUtil;
 import jp.ecuacion.splib.core.exceptionhandler.SplibExceptionHandlerAction;
+import jp.ecuacion.splib.core.exceptionhandler.SplibRestExceptionHandlerAction;
+import jp.ecuacion.splib.core.util.SplibMailUtil;
 import org.springframework.stereotype.Component;
 
 /**
- * Provides Exception Handler.
+ * Sends a mail on a system error, when mail settings exist.
+ *
+ * <p>Implements {@link SplibRestExceptionHandlerAction} — the extension point
+ *     {@code SplibRestExceptionHandler} uses for command-api's REST frontend (e.g.
+ *     {@code /api/**} endpoints). command-api has no web/batch frontend, so there's no
+ *     {@code SplibExceptionHandlerAction} consumer to also implement here.</p>
  */
 @Component
 public class AppExceptionHandlerAction implements SplibExceptionHandlerAction {
 
-  @Override
-  public void execute(Throwable th) {
-    MailUtil.sendErrorMail(th);
+  private final SplibMailUtil splibMailUtil;
+
+  /**
+   * Constructs a new instance.
+   */
+  public AppExceptionHandlerAction(SplibMailUtil splibMailUtil) {
+    this.splibMailUtil = splibMailUtil;
   }
 
+  @Override
+  public void execute(Throwable th) {
+    splibMailUtil.sendErrorMail(th);
+  }
 }
