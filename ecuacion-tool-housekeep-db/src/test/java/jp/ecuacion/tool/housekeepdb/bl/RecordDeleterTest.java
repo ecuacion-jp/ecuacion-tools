@@ -137,7 +137,7 @@ class RecordDeleterTest {
           bindCaptor.capture());
       // The soft-delete-column filter is bound (RecordDeleter.getSoftDeleteColumnInfo() ->
       // BoundCondition), not embedded as a literal - see BoundCondition's class Javadoc.
-      assertThat(bindCaptor.getAllValues()).containsExactly(42, Boolean.TRUE);
+      assertThat(bindCaptor.getAllValues()).containsExactly(42, true);
 
       assertThat(tableRecordDeleted).containsEntry("tbl1", 1);
     }
@@ -172,7 +172,7 @@ class RecordDeleterTest {
       ArgumentCaptor<Object> bindCaptor = ArgumentCaptor.forClass(Object.class);
       verify(stmt, times(2)).setObject(anyInt(),
           bindCaptor.capture());
-      assertThat(bindCaptor.getAllValues()).containsExactly(Boolean.TRUE, 42);
+      assertThat(bindCaptor.getAllValues()).containsExactly(true, 42);
 
       assertThat(tableRecordDeleted).containsEntry("tbl1", 1);
     }
@@ -208,7 +208,7 @@ class RecordDeleterTest {
           bindCaptor.capture());
       List<Object> binds = bindCaptor.getAllValues();
       assertThat(binds).hasSize(3);
-      assertThat(binds.get(0)).isEqualTo(Boolean.TRUE);
+      assertThat(binds.get(0)).isEqualTo(true);
       // binds.get(1) is the "now" timestamp (an OffsetDateTime for postgresql) - not
       // deterministic, so just confirm its type rather than an exact value.
       assertThat(binds.get(1)).isInstanceOf(OffsetDateTime.class);

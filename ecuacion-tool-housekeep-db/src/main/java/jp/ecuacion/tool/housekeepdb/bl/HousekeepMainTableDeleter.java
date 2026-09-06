@@ -183,12 +183,12 @@ public class HousekeepMainTableDeleter {
     if (info.isSoftDelete()) {
       // To avoid updating already-processed records, target only rows where the soft-delete
       // flag is not set.
-      whereList.add(info.getSoftDeleteColumnInfo().getBoundCondition(Boolean.FALSE));
+      whereList.add(info.getSoftDeleteColumnInfo().getBoundCondition(false));
 
     } else {
       // If hard delete and "soft-delete column name" is specified, add to the WHERE clause.
       if (StringUtils.isNotEmpty(info.getSoftDeleteColumn())) {
-        whereList.add(info.getSoftDeleteColumnInfo().getBoundCondition(Boolean.TRUE));
+        whereList.add(info.getSoftDeleteColumnInfo().getBoundCondition(true));
       }
     }
 
