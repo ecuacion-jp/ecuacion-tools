@@ -21,7 +21,6 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
@@ -70,9 +69,6 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @Size(min = 1, max = 300)
   private String srcPath;
 
-  @Pattern(regexp = "DAY")
-  public String unitName;
-
   @IntegerString
   @DecimalMin(value = "0")
   @DecimalMax(value = "1000")
@@ -94,8 +90,6 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @EnumElement(enumClass = IncidentTreatedAsEnum.class)
   public String actionForDestFileExistsEnumName;
 
-  public String options;
-
   // Fields not in the Excel sheet.
 
   private @Nullable String envVarExpandedSrcPath;
@@ -110,9 +104,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @Override
   protected @Nullable String[] getFieldNameArray() {
     return new String[] {"taskId", "taskName", null, "taskPtnEnumName", "remoteServer", "srcPath",
-        "isSrcPathDirEnumName", "unitName", "value", "actionForNoSrcPathEnumName", "destPath",
-        "isDestPathDirEnumName", "doesOverwriteDestPathEnumName", "actionForDestFileExistsEnumName",
-        "options"};
+        "isSrcPathDirEnumName", "value", "actionForNoSrcPathEnumName", "destPath",
+        "isDestPathDirEnumName", "doesOverwriteDestPathEnumName",
+        "actionForDestFileExistsEnumName"};
   }
 
   /**
@@ -121,14 +115,14 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @SuppressWarnings("null")
   public HousekeepFilesTaskRecord(@Nullable String taskId, @Nullable String taskName,
       @Nullable String taskPtnEnumName, @Nullable String remoteServer, @Nullable String pathFrom,
-      @Nullable String isSrcPathDirEnumName, @Nullable String unitName, @Nullable String value,
+      @Nullable String isSrcPathDirEnumName, @Nullable String value,
       @Nullable String actionForNoSrcPathEnumName, @Nullable String pathTo,
       @Nullable String isDestPathDirEnumName, @Nullable String doesOverwriteDestPathEnumName,
-      @Nullable String actionForDestFileExistsEnumName, @Nullable String options) {
+      @Nullable String actionForDestFileExistsEnumName) {
     super(Arrays.asList(new String[] {taskId, taskName, null, taskPtnEnumName, remoteServer,
-        pathFrom, isSrcPathDirEnumName, unitName, value, actionForNoSrcPathEnumName, pathTo,
-        isDestPathDirEnumName, doesOverwriteDestPathEnumName, actionForDestFileExistsEnumName,
-        options}));
+        pathFrom, isSrcPathDirEnumName, value, actionForNoSrcPathEnumName, pathTo,
+        isDestPathDirEnumName, doesOverwriteDestPathEnumName,
+        actionForDestFileExistsEnumName}));
   }
 
   /**
@@ -139,46 +133,6 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @SuppressWarnings("null")
   public HousekeepFilesTaskRecord(List<String> colList) {
     super(colList);
-  }
-
-  /**
-   * Gets unit.
-   */
-  @SuppressWarnings("unused")
-  public @Nullable Integer getUnit() {
-    int rtn = -1;
-    if (unitName == null || unitName.equals("")) {
-      return null;
-
-    } else if (unitName.equals("YEAR")) {
-      rtn = Calendar.YEAR;
-
-    } else if (unitName.equals("MONTH")) {
-      rtn = Calendar.MONTH;
-
-    } else if (unitName.equals("DAY")) {
-      rtn = Calendar.DAY_OF_MONTH;
-
-    } else if (unitName.equals("HOUR")) {
-      rtn = Calendar.HOUR;
-
-    } else if (unitName.equals("MINUTE")) {
-      rtn = Calendar.MINUTE;
-    } else if (unitName.equals("SECOND")) {
-      rtn = Calendar.SECOND;
-
-    } else {
-      throw new RuntimeException("Not exist unit value: " + unitName);
-    }
-
-    return rtn;
-  }
-
-  /**
-   * Sets unit.
-   */
-  public void setUnit(String unit) {
-    throw new RuntimeException("Unit cannot be set. set 'unitName'.");
   }
 
   public String getTaskId() {
@@ -296,12 +250,11 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
     // Source path related fields must all be filled or all empty.
     boolean isAllEmpty = StringUtils.isEmpty(srcPath) && StringUtils.isEmpty(isSrcPathDirEnumName)
-        && StringUtils.isEmpty(unitName) && StringUtils.isEmpty(value)
-        && StringUtils.isEmpty(actionForNoSrcPathEnumName);
+        && StringUtils.isEmpty(value) && StringUtils.isEmpty(actionForNoSrcPathEnumName);
     boolean isAllNotEmpty = !StringUtils.isEmpty(srcPath)
-        && !StringUtils.isEmpty(isSrcPathDirEnumName) && !StringUtils.isEmpty(unitName)
-        && !StringUtils.isEmpty(value) && !StringUtils.isEmpty(actionForNoSrcPathEnumName);
-    String[] lbls = new String[] {"srcPath", "isSrcPathDir", "unit", "value", "actionForNoSrcPath"};
+        && !StringUtils.isEmpty(isSrcPathDirEnumName) && !StringUtils.isEmpty(value)
+        && !StringUtils.isEmpty(actionForNoSrcPathEnumName);
+    String[] lbls = new String[] {"srcPath", "isSrcPathDir", "value", "actionForNoSrcPath"};
 
     if (!isAllEmpty && !isAllNotEmpty) {
       new Violations().add(new BusinessViolation(
