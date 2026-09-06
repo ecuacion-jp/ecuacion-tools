@@ -73,7 +73,7 @@ public class RecordDeleter {
 
     List<SqlConditionInterface> updateSetList = new ArrayList<>();
     if (isSoftDelete) {
-      updateSetList.add(target.getSoftDeleteColumnInfo().getBoundCondition(Boolean.TRUE));
+      updateSetList.add(target.getSoftDeleteColumnInfo().getBoundCondition(true));
 
       if (!StringUtils.isEmpty(target.getSoftDeleteUpdateTimestampColumn())) {
         updateSetList.add(target.getSoftDeleteUpdateTimestampColumnInfo()
@@ -95,7 +95,7 @@ public class RecordDeleter {
     // When hard-deleting and a soft-delete column is specified, also add a condition that
     // the column is true.
     if (!isSoftDelete && !StringUtils.isEmpty(target.getSoftDeleteColumn())) {
-      whereList.add(target.getSoftDeleteColumnInfo().getBoundCondition(Boolean.TRUE));
+      whereList.add(target.getSoftDeleteColumnInfo().getBoundCondition(true));
     }
 
     SqlFragment where = SqlUtil.getWhere(whereList);

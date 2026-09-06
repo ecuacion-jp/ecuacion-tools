@@ -90,7 +90,7 @@ public class HousekeepRelatedTableDeleter {
       whereList.add(relatedBean.getRelatedTableIdColumnInfo().getBoundCondition(value));
 
       if (info.isSoftDelete()) {
-        whereList.add(relatedBean.getSoftDeleteColumnInfo().getBoundCondition(Boolean.FALSE));
+        whereList.add(relatedBean.getSoftDeleteColumnInfo().getBoundCondition(false));
       }
 
       AppLogUtil.log(detailLogger, Level.DEBUG, "Find records from related table.", IDT_4);
