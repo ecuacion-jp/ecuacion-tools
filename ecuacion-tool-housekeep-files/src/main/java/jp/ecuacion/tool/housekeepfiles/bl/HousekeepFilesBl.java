@@ -21,17 +21,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
-import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.ExceptionUtil;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.util.MailUtil;
@@ -47,7 +44,6 @@ import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.other.HousekeepFilesExpandedPathsInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
-import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesPathRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
@@ -56,6 +52,7 @@ import jp.ecuacion.tool.housekeepfiles.util.DateTimeUtil;
 import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
 import jp.ecuacion.tool.housekeepfiles.util.WildcardPathUtil;
 import org.jspecify.annotations.Nullable;
+import org.springframework.core.env.Environment;
 
 /**
  * Provides business logics.
@@ -108,55 +105,42 @@ public class HousekeepFilesBl {
     }
   }
 
-  /** Creates a map of path variables from the form's path info records and built-in variables. */
-  public Map<String, String> createPathInfoMap(HousekeepFilesForm form)
+  /** Creates a map of the built-in path variables (sys name, date, timestamp, hostname). */
+  public Map<String, String> createBuiltInVariableMap(HousekeepFilesForm form)
       throws UnknownHostException {
-    Map<String, String> pathInfoMap = new HashMap<>();
-    for (HousekeepFilesPathRecord pathInfo : form.getPathInfoRecList()) {
-      pathInfoMap.put(pathInfo.getKey(), pathInfo.getValue());
-    }
+    Map<String, String> builtInVariableMap = new HashMap<>();
+    builtInVariableMap.put(Constants.ENV_VAR_SYS_NAME, form.getTaskInfoHdRec().getSysName());
+    builtInVariableMap.put(Constants.ENV_VAR_DATE, dateUtil.getDateStr8());
+    builtInVariableMap.put(Constants.ENV_VAR_TIMESTAMP, dateUtil.getTimestampNumString());
+    builtInVariableMap.put(Constants.ENV_VAR_HOSTNAME, InetAddress.getLocalHost().getHostName());
 
-    // Add fields provided by default.
-    pathInfoMap.put(Constants.ENV_VAR_SYS_NAME, form.getTaskInfoHdRec().getSysName());
-    pathInfoMap.put(Constants.ENV_VAR_DATE, dateUtil.getDateStr8());
-    pathInfoMap.put(Constants.ENV_VAR_TIMESTAMP, dateUtil.getTimestampNumString());
-    pathInfoMap.put(Constants.ENV_VAR_HOSTNAME, InetAddress.getLocalHost().getHostName());
-
-    return pathInfoMap;
+    return builtInVariableMap;
   }
 
-  /** Validates env variable references in paths and stores the variable map in each task record. */
-  public void envVarExistenceCheckAndSetEnvBarExpandedPaths(
-      List<HousekeepFilesTaskRecord> taskRecList, Map<String, String> envVarInfoMap) {
-    // Validate pathFrom and pathTo.
+  /**
+   * Builds the ${VAR} value resolver used to expand srcPath/destPath: built-in variables (see
+   * {@link #createBuiltInVariableMap}) take precedence and cannot be overridden; any other key
+   * falls back to {@code env} (application.properties, OS environment variables, JVM system
+   * properties, command-line arguments - anything Spring Boot's Environment can resolve).
+   * {@code env} may be {@code null} (e.g. when exercised outside of Spring, such as in unit
+   * tests), in which case any non-built-in key resolves to {@code null} (i.e. "not found").
+   */
+  public Function<String, String> createEnvVarValueGetter(Map<String, String> builtInVariableMap,
+      @Nullable Environment env) {
+    return key -> builtInVariableMap.containsKey(key) ? builtInVariableMap.get(key)
+        : (env == null ? null : env.getProperty(key));
+  }
+
+  /**
+   * Sets the ${VAR} value resolver on every task record, which eagerly expands srcPath/destPath
+   * and throws (via EmbeddedVariableUtil.VariableNotFoundException, wrapped in RuntimeException)
+   * if any referenced variable cannot be resolved. All records are processed before any task is
+   * executed, so a missing variable anywhere fails the whole batch before it does anything.
+   */
+  public void setEnvVarValueGetterOnTasks(List<HousekeepFilesTaskRecord> taskRecList,
+      Function<String, String> envVarValueGetter) {
     for (HousekeepFilesTaskRecord rec : taskRecList) {
-      // Verify that ${xxx} variable names in the path exist in the path list.
-      if (rec.getSrcPath() != null) {
-        analyzePathVarAndCheckIfExistsInSet(envVarInfoMap.keySet(), rec.getSrcPath());
-      }
-
-      if (rec.getDestPath() != null) {
-        analyzePathVarAndCheckIfExistsInSet(envVarInfoMap.keySet(), rec.getDestPath());
-      }
-
-      // If no issues, set envVarInfoMap on taskRec to generate environment-variable-expanded paths.
-      rec.setEnvVarInfoMap(envVarInfoMap);
-    }
-  }
-
-  private void analyzePathVarAndCheckIfExistsInSet(Set<String> pathKeySet, String path) {
-
-    // Create new keySet to add reserved keys.
-    Set<String> keySet = new HashSet<>(pathKeySet);
-    keySet.addAll(Arrays.asList(new String[] {Constants.ENV_VAR_TASK_NAME, Constants.ENV_VAR_DATE,
-        Constants.ENV_VAR_TIMESTAMP, Constants.ENV_VAR_HOSTNAME}));
-
-    // To check the existence of keys, create map by set value the same value as key.
-    Map<String, String> paramMap = keySet.stream().collect(Collectors.toMap(s -> s, s -> s));
-    try {
-      EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", paramMap);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+      rec.setEnvVarValueGetter(envVarValueGetter);
     }
   }
 
