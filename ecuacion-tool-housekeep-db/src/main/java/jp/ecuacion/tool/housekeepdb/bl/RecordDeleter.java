@@ -67,7 +67,7 @@ public class RecordDeleter {
    * @param tableRecordDeleted accumulates the delete count per table, keyed by table name
    * @param indents the indent depth of the log lines
    */
-  public void deleteOrSoftDeleteOne(Connection conn, DeleteTargetInfo target, boolean isSoftDelete,
+  public void softOrHardDeleteOne(Connection conn, DeleteTargetInfo target, boolean isSoftDelete,
       String protocol, Object keyValue, Map<String, Integer> tableRecordDeleted, int indents)
       throws SQLException {
 

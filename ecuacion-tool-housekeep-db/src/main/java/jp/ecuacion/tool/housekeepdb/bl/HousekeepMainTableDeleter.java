@@ -128,14 +128,15 @@ public class HousekeepMainTableDeleter {
 
             // Check for data that should be skipped.
             if (relatedTableDeleter.needsSkipFromRelatedTableDataCheck(conn, info, rs)) {
-              AppLogUtil.log(detailLogger, Level.DEBUG, "Not a housekeep target. Skipped", IDT_3);
+              AppLogUtil.log(detailLogger, Level.DEBUG,
+                  "The record exists in related tables. Not a housekeep target. Skipped", 5);
               continue;
             }
 
             recordDeleted = true;
 
             relatedTableDeleter.deleteRelatedData(conn, info, rs, tableRecordDeleted);
-            recordDeleter.deleteOrSoftDeleteOne(conn, info, info.isSoftDelete(),
+            recordDeleter.softOrHardDeleteOne(conn, info, info.isSoftDelete(),
                 info.getDbConnectionInfo().getProtocol(), idValue, tableRecordDeleted, 4);
           }
 

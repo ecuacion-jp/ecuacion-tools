@@ -41,7 +41,6 @@ import org.slf4j.event.Level;
  */
 public class HousekeepRelatedTableDeleter {
 
-  private static final int IDT_3 = 3;
   private static final int IDT_4 = 4;
   private static final int IDT_5 = 5;
 
@@ -94,21 +93,23 @@ public class HousekeepRelatedTableDeleter {
         whereList.add(relatedBean.getSoftDeleteColumnInfo().getBoundCondition(Boolean.FALSE));
       }
 
-      AppLogUtil.log(detailLogger, Level.DEBUG, "Find records from related table.", IDT_3);
+      AppLogUtil.log(detailLogger, Level.DEBUG, "Find records from related table.", IDT_4);
       SqlFragment where = SqlUtil.getWhere(whereList);
       String selectSql =
           "select count(*) count from " + relatedBean.getRelatedTable() + where.sql();
       PreparedStatement stmt = AppLogUtil.getStatement(detailLogger, connection, selectSql,
-          where.bindValues(), "related table select", IDT_3);
+          where.bindValues(), "related table select", IDT_4);
       ResultSet rs = stmt.executeQuery();
 
       rs.next();
       Integer integer = rs.getInt("count");
       if (integer > 0) {
+        AppLogUtil.log(detailLogger, Level.DEBUG, "Record(s) found.", IDT_5);
         return true;
       }
     }
 
+    AppLogUtil.log(detailLogger, Level.DEBUG, "Record not found.", IDT_5);
     return false;
   }
 
@@ -164,7 +165,7 @@ public class HousekeepRelatedTableDeleter {
         // Delete (or soft-delete) the related-table record whose key column holds the value just
         // read back above.
         final Object val = rs.getObject(fkCol.getColumn());
-        recordDeleter.deleteOrSoftDeleteOne(conn, relatedInfo, info.isSoftDelete(),
+        recordDeleter.softOrHardDeleteOne(conn, relatedInfo, info.isSoftDelete(),
             info.getDbConnectionInfo().getProtocol(), val, tableRecordDeleted, 6);
       }
     }
