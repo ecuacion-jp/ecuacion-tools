@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Objects;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
-import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesPathRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.reader.ExcelInfoListReader;
 import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
@@ -39,9 +38,6 @@ public class HousekeepFilesForm {
   // Slightly different structure from others because it has header information.
   private HousekeepFilesHdRecord taskInfoHdRec;
 
-  // Holds the path list.
-  private List<HousekeepFilesPathRecord> pathInfoRecList;
-
   // Holds the auth list.
   private List<HousekeepFilesAuthRecord> authInfoRecList;
 
@@ -50,7 +46,6 @@ public class HousekeepFilesForm {
       "元パスがディレクトリ", "元パス処理実施対象\n経過期間単位", "元パス処理実施対象\n経過期間値",
       "元パス存在なし時処理", "先パス", "先パスがディレクトリ", "先パス存在時上書き",
       "先パス存在時処理", "options"};
-  private static final String[] HEADER_LABELS_PATH = new String[] {"パス変数名", "パス値"};
   private static final String[] HEADER_LABELS_AUTH =
       new String[] {"サーバ名", "protocol", "port", "認証方式", "ユーザ名",
           "password / passphrase", "秘密鍵パス"};
@@ -59,7 +54,6 @@ public class HousekeepFilesForm {
   @SuppressWarnings("null")
   public HousekeepFilesForm() {
     taskInfoHdRec = new HousekeepFilesHdRecord();
-    pathInfoRecList = new ArrayList<>();
     authInfoRecList = new ArrayList<>();
   }
 
@@ -87,9 +81,6 @@ public class HousekeepFilesForm {
           new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesTaskRecord>(
               HousekeepFilesTaskRecord.class, "タスク設定", HEADER_LABELS_TASK)
                   .withIgnoresAdditionalColumnsOfHeaderData(true).readToBean(excelPath);
-      pathInfoRecList = new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesPathRecord>(
-          HousekeepFilesPathRecord.class, "パス設定", HEADER_LABELS_PATH)
-              .readToBean(excelPath);
       authInfoRecList = new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesAuthRecord>(
           HousekeepFilesAuthRecord.class, "サーバ認証設定", HEADER_LABELS_AUTH)
               .readToBean(excelPath);
@@ -105,10 +96,6 @@ public class HousekeepFilesForm {
 
   public HousekeepFilesHdRecord getTaskInfoHdRec() {
     return taskInfoHdRec;
-  }
-
-  public List<HousekeepFilesPathRecord> getPathInfoRecList() {
-    return pathInfoRecList;
   }
 
   public List<HousekeepFilesAuthRecord> getAuthInfoRecList() {

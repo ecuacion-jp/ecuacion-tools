@@ -22,10 +22,9 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.function.Function;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
@@ -103,7 +102,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
   private @Nullable String envVarExpandedDestPath;
 
-  private Map<String, String> envVarInfoMap;
+  private Function<String, String> envVarValueGetter;
 
   // Holds the task object.
   public AbstractTask task;
@@ -243,8 +242,8 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
    */
   @SuppressWarnings("unused")
   public @Nullable String getEnvVarExpandedSrcPath() {
-    if (envVarInfoMap == null) {
-      throw new RuntimeException("envVarInfoMap must be set before call the method.");
+    if (envVarValueGetter == null) {
+      throw new RuntimeException("envVarValueGetter must be set before call the method.");
     }
 
     return envVarExpandedSrcPath;
@@ -255,23 +254,19 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
    */
   @SuppressWarnings("unused")
   public @Nullable String getEnvVarExpandedDestPath() {
-    if (envVarInfoMap == null) {
-      throw new RuntimeException("envVarInfoMap must be set before call the method.");
+    if (envVarValueGetter == null) {
+      throw new RuntimeException("envVarValueGetter must be set before call the method.");
     }
 
     return envVarExpandedDestPath;
   }
 
   /**
-   * Sets EnvVarInfoMap.
+   * Sets the ${VAR} value resolver, and eagerly expands srcPath/destPath using it.
    */
   @SuppressWarnings("unused")
-  public void setEnvVarInfoMap(Map<String, String> envVarInfoMap) {
-    if (envVarInfoMap == null) {
-      envVarInfoMap = new HashMap<>();
-    }
-
-    this.envVarInfoMap = envVarInfoMap;
+  public void setEnvVarValueGetter(Function<String, String> envVarValueGetter) {
+    this.envVarValueGetter = envVarValueGetter == null ? (key -> null) : envVarValueGetter;
 
     // Retrieve pathInfoMap. Also expand environment variables in srcPath and destPath
     // during retrieval.
@@ -283,7 +278,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
     String envVarExpandedPath;
     try {
       envVarExpandedPath =
-          EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", envVarInfoMap);
+          EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", envVarValueGetter);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
