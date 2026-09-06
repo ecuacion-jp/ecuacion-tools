@@ -38,6 +38,7 @@ import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.util.commandapi.web.config.CommandApiKeyFileLocator;
 import org.jspecify.annotations.Nullable;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -177,8 +178,8 @@ public class CommandApiService {
       throw new IllegalStateException(message);
     }
 
-    this.scriptMaxOutputBytes = env.getProperty(PROP_SCRIPT_MAX_OUTPUT_BYTES, Long.class,
-        DEFAULT_SCRIPT_MAX_OUTPUT_BYTES);
+    this.scriptMaxOutputBytes =
+        env.getProperty(PROP_SCRIPT_MAX_OUTPUT_BYTES, Long.class, DEFAULT_SCRIPT_MAX_OUTPUT_BYTES);
     if (this.scriptMaxOutputBytes <= 0) {
       String message = "'" + PROP_SCRIPT_MAX_OUTPUT_BYTES + "' must be a positive number of "
           + "bytes, but was " + this.scriptMaxOutputBytes + ".";
@@ -278,7 +279,6 @@ public class CommandApiService {
   private Map<String, String> executeScript(HttpMethod requestMethod, String scriptId,
       @Nullable String parameters) throws Exception {
 
-    dtlLogger.info("-----");
     dtlLogger.info("procedure started");
 
     // scriptId input validation. "+" (not "*"): an empty scriptId should fail here with a clear
@@ -289,7 +289,7 @@ public class CommandApiService {
     }
 
     // Obtain the script definition from scriptId
-    dtlLogger.info("  scriptId      : " + scriptId);
+    SplibLogUtil.info(dtlLogger, "scriptId      : " + scriptId, 1);
     ScriptDefinition scriptDefinition = resolveScriptDefinition(scriptId);
     if (scriptDefinition == null) {
       throwException(HttpStatus.BAD_REQUEST, "scriptId '" + scriptId + "' not found.");
@@ -320,7 +320,7 @@ public class CommandApiService {
     scriptFilePath = resolveEnvironmentVariables(scriptId, scriptFilePath);
 
     // Cause an error if scriptFilePath not found
-    dtlLogger.trace("  scriptFilePath: " + scriptFilePath);
+    SplibLogUtil.trace(dtlLogger, "scriptFilePath: " + scriptFilePath, 1);
     File scriptFile = new File(scriptFilePath);
     if (!scriptFile.exists()) {
       throwServerConfigError(
@@ -337,8 +337,8 @@ public class CommandApiService {
 
     // Obtain paramsString
     String paramsString = parameters == null ? "" : parameters.replaceAll(",", " ");
-    dtlLogger
-        .trace("  parameter(s)  : " + (paramsString.equals("") ? "(not specified)" : paramsString));
+    SplibLogUtil.trace(dtlLogger,
+        "parameter(s)  : \" + (paramsString.equals(\"\") ? \"(not specified)", 1);
 
     // paramsString input validation.
     // On Windows the script is run via "cmd.exe /c", which re-parses metacharacters
@@ -380,7 +380,8 @@ public class CommandApiService {
               + e.getMessage(),
           "Failed to start scriptId '" + scriptId + "'. See the server log for details.");
     }
-    dtlLogger.debug("  command start : " + scriptFile.getAbsolutePath() + " " + paramsString);
+    SplibLogUtil.debug(dtlLogger,
+        "command start : " + scriptFile.getAbsolutePath() + " " + paramsString, 1);
 
     // Read the script's standard output and standard error, logging them and collecting them
     // for the response. Both streams are consumed concurrently, each on its own thread, rather
@@ -434,7 +435,7 @@ public class CommandApiService {
       throw new RuntimeException(stderrException.get());
     }
 
-    dtlLogger.trace("  return code   : " + rtn);
+    SplibLogUtil.trace(dtlLogger, "return code   : " + rtn, 1);
     dtlLogger.info("procedure finished successfully");
 
     // Return the return code plus the script's captured output in a json format. "*Truncated"
@@ -474,15 +475,15 @@ public class CommandApiService {
    *
    * @param streamLabel {@code "stdout"} or {@code "stderr"}, purely for the log line prefix
    */
-  private Thread startStreamReaderThread(InputStream stream, String streamLabel,
-      List<String> lines, AtomicReference<IOException> exceptionRef, AtomicBoolean truncated) {
+  private Thread startStreamReaderThread(InputStream stream, String streamLabel, List<String> lines,
+      AtomicReference<IOException> exceptionRef, AtomicBoolean truncated) {
     Thread thread = new Thread(() -> {
       try (BufferedReader reader =
           new BufferedReader(new InputStreamReader(stream, Charset.defaultCharset()))) {
         String line;
         long accumulatedBytes = 0;
         while ((line = reader.readLine()) != null) {
-          dtlLogger.trace("  " + streamLabel + "        : " + line);
+          SplibLogUtil.trace(dtlLogger, streamLabel + "        : " + line, 1);
           if (!truncated.get()) {
             long lineBytes = line.getBytes(Charset.defaultCharset()).length;
             if (accumulatedBytes + lineBytes > scriptMaxOutputBytes) {
