@@ -28,11 +28,12 @@ import java.util.Objects;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueStringBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
-import jp.ecuacion.tool.housekeepdb.util.LogUtil;
+import jp.ecuacion.tool.housekeepdb.util.AppLogUtil;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil.SqlFragment;
 import org.apache.commons.lang3.StringUtils;
@@ -46,7 +47,6 @@ import org.slf4j.event.Level;
  */
 public class HousekeepMainTableDeleter {
 
-  private static final int IDT_1 = 1;
   private static final int IDT_2 = 2;
   private static final int IDT_3 = 3;
 
@@ -75,13 +75,13 @@ public class HousekeepMainTableDeleter {
    * @param dbConnectionInfoMap db connection settings by ID, keyed as read from the excel file
    * @param info the housekeep task to execute
    */
-  public void execute(Map<String, DbConnectionInfoBean> dbConnectionInfoMap,
-      HousekeepInfoBean info) throws ClassNotFoundException, SQLException {
+  public void execute(Map<String, DbConnectionInfoBean> dbConnectionInfoMap, HousekeepInfoBean info)
+      throws ClassNotFoundException, SQLException {
 
-    String logMsg = "DB Connection ID: " + info.getDbConnectionInfoId() + " / "
-        + (info.isSoftDelete() ? "Soft Delete" : "Hard Delete") + " / " + "Table Name: "
-        + info.getTable();
-    LogUtil.dlogWithIndent(detailLogger, Level.INFO, logMsg, IDT_1);
+    String logMsg = "- DB Connection ID: " + info.getDbConnectionInfoId();
+    SplibLogUtil.debug(detailLogger, logMsg, IDT_2);
+    logMsg = "- Delete Kind: " + (info.isSoftDelete() ? "Soft Delete" : "Hard Delete");
+    SplibLogUtil.debug(detailLogger, logMsg, IDT_2);
 
     Map<String, Integer> tableRecordDeleted = new LinkedHashMap<>();
 
@@ -98,13 +98,14 @@ public class HousekeepMainTableDeleter {
 
       // Process in batches of maxSelectLines even when there are many records.
       while (true) {
-        LogUtil.dlogWithIndent(detailLogger, Level.INFO, "Find records from target table.", IDT_1);
+        logMsg = "Find records from target table: " + info.getTable();
+        AppLogUtil.log(detailLogger, Level.DEBUG, logMsg, IDT_2);
 
         // Retrieve IDs up to maxSelectLines rows, continuing after the previous batch.
         SqlFragment selectSql = getMainSelectSql(info, lastProcessedId);
 
-        try (PreparedStatement stmt = LogUtil.getStatement(detailLogger, conn, selectSql.sql(),
-            selectSql.bindValues(), "target table select", IDT_1)) {
+        try (PreparedStatement stmt = AppLogUtil.getStatement(detailLogger, conn, selectSql.sql(),
+            selectSql.bindValues(), "target table select", IDT_2)) {
           ResultSet rs = stmt.executeQuery();
 
           // Flag to determine whether the query found any records.
@@ -117,8 +118,8 @@ public class HousekeepMainTableDeleter {
 
             Object idValue = rs.getObject(info.getIdColumnInfo().getColumn());
             String idCol = info.getIdColumnInfo().getColumn();
-            LogUtil.dlogWithIndent(detailLogger, Level.DEBUG,
-                "Record found. " + idCol + " = " + idValue, IDT_2);
+            AppLogUtil.log(detailLogger, Level.DEBUG, "Record found. " + idCol + " = " + idValue,
+                IDT_3);
 
             // Advance the cursor before the skip check below. Skipped records are not deleted,
             // so they would otherwise be re-selected by every following batch and the records
@@ -127,8 +128,7 @@ public class HousekeepMainTableDeleter {
 
             // Check for data that should be skipped.
             if (relatedTableDeleter.needsSkipFromRelatedTableDataCheck(conn, info, rs)) {
-              LogUtil.dlogWithIndent(detailLogger, Level.DEBUG, "Not a housekeep target. Skipped",
-                  IDT_3);
+              AppLogUtil.log(detailLogger, Level.DEBUG, "Not a housekeep target. Skipped", IDT_3);
               continue;
             }
 
@@ -136,11 +136,12 @@ public class HousekeepMainTableDeleter {
 
             relatedTableDeleter.deleteRelatedData(conn, info, rs, tableRecordDeleted);
             recordDeleter.deleteOrSoftDeleteOne(conn, info, info.isSoftDelete(),
-                info.getDbConnectionInfo().getProtocol(), idValue, tableRecordDeleted, IDT_3);
+                info.getDbConnectionInfo().getProtocol(), idValue, tableRecordDeleted, 4);
           }
 
           // Terminate when the end of the target table is reached.
           if (isQueryResultCountZero) {
+            AppLogUtil.log(detailLogger, Level.DEBUG, "Record not found.", IDT_3);
             break;
           }
 
@@ -148,15 +149,14 @@ public class HousekeepMainTableDeleter {
         }
       }
 
-      logMsg = !recordFound ? "Record not found."
-          : recordDeleted ? "Record(s) deleted."
-              : "Record(s) found, but no deletable one(s) only.";
-      LogUtil.dlogWithIndent(detailLogger, Level.INFO, logMsg, IDT_2);
+      if (recordFound && !recordDeleted) {
+        logMsg = "Record(s) found, but no deletable one(s) only.";
+        AppLogUtil.log(detailLogger, Level.INFO, logMsg, IDT_2);
+      }
     }
 
-    tableRecordDeleted.keySet().stream().forEach(table -> LogUtil.dlogWithIndent(detailLogger,
-        Level.INFO, "Delete lines | table: " + table + ", count: " + tableRecordDeleted.get(table),
-        IDT_1));
+    tableRecordDeleted.keySet().stream().forEach(table -> AppLogUtil.log(detailLogger, Level.INFO,
+        "Delete records : " + tableRecordDeleted.get(table) + " record(s) from " + table, IDT_2));
   }
 
   /**

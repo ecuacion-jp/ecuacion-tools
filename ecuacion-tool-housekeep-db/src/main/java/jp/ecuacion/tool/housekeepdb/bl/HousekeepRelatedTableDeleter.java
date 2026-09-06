@@ -30,7 +30,7 @@ import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
-import jp.ecuacion.tool.housekeepdb.util.LogUtil;
+import jp.ecuacion.tool.housekeepdb.util.AppLogUtil;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil.SqlFragment;
 import org.slf4j.event.Level;
@@ -94,11 +94,11 @@ public class HousekeepRelatedTableDeleter {
         whereList.add(relatedBean.getSoftDeleteColumnInfo().getBoundCondition(Boolean.FALSE));
       }
 
-      LogUtil.dlogWithIndent(detailLogger, Level.DEBUG, "Find records from related table.", IDT_3);
+      AppLogUtil.log(detailLogger, Level.DEBUG, "Find records from related table.", IDT_3);
       SqlFragment where = SqlUtil.getWhere(whereList);
       String selectSql =
           "select count(*) count from " + relatedBean.getRelatedTable() + where.sql();
-      PreparedStatement stmt = LogUtil.getStatement(detailLogger, connection, selectSql,
+      PreparedStatement stmt = AppLogUtil.getStatement(detailLogger, connection, selectSql,
           where.bindValues(), "related table select", IDT_3);
       ResultSet rs = stmt.executeQuery();
 
@@ -127,6 +127,9 @@ public class HousekeepRelatedTableDeleter {
         .filter(bean -> bean.getRelatedTableProcessPattern() == deleteRelatedTableRecord).toList();
 
     for (RelatedTableInfoBean relatedInfo : list) {
+      AppLogUtil.log(detailLogger, Level.DEBUG,
+          "Find records from related table: " + relatedInfo.getRelatedTable(), 4);
+
       // The target-table column value this related-table row is linked by. Read back from the DB
       // (not typed into the excel config), so it's bound as a JDBC parameter rather than embedded
       // as SQL literal text - see BoundCondition's class Javadoc.
@@ -142,15 +145,15 @@ public class HousekeepRelatedTableDeleter {
 
       String sqlName = "related table select";
       try (
-          PreparedStatement stmt = LogUtil.getStatement(detailLogger, conn, sqlTargetSelect,
-              linkWhere.bindValues(), sqlName, IDT_3);
+          PreparedStatement stmt = AppLogUtil.getStatement(detailLogger, conn, sqlTargetSelect,
+              linkWhere.bindValues(), sqlName, IDT_4);
           ResultSet rs = stmt.executeQuery();) {
 
         boolean recordFound = rs.next();
 
         String logMsg = !recordFound ? "Record not found."
             : "Record(s) found. " + fkCol.getColumn() + " = " + linkValue;
-        LogUtil.dlogWithIndent(detailLogger, Level.DEBUG, logMsg, IDT_4);
+        AppLogUtil.log(detailLogger, Level.DEBUG, logMsg, IDT_5);
 
         if (!recordFound) {
           // Nothing to delete - already gone, e.g. via an earlier related-table delete cascading
@@ -162,7 +165,7 @@ public class HousekeepRelatedTableDeleter {
         // read back above.
         final Object val = rs.getObject(fkCol.getColumn());
         recordDeleter.deleteOrSoftDeleteOne(conn, relatedInfo, info.isSoftDelete(),
-            info.getDbConnectionInfo().getProtocol(), val, tableRecordDeleted, IDT_5);
+            info.getDbConnectionInfo().getProtocol(), val, tableRecordDeleted, 6);
       }
     }
   }
