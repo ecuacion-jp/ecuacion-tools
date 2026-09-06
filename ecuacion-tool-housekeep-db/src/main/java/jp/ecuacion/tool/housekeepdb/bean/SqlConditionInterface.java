@@ -23,10 +23,12 @@ import org.jspecify.annotations.Nullable;
  * <p>A condition is either bound (its {@link #getSqlFragment()} contains exactly one {@code ?}
  *     placeholder and {@link #getBindValue()} returns the value to bind there - see
  *     {@link BoundCondition}) or literal (the value is embedded directly in the fragment text and
- *     {@link #getBindValue()} returns {@code null}). {@link SqlUtil#getWhere} /
- *     {@link SqlUtil#getUpdateSet} rely on this: they join every fragment in list order to build
- *     the SQL text, and separately collect the non-null bind values in that same order, so the
- *     Nth {@code ?} in the joined text always lines up with the Nth collected value.</p>
+ *     {@link #getBindValue()} returns {@code null}).
+ *     {@link jp.ecuacion.tool.housekeepdb.util.SqlUtil#getWhere(java.util.List)} /
+ *     {@link jp.ecuacion.tool.housekeepdb.util.SqlUtil#getUpdateSet(java.util.List)} rely on this:
+ *     they join every fragment in list order to build the SQL text, and separately collect the
+ *     non-null bind values in that same order, so the Nth {@code ?} in the joined text always
+ *     lines up with the Nth collected value.</p>
  */
 public interface SqlConditionInterface {
 

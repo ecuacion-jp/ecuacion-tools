@@ -271,11 +271,11 @@ class SqlUtilTest {
     @DisplayName("a bound assignment renders 'column = ?' and collects the bind value")
     void withBoundCondition() {
       List<SqlConditionInterface> list =
-          List.of(new BoundCondition("deleted", Boolean.TRUE));
+          List.of(new BoundCondition("deleted", true));
 
       SqlUtil.SqlFragment result = SqlUtil.getUpdateSet(list);
       assertThat(result.sql()).isEqualTo(" set deleted = ?");
-      assertThat(result.bindValues()).containsExactly(Boolean.TRUE);
+      assertThat(result.bindValues()).containsExactly(true);
     }
   }
 
