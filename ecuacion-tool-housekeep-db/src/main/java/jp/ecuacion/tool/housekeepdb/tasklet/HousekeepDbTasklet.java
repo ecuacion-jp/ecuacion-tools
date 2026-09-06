@@ -26,6 +26,7 @@ import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.lib.validation.constraints.FileExists;
 import jp.ecuacion.lib.validation.constraints.FileExtension;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader;
@@ -84,16 +85,15 @@ public class HousekeepDbTasklet implements Tasklet {
 
     String excelPath = validateExcelPath();
 
-    detailLogger.info("===============");
-    detailLogger.info("housekeep-db start.");
-    detailLogger.info("Excel File Path     : " + excelPath);
+    detailLogger.info("housekeep-db started.");
+    detailLogger.info("- Excel File Path     : " + excelPath);
 
     HousekeepConfigLoader configLoader = new HousekeepConfigLoader();
     configLoader.load(excelPath);
 
     Map<String, String> infoMap = configLoader.getInfoMap();
-    detailLogger.info("Format Excel Version: " + infoMap.get("format-version"));
-    detailLogger.info("Locale              : " + infoMap.get("locale"));
+    detailLogger.info("- Format Excel Version: " + infoMap.get("format-version"));
+    detailLogger.info("- Locale              : " + infoMap.get("locale"));
 
     Map<String, DbConnectionInfoBean> dbConnectionInfoMap = configLoader.getDbConnectionInfoMap();
     List<HousekeepInfoBean> housekeepInfoList = configLoader.getHousekeepInfoList();
@@ -105,16 +105,16 @@ public class HousekeepDbTasklet implements Tasklet {
     HousekeepMainTableDeleter mainTableDeleter =
         new HousekeepMainTableDeleter(detailLogger, maxSelectLines);
 
+    detailLogger.info("Per-task procedure started.");
+
     for (HousekeepInfoBean info : housekeepInfoList) {
-      detailLogger.info("-----");
-      detailLogger.info("task start : " + info.getTaskId());
+      SplibLogUtil.info(detailLogger, "Task started  : " + info.getTaskId(), 1);
 
       mainTableDeleter.execute(dbConnectionInfoMap, info);
 
-      detailLogger.info("task finish: " + info.getTaskId());
+      SplibLogUtil.info(detailLogger, "Task finished : " + info.getTaskId(), 1);
     }
 
-    detailLogger.info("-----");
     detailLogger.info("housekeep-db finished successfully.");
 
     return RepeatStatus.FINISHED;
