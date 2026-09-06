@@ -66,7 +66,7 @@ class CreateFileTest {
     void remoteServerNotEmpty() {
       HousekeepFilesTaskRecord rec =
           new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "CREATE_FILE", "aHost", null, null,
-              null, null, null, "aPath", "FALSE", "FALSE", "IGNORE", null);
+              null, null, "aPath", "FALSE", "FALSE", "IGNORE");
 
       assertSingleBusinessViolation(form(rec), "MSG_ERR_TASK_PROHIBITED_CHECK");
     }
@@ -76,7 +76,7 @@ class CreateFileTest {
     void srcPathNotEmpty() {
       HousekeepFilesTaskRecord rec =
           new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "CREATE_FILE", null, "a", "TRUE",
-              "5", "0", "IGNORE", "aPath", "FALSE", "FALSE", "IGNORE", null);
+              "0", "IGNORE", "aPath", "FALSE", "FALSE", "IGNORE");
 
       assertSingleBusinessViolation(form(rec), "MSG_ERR_TASK_PROHIBITED_CHECK");
     }
@@ -85,7 +85,7 @@ class CreateFileTest {
     @DisplayName("destPath is required")
     void destPathEmpty() {
       HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-          "CREATE_FILE", null, null, null, null, null, null, null, null, null, null, null);
+          "CREATE_FILE", null, null, null, null, null, null, null, null, null);
 
       assertSingleBusinessViolation(form(rec), "MSG_ERR_TASK_REQUIRED_CHECK");
     }
@@ -95,7 +95,7 @@ class CreateFileTest {
     void isDestPathDirTrue() {
       HousekeepFilesTaskRecord rec =
           new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "CREATE_FILE", null, null, null,
-              null, null, null, "aPath", "TRUE", "FALSE", "IGNORE", null);
+              null, null, "aPath", "TRUE", "FALSE", "IGNORE");
 
       assertSingleBusinessViolation(form(rec),
           "MSG_ERR_TASK_CANNOT_SET_IS_DEST_PATH_DIR_TO_VALUE");
@@ -106,7 +106,7 @@ class CreateFileTest {
     void doesOverwriteDestPathTrue() {
       HousekeepFilesTaskRecord rec =
           new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "CREATE_FILE", null, null, null,
-              null, null, null, "aPath", "FALSE", "TRUE", "IGNORE", null);
+              null, null, "aPath", "FALSE", "TRUE", "IGNORE");
 
       assertSingleBusinessViolation(form(rec), "MSG_ERR_TASK_CANNOT_SET_OVERWRITE_TO_VALUE");
     }
@@ -119,7 +119,7 @@ class CreateFileTest {
     private HousekeepFilesTaskRecord createFileRecord(String destPath,
         String whenDestPathExists) {
       return new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "CREATE_FILE", null, null, null,
-          null, null, null, destPath, "FALSE", "FALSE", whenDestPathExists, null);
+          null, null, destPath, "FALSE", "FALSE", whenDestPathExists);
     }
 
     @Test
@@ -214,7 +214,7 @@ class CreateFileTest {
 
       HousekeepFilesTaskRecord rec =
           new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "CREATE_FILE", null, null, null,
-              null, null, null, file.getPath(), "FALSE", "FALSE", "IGNORE", null);
+              null, null, file.getPath(), "FALSE", "FALSE", "IGNORE");
 
       new HousekeepFilesBlf().execute(form(rec));
 

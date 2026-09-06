@@ -83,8 +83,7 @@ class AbstractTaskTest {
     @DisplayName("checks each record item through checkTaskItem()")
     void eachItemIsCheckedThroughCheckTaskItem() {
       HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
-          "aHost", "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE",
-          null);
+          "aHost", "aPath", "TRUE", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE");
 
       AtomicInteger checkTaskItemCallCount = new AtomicInteger();
       Move move = new Move() {
