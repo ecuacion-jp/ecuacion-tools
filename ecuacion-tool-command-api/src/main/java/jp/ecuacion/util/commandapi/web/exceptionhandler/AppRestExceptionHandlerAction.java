@@ -28,14 +28,14 @@ import org.springframework.stereotype.Component;
  *     {@code SplibExceptionHandlerAction} consumer to also implement here.</p>
  */
 @Component
-public class ActionOnThrowable implements SplibRestExceptionHandlerAction {
+public class AppRestExceptionHandlerAction implements SplibRestExceptionHandlerAction {
 
   private final SplibMailUtil splibMailUtil;
 
   /**
    * Constructs a new instance.
    */
-  public ActionOnThrowable(SplibMailUtil splibMailUtil) {
+  public AppRestExceptionHandlerAction(SplibMailUtil splibMailUtil) {
     this.splibMailUtil = splibMailUtil;
   }
 

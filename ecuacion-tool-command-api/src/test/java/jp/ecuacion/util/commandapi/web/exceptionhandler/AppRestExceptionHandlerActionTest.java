@@ -25,17 +25,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Verifies {@link ActionOnThrowable} sends an error mail and is wired to
+ * Verifies {@link AppRestExceptionHandlerAction} sends an error mail and is wired to
  * {@link SplibRestExceptionHandlerAction}, the extension point {@code SplibRestExceptionHandler}
  * uses for command-api's REST frontend.
  */
 @DisplayName("ActionOnThrowable")
-class ActionOnThrowableTest {
+class AppRestExceptionHandlerActionTest {
 
   @Test
   @DisplayName("implements SplibRestExceptionHandlerAction")
   void implementsRestActionInterface() {
-    ActionOnThrowable action = new ActionOnThrowable(mock(SplibMailUtil.class));
+    AppRestExceptionHandlerAction action = new AppRestExceptionHandlerAction(mock(SplibMailUtil.class));
 
     Assertions.assertThat(action).isInstanceOf(SplibRestExceptionHandlerAction.class);
   }
@@ -44,7 +44,7 @@ class ActionOnThrowableTest {
   @DisplayName("execute sends an error mail for the given throwable")
   void executeSendsErrorMail() {
     SplibMailUtil splibMailUtil = mock(SplibMailUtil.class);
-    ActionOnThrowable action = new ActionOnThrowable(splibMailUtil);
+    AppRestExceptionHandlerAction action = new AppRestExceptionHandlerAction(splibMailUtil);
     RuntimeException exception = new RuntimeException("test");
 
     action.execute(exception);

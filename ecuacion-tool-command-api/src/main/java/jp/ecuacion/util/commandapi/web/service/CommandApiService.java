@@ -575,18 +575,23 @@ public class CommandApiService {
   }
 
   /**
-   * Searches {@code ${NAME}} format (not {@code $NAME}) and replaces it with the environment
-   * variable's value.
+   * Searches {@code ${NAME}} format (not {@code $NAME}) and replaces it with the resolved
+   * property value from {@code env} - application.properties, OS environment variables, JVM
+   * system properties, command-line arguments, or any other source Spring Boot's Environment
+   * abstraction can resolve. Unlike scriptId resolution (see
+   * {@link #SCRIPT_PROPERTIES_SOURCE_NAME_MARKER}), it's fine to consult the full merged
+   * Environment here: the string being resolved is an administrator-authored
+   * {@code script.<id>} value in {@code ecuacion-tool-command-api-scripts.properties}, not
+   * client input, so there's no risk of an attacker-chosen {@code ${NAME}} leaking an unrelated
+   * property's value.
    *
    * @param scriptId the scriptId {@code string} was configured under, used only to identify
    *     which script definition is misconfigured if resolution fails
    * @param string any string
-   * @return string with environment variables resolved
+   * @return string with {@code ${NAME}} placeholders resolved
    */
   private String resolveEnvironmentVariables(String scriptId, String string) {
-    Function<String, String> func = (key) -> {
-      return System.getenv(key);
-    };
+    Function<String, String> func = env::getProperty;
     try {
       return EmbeddedVariableUtil.getVariableReplacedString(string, "${", "}", func);
     } catch (ViolationException e) {
