@@ -422,6 +422,49 @@ class HousekeepInfoBeanTest {
       assertThat(b.getSoftDeleteUpdateUserIdColumnAndValueInfo().getSqlFragment())
           .isEqualTo("upd_by = 'SYSTEM'");
     }
+
+    @Test
+    @DisplayName("softDeleteUpdateTimestampColumnInfo is constructed when "
+        + "softDeleteUpdateTimestampColumn is set")
+    void softDeleteUpdateTimestampColumnInfoConstructedWhenSet() {
+      List<String> list = Arrays.asList("task1", "conn1", "Soft Delete", "SOFT_DELETE", "tbl1",
+          "id1", "(none)", null, null, null, "del_flg", "upd_at", null, null, null);
+      HousekeepInfoBean b = new HousekeepInfoBean(list);
+      b.afterReading();
+
+      assertThat(b.getSoftDeleteUpdateTimestampColumnInfo().getColumn()).isEqualTo("upd_at");
+    }
+
+    @Test
+    @DisplayName("softDeleteUpdateTimestampColumnInfo stays null when "
+        + "softDeleteUpdateTimestampColumn is empty")
+    void softDeleteUpdateTimestampColumnInfoNullWhenEmpty() {
+      HousekeepInfoBean b = bean(SOFT_BASE);
+      b.afterReading();
+
+      assertThat(b.getSoftDeleteUpdateTimestampColumnInfo()).isNull();
+    }
+
+    @Test
+    @DisplayName("all optional soft-delete-related columns set together: idColumnInfo, "
+        + "softDeleteColumnInfo, softDeleteUpdateTimestampColumnInfo and "
+        + "softDeleteUpdateUserIdColumnAndValueInfo are all populated correctly")
+    void allOptionalSoftDeleteColumnsSetTogether() {
+      List<String> list = Arrays.asList("task1", "conn1", "Soft Delete", "SOFT_DELETE", "tbl1",
+          "id1", "(none)", null, null, null, "del_flg", "upd_at", "upd_by", "quotes(')", "SYSTEM");
+      HousekeepInfoBean b = new HousekeepInfoBean(list);
+      b.afterReading();
+
+      assertThat(b.getIdColumnInfo()).isNotNull();
+      assertThat(b.getIdColumnInfo().getColumn()).isEqualTo("id1");
+      assertThat(b.getSoftDeleteColumnInfo()).isNotNull();
+      assertThat(b.getSoftDeleteColumnInfo().getColumn()).isEqualTo("del_flg");
+      assertThat(b.getSoftDeleteUpdateTimestampColumnInfo()).isNotNull();
+      assertThat(b.getSoftDeleteUpdateTimestampColumnInfo().getColumn()).isEqualTo("upd_at");
+      assertThat(b.getSoftDeleteUpdateUserIdColumnAndValueInfo()).isNotNull();
+      assertThat(b.getSoftDeleteUpdateUserIdColumnAndValueInfo().getSqlFragment())
+          .isEqualTo("upd_by = 'SYSTEM'");
+    }
   }
 
   @Nested
