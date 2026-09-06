@@ -51,7 +51,7 @@ public final class CommandApiKeyFileLocator {
   public static @Nullable Path resolve(Environment env) {
     String configured = env.getProperty(PROP_API_KEY_FILE_PATH);
     if (configured != null && !configured.isBlank()) {
-      return Path.of(resolveEnvironmentVariables(configured));
+      return Path.of(resolveEnvironmentVariables(env, configured));
     }
 
     Path baseDir = Path.of(System.getProperty("user.dir"));
@@ -62,13 +62,16 @@ public final class CommandApiKeyFileLocator {
   }
 
   /**
-   * Searches ${XXX} format (not $XXX) and replaces it to the environment variable value.
+   * Searches ${XXX} format (not $XXX) and replaces it with the value resolved from {@code env}
+   * (application.properties, OS environment variables, JVM system properties, command-line
+   * arguments, or any other source Spring Boot's Environment abstraction can resolve).
    *
+   * @param env the Environment to resolve ${XXX} placeholders against
    * @param string any string
-   * @return string with environment variables resolved
+   * @return string with ${XXX} placeholders resolved
    */
-  private static String resolveEnvironmentVariables(String string) {
-    Function<String, String> func = System::getenv;
+  private static String resolveEnvironmentVariables(Environment env, String string) {
+    Function<String, String> func = env::getProperty;
     try {
       return EmbeddedVariableUtil.getVariableReplacedString(string, "${", "}", func);
     } catch (Exception e) {
