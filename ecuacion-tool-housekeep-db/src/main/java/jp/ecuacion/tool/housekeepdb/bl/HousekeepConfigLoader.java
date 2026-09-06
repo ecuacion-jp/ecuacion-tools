@@ -36,7 +36,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Reads the housekeep-db settings excel file and links its rows across sheets into beans, ready
- * for {@link HousekeepRecordDeleter} to execute.
+ * for {@link RecordDeleter} to execute.
  */
 public class HousekeepConfigLoader {
 
