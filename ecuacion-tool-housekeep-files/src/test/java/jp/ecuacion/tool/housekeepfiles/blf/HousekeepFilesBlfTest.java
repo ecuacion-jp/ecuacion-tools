@@ -29,6 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.mock.env.MockEnvironment;
 
 /** Tests for {@link HousekeepFilesBlf}. */
 @DisplayName("HousekeepFilesBlf")
@@ -143,6 +144,50 @@ class HousekeepFilesBlfTest {
       assertThat(zippedFile2).exists();
       assertThat(fromFile1).doesNotExist();
       assertThat(fromFile2).doesNotExist();
+    }
+  }
+
+  @Nested
+  @DisplayName("execute(form, env): path variable resolution")
+  class ExecuteEnvVarResolution {
+
+    @TempDir
+    @SuppressWarnings("null")
+    Path tempDir;
+
+    private HousekeepFilesTaskRecord moveRecord(String srcPath, String destPath) {
+      return new HousekeepFilesTaskRecord("01", "task01", "MOVE", null, srcPath, "FALSE", "DAY",
+          "0", "ERROR", destPath, "TRUE", "TRUE", "IGNORE", null);
+    }
+
+    @Test
+    @DisplayName("resolves ${VAR} from the given Environment and executes the task")
+    void resolvesPathVariableFromEnvironment() throws Exception {
+      File fromFile = tempDir.resolve("from.txt").toFile();
+      fromFile.createNewFile();
+      File toDir = tempDir.resolve("to").toFile();
+      toDir.mkdir();
+
+      MockEnvironment env = new MockEnvironment();
+      env.setProperty("BASE_DIR", tempDir.toString());
+
+      HousekeepFilesForm form =
+          form("test-system", moveRecord("${BASE_DIR}/from.txt", "${BASE_DIR}/to/"));
+
+      new HousekeepFilesBlf().execute(form, env);
+
+      assertThat(fromFile).doesNotExist();
+      assertThat(toDir.toPath().resolve("from.txt").toFile()).exists();
+    }
+
+    @Test
+    @DisplayName("throws when a referenced ${VAR} isn't resolvable via env")
+    void throwsWhenVariableUnresolved() {
+      HousekeepFilesForm form = form("test-system",
+          moveRecord("${UNDEFINED_VAR}/from.txt", tempDir.resolve("to").toString()));
+
+      assertThatThrownBy(() -> new HousekeepFilesBlf().execute(form, new MockEnvironment()))
+          .isInstanceOf(RuntimeException.class);
     }
   }
 }
