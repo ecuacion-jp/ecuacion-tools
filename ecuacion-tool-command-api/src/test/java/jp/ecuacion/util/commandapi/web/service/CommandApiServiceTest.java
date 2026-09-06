@@ -320,4 +320,16 @@ class CommandApiServiceTest {
     assertEquals("count:2" + System.lineSeparator() + "1:param1" + System.lineSeparator()
         + "2:param2", stdout);
   }
+
+  @Test
+  void noParametersPassesNoArgumentsAtAll() throws Exception {
+    // Regression test: paramsString.split(" ") on an empty string used to return {""}, passing a
+    // spurious empty-string first argument ($# == 1) when no parameters were specified at all.
+    Path script = createExecutableScript("#!/bin/bash\necho \"count:$#\"\n");
+    CommandApiService service = newService("ALL:" + script);
+
+    Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
+
+    assertEquals("count:0", result.get("stdout"));
+  }
 }
