@@ -58,7 +58,7 @@ class HousekeepFilesTaskRecordTest {
     @DisplayName("valid: only required items filled, all others null")
     void allNullExceptRequired() {
       HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-          "CREATE_DIR", null, null, null, null, null, null, null, null, null, null, null);
+          "CREATE_DIR", null, null, null, null, null, null, null, null, null);
 
       assertThat(validate(rec)).isEmpty();
     }
@@ -67,8 +67,8 @@ class HousekeepFilesTaskRecordTest {
     @DisplayName("valid: all items filled with normal values")
     void allItemsNormalStringInput() {
       HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName",
-          "SFTP_MOVE_FROM_SERVER", "aHost", "aPath", "TRUE", "DAY", "7", "IGNORE", "aPath", "TRUE",
-          "FALSE", "IGNORE", "key1=value2,key2");
+          "SFTP_MOVE_FROM_SERVER", "aHost", "aPath", "TRUE", "7", "IGNORE", "aPath", "TRUE",
+          "FALSE", "IGNORE");
 
       assertThat(validate(rec)).isEmpty();
     }
@@ -80,7 +80,7 @@ class HousekeepFilesTaskRecordTest {
 
     private HousekeepFilesTaskRecord recordWithTaskId(@Nullable String taskId) {
       return new HousekeepFilesTaskRecord(taskId, "aTaskName", "CREATE_DIR", null, null, null,
-          null, null, null, null, null, null, null, null);
+          null, null, null, null, null, null);
     }
 
     @Test
@@ -119,7 +119,7 @@ class HousekeepFilesTaskRecordTest {
 
     private HousekeepFilesTaskRecord recordWithTaskName(@Nullable String taskName) {
       return new HousekeepFilesTaskRecord("aTaskId", taskName, "CREATE_DIR", null, null, null,
-          null, null, null, null, null, null, null, null);
+          null, null, null, null, null, null);
     }
 
     @Test
@@ -160,7 +160,7 @@ class HousekeepFilesTaskRecordTest {
 
     private HousekeepFilesTaskRecord recordWithTaskPtn(@Nullable String taskPtnEnumName) {
       return new HousekeepFilesTaskRecord("aTaskId", "aTaskName", taskPtnEnumName, null, null,
-          null, null, null, null, null, null, null, null, null);
+          null, null, null, null, null, null, null);
     }
 
     @Test
@@ -185,7 +185,7 @@ class HousekeepFilesTaskRecordTest {
     @DisplayName("non-boolean string violates @BooleanString")
     void unsupportedString() {
       HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
-          null, "aPath", "はい", "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
+          null, "aPath", "はい", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE");
 
       assertSingleViolation(validate(rec), BooleanString.class, "isSrcPathDirEnumName");
     }
@@ -199,7 +199,7 @@ class HousekeepFilesTaskRecordTest {
     @DisplayName("string not defined in IncidentTreatedAsEnum violates @EnumElement")
     void unexpectedString() {
       HousekeepFilesTaskRecord rec = new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE",
-          null, "aPath", "TRUE", "DAY", "7", "無視", "aPath", "TRUE", "FALSE", "IGNORE", null);
+          null, "aPath", "TRUE", "7", "無視", "aPath", "TRUE", "FALSE", "IGNORE");
 
       assertSingleViolation(validate(rec), EnumElement.class, "actionForNoSrcPathEnumName");
     }
@@ -211,7 +211,7 @@ class HousekeepFilesTaskRecordTest {
 
     private HousekeepFilesTaskRecord recordWithPaths(String srcPath, String destPath) {
       return new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE", null, srcPath, "FALSE",
-          "DAY", "0", "IGNORE", destPath, "FALSE", "TRUE", "IGNORE", null);
+          "0", "IGNORE", destPath, "FALSE", "TRUE", "IGNORE");
     }
 
     @Test

@@ -81,7 +81,7 @@ class SftpCreateDirTest extends AbstractSftpTest {
     void remoteServerEmpty() {
       HousekeepFilesTaskRecord rec =
           new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "SFTP_CREATE_DIR", null, null, null,
-              null, null, null, "aPath", "TRUE", "FALSE", "IGNORE", null);
+              null, null, "aPath", "TRUE", "FALSE", "IGNORE");
 
       assertSingleBusinessViolation(form(rec), "MSG_ERR_TASK_REQUIRED_CHECK");
     }
@@ -91,7 +91,7 @@ class SftpCreateDirTest extends AbstractSftpTest {
     void srcPathNotEmpty() {
       HousekeepFilesTaskRecord rec =
           new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "SFTP_CREATE_DIR", SFTP_HOST,
-              "aPath", "TRUE", "7", "DAY", "7", "aPath", "TRUE", "FALSE", "IGNORE", null);
+              "aPath", "TRUE", "7", "7", "aPath", "TRUE", "FALSE", "IGNORE");
 
       assertSingleBusinessViolation(form(rec), "MSG_ERR_TASK_PROHIBITED_CHECK");
     }
@@ -101,7 +101,7 @@ class SftpCreateDirTest extends AbstractSftpTest {
     void destPathEmpty() {
       HousekeepFilesTaskRecord rec =
           new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "SFTP_CREATE_DIR", SFTP_HOST, null,
-              null, null, null, null, null, null, null, null, null);
+              null, null, null, null, null, null, null);
 
       assertSingleBusinessViolation(form(rec), "MSG_ERR_TASK_REQUIRED_CHECK");
     }
@@ -111,8 +111,7 @@ class SftpCreateDirTest extends AbstractSftpTest {
     void isDestPathDirFalse() {
       HousekeepFilesTaskRecord rec =
           new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "SFTP_CREATE_DIR", SFTP_HOST, null,
-              null, null, null, null, SFTP_ROOT_PATH + "/destPath", "FALSE", "FALSE", "IGNORE",
-              null);
+              null, null, null, SFTP_ROOT_PATH + "/destPath", "FALSE", "FALSE", "IGNORE");
 
       assertSingleBusinessViolation(form(rec),
           "MSG_ERR_TASK_CANNOT_SET_IS_DEST_PATH_DIR_TO_VALUE");
@@ -123,8 +122,7 @@ class SftpCreateDirTest extends AbstractSftpTest {
     void doesOverwriteDestPathTrue() {
       HousekeepFilesTaskRecord rec =
           new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "SFTP_CREATE_DIR", SFTP_HOST, null,
-              null, null, null, null, SFTP_ROOT_PATH + "/test-dir", "TRUE", "TRUE", "IGNORE",
-              null);
+              null, null, null, SFTP_ROOT_PATH + "/test-dir", "TRUE", "TRUE", "IGNORE");
 
       assertSingleBusinessViolation(form(rec), "MSG_ERR_TASK_CANNOT_SET_OVERWRITE_TO_VALUE");
     }
@@ -137,7 +135,7 @@ class SftpCreateDirTest extends AbstractSftpTest {
     private HousekeepFilesTaskRecord sftpCreateDirRecord(String destPath,
         String whenDestPathExists) {
       return new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "SFTP_CREATE_DIR", SFTP_HOST,
-          null, null, null, null, null, destPath, "TRUE", "FALSE", whenDestPathExists, null);
+          null, null, null, null, destPath, "TRUE", "FALSE", whenDestPathExists);
     }
 
     private HousekeepFilesBl warnMailDetectingBl(AtomicBoolean warnMailSent) {
@@ -243,7 +241,7 @@ class SftpCreateDirTest extends AbstractSftpTest {
 
     private HousekeepFilesTaskRecord sftpCreateDirRecord(String destPath) {
       return new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "SFTP_CREATE_DIR", SFTP_HOST,
-          null, null, null, null, null, destPath, "TRUE", "FALSE", "ERROR", null);
+          null, null, null, null, destPath, "TRUE", "FALSE", "ERROR");
     }
 
     @Test

@@ -52,7 +52,7 @@ class HousekeepFilesBlfTest {
 
     private HousekeepFilesTaskRecord aTaskRecord(String taskPtn) {
       return new HousekeepFilesTaskRecord("aTaskId", "aTaskName", taskPtn, null, "aPath", "TRUE",
-          "DAY", "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE", null);
+          "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE");
     }
 
     @Test
@@ -101,7 +101,7 @@ class HousekeepFilesBlfTest {
 
     private HousekeepFilesTaskRecord zipDeleteOrigRecord(String srcPath) {
       return new HousekeepFilesTaskRecord("01", "task01", "ZIP_DELETE_ORIG", "", srcPath, "FALSE",
-          "DAY", "0", "ERROR", "", "", "TRUE", "IGNORE", null);
+          "0", "ERROR", "", "", "TRUE", "IGNORE");
     }
 
     @Test
@@ -156,8 +156,8 @@ class HousekeepFilesBlfTest {
     Path tempDir;
 
     private HousekeepFilesTaskRecord moveRecord(String srcPath, String destPath) {
-      return new HousekeepFilesTaskRecord("01", "task01", "MOVE", null, srcPath, "FALSE", "DAY",
-          "0", "ERROR", destPath, "TRUE", "TRUE", "IGNORE", null);
+      return new HousekeepFilesTaskRecord("01", "task01", "MOVE", null, srcPath, "FALSE",
+          "0", "ERROR", destPath, "TRUE", "TRUE", "IGNORE");
     }
 
     @Test

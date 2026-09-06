@@ -80,15 +80,14 @@ public class DateTimeUtil {
   }
 
   /**
-   * Provides boolean whether designated time passes.
+   * Provides boolean whether designated term (in days) passes.
    */
-  public boolean hasDesignatedTermPassed(long lastModified, int unit, int value) {
+  public boolean hasDesignatedTermPassed(long lastModified, int value) {
     // For example, consider a nightly batch process that copies files and then deletes those
     // copies after 3 days.
     // The file should disappear after 3 days, but a naive datetime comparison would check whether
     // 86400000*3 milliseconds have elapsed.
-    // Instead, the logic compares only the date part for day-unit granularity, ignoring the time
-    // component.
+    // Instead, the logic compares only the date part, ignoring the time component.
 
     // Calendar built from the file's lastModified timestamp.
     Calendar calFileLastModified = Calendar.getInstance();
@@ -102,33 +101,15 @@ public class DateTimeUtil {
       return true;
     }
 
-    // Roll back by the specified period.
-    if (unit == Calendar.SECOND) {
-      calDesignatedTime.add(Calendar.SECOND, -1 * value);
+    // Roll back by the specified number of days.
+    calDesignatedTime.add(Calendar.DAY_OF_MONTH, -1 * value);
 
-    } else if (unit == Calendar.MINUTE) {
-      calDesignatedTime.add(Calendar.MINUTE, -1 * value);
-
-    } else if (unit == Calendar.HOUR) {
-      calDesignatedTime.add(Calendar.HOUR, -1 * value);
-
-    } else if (unit == Calendar.DAY_OF_MONTH) {
-      calDesignatedTime.add(Calendar.DAY_OF_MONTH, -1 * value);
-
-    } else if (unit == Calendar.MONTH) {
-      calDesignatedTime.add(Calendar.MONTH, -1 * value);
-
-    } else if (unit == Calendar.YEAR) {
-      calDesignatedTime.add(Calendar.YEAR, -1 * value);
-    }
-
-    // For day-level comparison, the time is irrelevant — only the date must differ
-    // (less than 24 hours is acceptable).
-    // To require a full 24 hours to pass, specify 24 hours.
+    // The time is irrelevant — only the date must differ (less than 24 hours is acceptable).
+    // To require a full 24 hours to pass, specify 1 (day).
     // Calendar data includes milliseconds, so replace the lower-precision fields with fixed
     // values as needed.
-    Date dateFileLastModified = makeUnusedCalendarUnitValToFixedVal(calFileLastModified, unit);
-    Date dateDesignatedTime = makeUnusedCalendarUnitValToFixedVal(calDesignatedTime, unit);
+    Date dateFileLastModified = makeTimePartZero(calFileLastModified);
+    Date dateDesignatedTime = makeTimePartZero(calDesignatedTime);
 
     // Return the comparison result.
     return (dateFileLastModified.getTime() > dateDesignatedTime.getTime()) ? false : true;
@@ -147,25 +128,13 @@ public class DateTimeUtil {
    * Comparing using Calendar directly proved unreliable; examples found online suggest comparing
    * using Date, so this method returns a Date.
    */
-  private Date makeUnusedCalendarUnitValToFixedVal(Calendar cal, int timeUnit) {
-    final int year = cal.get(Calendar.YEAR);
-    final int month = (timeUnit == Calendar.YEAR) ? 0 : cal.get(Calendar.MONTH);
-    final int day = (timeUnit == Calendar.YEAR || timeUnit == Calendar.MONTH) ? 0
-        : cal.get(Calendar.DAY_OF_MONTH);
-    final int hour = (timeUnit == Calendar.YEAR || timeUnit == Calendar.MONTH
-        || timeUnit == Calendar.DAY_OF_MONTH) ? 0 : cal.get(Calendar.HOUR_OF_DAY);
-    final int minute = (timeUnit == Calendar.YEAR || timeUnit == Calendar.MONTH
-        || timeUnit == Calendar.DAY_OF_MONTH || timeUnit == Calendar.HOUR) ? 0
-            : cal.get(Calendar.MINUTE);
-    final int second = (timeUnit == Calendar.YEAR || timeUnit == Calendar.MONTH
-        || timeUnit == Calendar.DAY_OF_MONTH || timeUnit == Calendar.HOUR
-        || timeUnit == Calendar.MINUTE) ? 0 : cal.get(Calendar.SECOND);
-
+  private Date makeTimePartZero(Calendar cal) {
     Calendar rtnCal = Calendar.getInstance();
     // Set milliseconds to 0.
     rtnCal.clear();
 
-    rtnCal.set(year, month, day, hour, minute, second);
+    rtnCal.set(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH),
+        0, 0, 0);
     return rtnCal.getTime();
   }
 }
