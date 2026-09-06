@@ -57,7 +57,10 @@ class CommandApiServiceTest {
           + "via location 'test'";
 
   private static CommandApiService newService(String scriptDefinitionValue) {
-    MockEnvironment env = new MockEnvironment();
+    return newService(new MockEnvironment(), scriptDefinitionValue);
+  }
+
+  private static CommandApiService newService(MockEnvironment env, String scriptDefinitionValue) {
     env.getPropertySources().addFirst(
         new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME, Map.of(SCRIPT_ID, scriptDefinitionValue)));
     // Only script resolution/execution is under test here (via executeScriptByKey, which never
@@ -160,18 +163,22 @@ class CommandApiServiceTest {
 
   @Test
   void environmentVariableInScriptFilePathIsResolved() {
-    // "PATH" is expected to be set in any environment this test runs in. The resolved script
-    // file certainly does not exist, so this only verifies the "${PATH}" placeholder itself was
-    // substituted away (a literal, unresolved "${PATH}" would also fail with "not found", so a
-    // passing "not found" assertion alone wouldn't prove substitution happened).
+    // The resolved script file certainly does not exist, so this only verifies the
+    // "${MOCK_SCRIPT_DIR}" placeholder itself was substituted away (a literal, unresolved
+    // "${MOCK_SCRIPT_DIR}" would also fail with "not found", so a passing "not found" assertion
+    // alone wouldn't prove substitution happened). The value is set directly on the
+    // Environment (as application.properties would be, not as an OS environment variable),
+    // demonstrating resolution goes through the full Environment, not just System.getenv.
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("MOCK_SCRIPT_DIR", "/definitely/not/a/real/dir/xyz123");
     CommandApiService service =
-        newService("ALL:${PATH}/definitely-not-a-real-script-xyz123.sh");
+        newService(env, "ALL:${MOCK_SCRIPT_DIR}/definitely-not-a-real-script-xyz123.sh");
 
     ResponseStatusException ex = assertThrows(ResponseStatusException.class,
         () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
 
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
-    assertFalse(Objects.requireNonNull(ex.getReason()).contains("${PATH}"));
+    assertFalse(Objects.requireNonNull(ex.getReason()).contains("${MOCK_SCRIPT_DIR}"));
   }
 
   @Test
