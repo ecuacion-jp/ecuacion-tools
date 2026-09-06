@@ -259,6 +259,54 @@ class CommandApiServiceTest {
   }
 
   @Test
+  void constructorThrowsWhenScriptMaxOutputBytesIsNotPositive() {
+    MockEnvironment env = new MockEnvironment();
+    env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
+        Map.of(SCRIPT_ID, "ALL:/tmp/unused.sh")));
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+    env.setProperty("jp.ecuacion.tool.command-api.script-max-output-bytes", "0");
+
+    IllegalStateException ex =
+        assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
+
+    assertTrue(Objects.requireNonNull(ex.getMessage()).contains("script-max-output-bytes"));
+  }
+
+  @Test
+  void outputWithinCapIsNotTruncated() throws Exception {
+    Path script = createExecutableScript("#!/bin/bash\necho hello\n");
+    CommandApiService service = newService("ALL:" + script);
+
+    Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
+
+    assertEquals("hello", result.get("stdout"));
+    // Omitted entirely (rather than present as "false") when nothing was truncated, so the
+    // common case isn't cluttered with a field that never matters.
+    assertFalse(result.containsKey("stdoutTruncated"));
+    assertFalse(result.containsKey("stderrTruncated"));
+  }
+
+  @Test
+  void outputExceedingCapIsTruncated() throws Exception {
+    // Each echoed line is exactly 10 bytes; with a 10-byte cap the first line just fits and the
+    // second is dropped (but the script itself still runs to completion either way).
+    Path script = createExecutableScript("#!/bin/bash\necho AAAAAAAAAA\necho BBBBBBBBBB\n");
+
+    MockEnvironment env = new MockEnvironment();
+    env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
+        Map.of(SCRIPT_ID, "ALL:" + script)));
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+    env.setProperty("jp.ecuacion.tool.command-api.script-max-output-bytes", "10");
+    CommandApiService service = new CommandApiService(env);
+
+    Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
+
+    assertEquals("AAAAAAAAAA", result.get("stdout"));
+    assertEquals("true", result.get("stdoutTruncated"));
+    assertFalse(result.containsKey("stderrTruncated"));
+  }
+
+  @Test
   void commaSeparatedParametersAreSplitIntoSeparateArguments() throws Exception {
     Path script = createExecutableScript(
         "#!/bin/bash\necho \"count:$#\"\necho \"1:$1\"\necho \"2:$2\"\n");
