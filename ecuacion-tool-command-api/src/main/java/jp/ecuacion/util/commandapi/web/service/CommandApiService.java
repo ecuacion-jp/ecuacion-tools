@@ -281,8 +281,9 @@ public class CommandApiService {
     dtlLogger.info("-----");
     dtlLogger.info("procedure started");
 
-    // scriptId input validation
-    if (!Pattern.compile("^[a-zA-Z0-9.\\-_]*$").matcher(scriptId).matches()) {
+    // scriptId input validation. "+" (not "*"): an empty scriptId should fail here with a clear
+    // "should consist of..." reason rather than falling through to a less specific "not found".
+    if (!Pattern.compile("^[a-zA-Z0-9.\\-_]+$").matcher(scriptId).matches()) {
       throwException(HttpStatus.BAD_REQUEST,
           "String scriptId (" + scriptId + ") should consists of alphanumerics, '.', '-' and '_'.");
     }
@@ -359,7 +360,11 @@ public class CommandApiService {
       commandList.add("/c");
     }
     commandList.add(scriptFile.getAbsolutePath());
-    commandList.addAll(Arrays.asList(paramsString.split(" ")));
+    // String.split(" ") on an empty string returns {""}, which would otherwise pass a spurious
+    // empty-string first argument to the script when no parameters were specified at all.
+    if (!paramsString.isEmpty()) {
+      commandList.addAll(Arrays.asList(paramsString.split(" ")));
+    }
 
     Runtime runtime = Runtime.getRuntime();
     Process p;
