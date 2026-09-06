@@ -21,38 +21,19 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
 import jp.ecuacion.lib.core.logging.DetailLogger;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
 import org.slf4j.event.Level;
 
 /**
  * Provides the indented {@link DetailLogger} logging shared by the DB-facing bl classes.
  */
-public class LogUtil {
+public class AppLogUtil extends SplibLogUtil {
 
   /**
    * Prevents other classes from instantiating it.
    */
-  private LogUtil() {
+  private AppLogUtil() {
 
-  }
-
-  private static final String INDENT_STRING = "  ";
-
-  /**
-   * Logs {@code message} indented {@code indents} levels deep.
-   *
-   * @param detailLogger the logger to write to
-   * @param logLevel the level to log at
-   * @param message the message to log
-   * @param indents the indent depth
-   */
-  public static void dlogWithIndent(DetailLogger detailLogger, Level logLevel, String message,
-      int indents) {
-    String indentsString = "";
-    for (int i = 0; i < indents; i++) {
-      indentsString += INDENT_STRING;
-    }
-
-    detailLogger.log(logLevel, indentsString + message);
   }
 
   /**
@@ -73,7 +54,7 @@ public class LogUtil {
     String bindsText = bindValues.isEmpty() ? ""
         : " [binds: " + bindValues.stream().map(String::valueOf).collect(Collectors.joining(", "))
             + "]";
-    dlogWithIndent(detailLogger, Level.TRACE, sqlName + " SQL: " + sql + bindsText, indents);
+    trace(detailLogger, sqlName + " SQL: " + sql + bindsText, indents);
 
     PreparedStatement stmt = conn.prepareStatement(sql);
     try {
@@ -104,7 +85,7 @@ public class LogUtil {
   public static void logDeleteLines(DetailLogger detailLogger, String table, int count,
       String condition, Level logLevel, int indents) {
     if (logLevel != null) {
-      dlogWithIndent(detailLogger, logLevel,
+      log(detailLogger, logLevel,
           table + ": " + count + " record(s) deleted. (" + condition + ")", indents);
     }
   }

@@ -24,7 +24,7 @@ import java.util.Map;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DeleteTargetInfo;
-import jp.ecuacion.tool.housekeepdb.util.LogUtil;
+import jp.ecuacion.tool.housekeepdb.util.AppLogUtil;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil;
 import jp.ecuacion.tool.housekeepdb.util.SqlUtil.SqlFragment;
 import org.apache.commons.lang3.StringUtils;
@@ -101,7 +101,7 @@ public class RecordDeleter {
     SqlFragment where = SqlUtil.getWhere(whereList);
     String sql = (isSoftDelete ? softDeleteSql : hardDeleteSql) + where.sql();
 
-    PreparedStatement delStmt = LogUtil.getStatement(detailLogger, conn, sql,
+    PreparedStatement delStmt = AppLogUtil.getStatement(detailLogger, conn, sql,
         SqlUtil.concatBindValues(set, where), "delete", indents);
     int count = delStmt.executeUpdate();
 
@@ -109,7 +109,7 @@ public class RecordDeleter {
 
     delStmt.close();
 
-    LogUtil.logDeleteLines(detailLogger, target.getTargetTable(), count,
+    AppLogUtil.logDeleteLines(detailLogger, target.getTargetTable(), count,
         target.getDeleteKeyColumnInfo().getColumn() + " = " + keyValue, Level.TRACE, indents);
   }
 }
