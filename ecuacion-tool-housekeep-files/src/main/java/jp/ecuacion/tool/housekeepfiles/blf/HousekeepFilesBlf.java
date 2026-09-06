@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
@@ -32,6 +33,8 @@ import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.other.HousekeepFilesExpandedPathsInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
+import org.jspecify.annotations.Nullable;
+import org.springframework.core.env.Environment;
 
 /**
  * Provides business logics for housekeeping files.
@@ -54,8 +57,22 @@ public class HousekeepFilesBlf {
 
   /**
    * Executes housekeeping.
+   *
+   * <p>Convenience overload for callers with no Spring Environment (e.g. most existing unit
+   * tests) - only built-in path variables (SYS_NAME/YYYYMMDD/TIMESTAMP/HOSTNAME) resolve.</p>
    */
   public void execute(HousekeepFilesForm form) throws Exception {
+    execute(form, null);
+  }
+
+  /**
+   * Executes housekeeping.
+   *
+   * @param env the Spring Environment used to resolve ${VAR} references in srcPath/destPath
+   *     that aren't one of the built-in variables (SYS_NAME/YYYYMMDD/TIMESTAMP/HOSTNAME); may be
+   *     {@code null}, in which case only built-in variables resolve.
+   */
+  public void execute(HousekeepFilesForm form, @Nullable Environment env) throws Exception {
     // Log output.
     logJobStartMsg(form);
 
@@ -65,18 +82,18 @@ public class HousekeepFilesBlf {
     // Cross-record and cross-data-type validation.
     bl.consistencyCheckBetweenMultipleData(form);
 
-    // Build envVarInfo as a Map.
-    Map<String, String> envVarInfoMap = bl.createPathInfoMap(form);
+    // Build the ${VAR} value resolver: built-in variables + env fallback.
+    Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap(form);
+    Function<String, String> envVarValueGetter =
+        bl.createEnvVarValueGetter(builtInVariableMap, env);
 
     // Build authInfo as a Map. The key is "<server name>-<protocol>".
     final Map<String, HousekeepFilesAuthRecord> authMap =
         form.getAuthInfoRecList().stream().collect(
             Collectors.toMap(rec -> rec.getRemoteServer() + "-" + rec.getProtocol(), rec -> rec));
 
-    // Verify that environment variables in srcPath and destPath exist in envVarInfoMap,
-    // and set the expanded paths.
-    bl.envVarExistenceCheckAndSetEnvBarExpandedPaths(form.getTaskInfoHdRec().recList,
-        envVarInfoMap);
+    // Resolve ${VAR} references in every task's srcPath/destPath up front (fails fast).
+    bl.setEnvVarValueGetterOnTasks(form.getTaskInfoHdRec().recList, envVarValueGetter);
 
     // Per-task processing below.
     // Ideally the following would be a single loop, but grouping task creation and checks first

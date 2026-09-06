@@ -16,12 +16,14 @@
 package jp.ecuacion.tool.housekeepfiles.dto.record;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import java.util.Map;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.lib.validation.constraints.BooleanString;
 import jp.ecuacion.lib.validation.constraints.EnumElement;
@@ -200,6 +202,48 @@ class HousekeepFilesTaskRecordTest {
           null, "aPath", "TRUE", "DAY", "7", "無視", "aPath", "TRUE", "FALSE", "IGNORE", null);
 
       assertSingleViolation(validate(rec), EnumElement.class, "actionForNoSrcPathEnumName");
+    }
+  }
+
+  @Nested
+  @DisplayName("setEnvVarValueGetter()")
+  class SetEnvVarValueGetter {
+
+    private HousekeepFilesTaskRecord recordWithPaths(String srcPath, String destPath) {
+      return new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE", null, srcPath, "FALSE",
+          "DAY", "0", "IGNORE", destPath, "FALSE", "TRUE", "IGNORE", null);
+    }
+
+    @Test
+    @DisplayName("expands ${VAR} references using the given resolver")
+    void expandsVariables() {
+      HousekeepFilesTaskRecord rec =
+          recordWithPaths("${BASE_DIR}/from", "${BASE_DIR}/to");
+
+      rec.setEnvVarValueGetter(
+          Map.of("BASE_DIR", "/tmp/base-dir")::get);
+
+      assertThat(rec.getEnvVarExpandedSrcPath()).isEqualTo("/tmp/base-dir/from");
+      assertThat(rec.getEnvVarExpandedDestPath()).isEqualTo("/tmp/base-dir/to");
+    }
+
+    @Test
+    @DisplayName("collapses repeated '/' after expansion")
+    void collapsesRepeatedSlashes() {
+      HousekeepFilesTaskRecord rec = recordWithPaths("${BASE_DIR}/from", "aPath");
+
+      rec.setEnvVarValueGetter(Map.of("BASE_DIR", "/tmp/base-dir/")::get);
+
+      assertThat(rec.getEnvVarExpandedSrcPath()).isEqualTo("/tmp/base-dir/from");
+    }
+
+    @Test
+    @DisplayName("throws when a referenced variable cannot be resolved")
+    void throwsWhenVariableUnresolved() {
+      HousekeepFilesTaskRecord rec = recordWithPaths("${UNDEFINED_VAR}/from", "aPath");
+
+      assertThatThrownBy(() -> rec.setEnvVarValueGetter(key -> null))
+          .isInstanceOf(RuntimeException.class);
     }
   }
 }
