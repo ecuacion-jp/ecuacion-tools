@@ -338,6 +338,21 @@ public class CommandApiService {
               + "' was not found. See the server log for details.");
     }
 
+    // Cause an error if scriptFilePath points to a directory rather than a file. A directory
+    // passes both exists() and canExecute() (its executable bit / ACL means "traversable", not
+    // "runnable"), and leaving this to Runtime.exec() below fails inconsistently across
+    // platforms: on Linux/macOS the OS itself refuses to exec a directory (an IOException,
+    // caught further down), but on Windows the script runs via "cmd.exe /c <path>", and
+    // cmd.exe is itself a real, valid executable that starts successfully regardless, only
+    // failing silently inside its own interpretation of the argument. Checking explicitly here
+    // makes the failure mode (and the "Failed to start" message) the same on every platform.
+    if (scriptFile.isDirectory()) {
+      throwServerConfigError(
+          "Failed to start scriptId '" + scriptId + "' (" + scriptFile.getAbsolutePath()
+              + "): is a directory, not a file.",
+          "Failed to start scriptId '" + scriptId + "'. See the server log for details.");
+    }
+
     // Cause an error if scriptFilePath is not executable
     if (!scriptFile.canExecute()) {
       throwException(HttpStatus.INTERNAL_SERVER_ERROR,

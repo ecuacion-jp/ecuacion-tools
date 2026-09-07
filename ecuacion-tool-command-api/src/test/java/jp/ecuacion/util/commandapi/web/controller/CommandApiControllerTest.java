@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import jp.ecuacion.splib.rest.apikey.SplibApiKeyAuthenticationFilter;
@@ -68,11 +69,20 @@ class CommandApiControllerTest {
       "jp.ecuacion.tool.command-api.api-key-file-path";
   private static final String CORRECT_API_KEY = "s3cr3t-key";
 
+  private static boolean isWindows() {
+    return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+  }
+
+  /**
+   * Windows has no shebang mechanism (see {@code CommandApiService.isWindows()}) and cmd.exe
+   * cannot run a {@code .sh} file at all, so a {@code .bat} script is written there instead.
+   */
   private static Path createExecutableScript() {
     try {
       Path dir = Files.createTempDirectory("command-api-test-script");
-      Path script = dir.resolve("sayHello.sh");
-      Files.writeString(script, "#!/bin/bash\necho hello\n");
+      Path script = dir.resolve(isWindows() ? "sayHello.bat" : "sayHello.sh");
+      Files.writeString(script,
+          isWindows() ? "@echo off\r\necho hello\r\n" : "#!/bin/bash\necho hello\n");
       script.toFile().setExecutable(true);
       return script;
     } catch (IOException e) {
@@ -140,8 +150,10 @@ class CommandApiControllerTest {
   private static Path createStdoutAndStderrScript() {
     try {
       Path dir = Files.createTempDirectory("command-api-test-script");
-      Path script = dir.resolve("stdoutAndStderr.sh");
-      Files.writeString(script, "#!/bin/bash\necho out-line\necho err-line >&2\n");
+      Path script = dir.resolve(isWindows() ? "stdoutAndStderr.bat" : "stdoutAndStderr.sh");
+      Files.writeString(script,
+          isWindows() ? "@echo off\r\necho out-line\r\necho err-line 1>&2\r\n"
+              : "#!/bin/bash\necho out-line\necho err-line >&2\n");
       script.toFile().setExecutable(true);
       return script;
     } catch (IOException e) {
