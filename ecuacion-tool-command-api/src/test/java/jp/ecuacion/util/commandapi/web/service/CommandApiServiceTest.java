@@ -345,8 +345,14 @@ class CommandApiServiceTest {
   void commaSeparatedParametersAreSplitIntoSeparateArguments() throws Exception {
     Path script = createExecutableScript(
         "#!/bin/bash\necho \"count:$#\"\necho \"1:$1\"\necho \"2:$2\"\n",
-        "@echo off\r\nset count=0\r\nfor %%A in (%*) do set /a count+=1\r\n"
-            + "echo count:%count%\r\necho 1:%1\r\necho 2:%2\r\n");
+        """
+        @echo off\r
+        set count=0\r
+        for %%A in (%*) do set /a count+=1\r
+        echo count:%count%\r
+        echo 1:%1\r
+        echo 2:%2\r
+        """);
     CommandApiService service = newService("ALL:" + script);
 
     Map<String, String> result =
