@@ -408,6 +408,13 @@ public class CommandApiService {
     // output.
     boolean finishedInTime = p.waitFor(scriptTimeoutSeconds, TimeUnit.SECONDS);
     if (!finishedInTime) {
+      // scriptFile is run through its shebang interpreter (e.g. bash), so p is that interpreter
+      // process, not necessarily the actual workload: a shell script whose last line is a single
+      // command isn't always exec-replaced by the shell, in which case the workload runs as a
+      // child of p. Killing only p then leaves that child holding the stdout/stderr pipes open,
+      // and the reader threads above would block on read() forever. Kill the whole descendant
+      // tree first so those pipes actually close.
+      p.descendants().forEach(ProcessHandle::destroyForcibly);
       p.destroyForcibly();
       stdoutThread.join();
       stderrThread.join();
