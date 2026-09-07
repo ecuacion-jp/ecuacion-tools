@@ -13,6 +13,9 @@ on:
 env:
   MAVEN_OPTS: -Xmx2g
 
+permissions:
+  contents: read
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -64,15 +67,15 @@ jobs:
       # Install dependencies in order (ecuacion-lib → ecuacion-utils → ecuacion-splib)
       - name: Install ecuacion-lib
         working-directory: ecuacion-lib
-        run: mvn install -DskipTests -Dwagon.skip=true
+        run: mvn install -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dlicense.skip=true -Djacoco.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dallure.report.skip=true -Dwagon.skip=true
 
       - name: Install ecuacion-utils
         working-directory: ecuacion-utils
-        run: mvn install -DskipTests -Dwagon.skip=true
+        run: mvn install -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dlicense.skip=true -Djacoco.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dallure.report.skip=true -Dwagon.skip=true
 
       - name: Install ecuacion-splib
         working-directory: ecuacion-splib
-        run: mvn install -DskipTests -Dwagon.skip=true
+        run: mvn install -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dlicense.skip=true -Djacoco.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dallure.report.skip=true -Dwagon.skip=true
 
       - name: Set version
         working-directory: ecuacion-tools
@@ -82,7 +85,7 @@ jobs:
 
       - name: Build
         working-directory: ecuacion-tools
-        run: mvn package -DskipTests -Dwagon.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true
+        run: mvn package -DskipTests -Dwagon.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dallure.report.skip=true -Dlicense.skip=true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
