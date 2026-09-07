@@ -220,7 +220,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
    */
   @SuppressWarnings("unused")
   public void setEnvVarValueGetter(Function<String, String> envVarValueGetter) {
-    this.envVarValueGetter = envVarValueGetter == null ? (key -> null) : envVarValueGetter;
+    this.envVarValueGetter = envVarValueGetter == null ? key -> null : envVarValueGetter;
 
     // Retrieve pathInfoMap. Also expand environment variables in srcPath and destPath
     // during retrieval.
