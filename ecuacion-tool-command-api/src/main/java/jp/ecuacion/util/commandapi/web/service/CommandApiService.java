@@ -307,11 +307,20 @@ public class CommandApiService {
 
     String scriptFilePath = scriptDefinition.scriptFilePath();
 
-    // scriptFilePath input validation
-    if (!Pattern.compile("^[a-zA-Z0-9/.\\-_\\$\\{\\}]*$").matcher(scriptFilePath).matches()) {
+    // scriptFilePath input validation.
+    // A path can legitimately contain non-ASCII characters (e.g. Japanese) and OS-specific
+    // separators (Windows uses '\' and a drive-letter colon, e.g. "C:\scripts\script.bat"), so
+    // this blocks a denylist of dangerous characters rather than restricting to an ASCII
+    // whitelist. On Windows the script is run via "cmd.exe /c", which re-parses metacharacters
+    // (e.g. '&', '|', '<', '>', '^', '%', quotes) within each argument of the command line,
+    // allowing argument injection into cmd.exe itself; control characters (e.g. an embedded
+    // newline) are blocked for the same reason. '$', '{', '}' are deliberately left unblocked:
+    // they are needed for the "${VAR}" placeholder syntax resolved just below.
+    if (Pattern.compile("[&|<>^%\"'\\p{Cntrl}]").matcher(scriptFilePath).find()) {
       throwServerConfigError(
           "scriptId '" + scriptId + "': registered script file path (" + scriptFilePath
-              + ") should consists of alphanumerics, '.', '-', '_', '/', '$', '{', '}'.",
+              + ") must not contain any of '&', '|', '<', '>', '^', '%', '\"', a single quote, "
+              + "or control characters.",
           "scriptId '" + scriptId + "' has an invalid script file path registered. "
               + "See the server log for details.");
     }
