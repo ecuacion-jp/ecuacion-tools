@@ -152,7 +152,10 @@ class CommandApiControllerTest {
       Path dir = Files.createTempDirectory("command-api-test-script");
       Path script = dir.resolve(isWindows() ? "stdoutAndStderr.bat" : "stdoutAndStderr.sh");
       Files.writeString(script,
-          isWindows() ? "@echo off\r\necho out-line\r\necho err-line 1>&2\r\n"
+          // No space before ">&2", and no explicit "1" handle (">" already defaults to stdout):
+          // cmd.exe strips only the redirection token itself, so "err-line 1>&2" (with a space)
+          // would leave a trailing space in the echoed text.
+          isWindows() ? "@echo off\r\necho out-line\r\necho err-line>&2\r\n"
               : "#!/bin/bash\necho out-line\necho err-line >&2\n");
       script.toFile().setExecutable(true);
       return script;
