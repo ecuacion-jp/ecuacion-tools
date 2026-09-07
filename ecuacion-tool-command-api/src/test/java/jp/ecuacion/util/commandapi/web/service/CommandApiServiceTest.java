@@ -25,9 +25,12 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -101,11 +104,22 @@ class CommandApiServiceTest {
     assertTrue(Objects.requireNonNull(ex.getMessage()).contains("api-key-file-path"));
   }
 
-  private static Path createExecutableScript(String scriptBody) {
+  private static boolean isWindows() {
+    return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+  }
+
+  /**
+   * Creates a temporary executable script, choosing the body appropriate for the OS the test is
+   * actually running on: Windows has no shebang mechanism (see
+   * {@code CommandApiService.isWindows()}) and cmd.exe cannot run a {@code .sh} file at all, so
+   * {@code batchBody} is written to a {@code .bat} file there while {@code bashBody} is written
+   * to a {@code .sh} file everywhere else.
+   */
+  private static Path createExecutableScript(String bashBody, String batchBody) {
     try {
       Path dir = Files.createTempDirectory("command-api-service-test-script");
-      Path script = dir.resolve("script.sh");
-      Files.writeString(script, scriptBody);
+      Path script = dir.resolve(isWindows() ? "script.bat" : "script.sh");
+      Files.writeString(script, isWindows() ? batchBody : bashBody);
       script.toFile().setExecutable(true);
       return script;
     } catch (IOException e) {
@@ -150,6 +164,11 @@ class CommandApiServiceTest {
   }
 
   @Test
+  @DisabledOnOs(OS.WINDOWS)
+  // Windows has no POSIX-style execute permission bit: File.setExecutable(false) / canExecute()
+  // don't reliably reflect a "not runnable" file there (NTFS determines runnability by
+  // extension/ACL, not a bit toggleable this way), so this scenario isn't reproducible on
+  // Windows the way it is on Linux/macOS.
   void scriptFileNotExecutableIsRejected() throws IOException {
     Path dir = Files.createTempDirectory("command-api-service-test-noexec");
     Path script = dir.resolve("script.sh");
@@ -214,8 +233,10 @@ class CommandApiServiceTest {
   @Test
   void scriptPathPointingToADirectoryFailsToStart() throws IOException {
     // A directory passes both exists() and canExecute() (its executable bit means
-    // "traversable", not "runnable"), so this can only be caught once Runtime.exec() itself
-    // rejects it — verifying that failure is reported clearly rather than as a generic error.
+    // "traversable", not "runnable"), so CommandApiService checks isDirectory() explicitly
+    // rather than relying on Runtime.exec() to reject it — that failure mode isn't portable
+    // (on Windows the script runs via "cmd.exe /c <path>", and cmd.exe itself starts fine
+    // regardless, so it would never surface as an exec-time IOException there).
     Path dir = Files.createTempDirectory("command-api-service-test-dir-as-script");
     CommandApiService service = newService("ALL:" + dir);
 
@@ -246,7 +267,11 @@ class CommandApiServiceTest {
   void hangingScriptIsKilledAfterTimeout() throws Exception {
     // A script that never exits on its own (no output either, exercising the case the read
     // threads must be unblocked from too) is killed once script-timeout-seconds elapses.
-    Path script = createExecutableScript("#!/bin/bash\nsleep 60\n");
+    // ping is used to sleep on Windows rather than "timeout": the latter reads from stdin and
+    // fails immediately with "Input redirection is not supported" when launched the way
+    // CommandApiService launches it (no inherited console).
+    Path script =
+        createExecutableScript("#!/bin/bash\nsleep 60\n", "@echo off\r\nping -n 61 127.0.0.1 > nul\r\n");
 
     MockEnvironment env = new MockEnvironment();
     env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
@@ -283,7 +308,7 @@ class CommandApiServiceTest {
 
   @Test
   void outputWithinCapIsNotTruncated() throws Exception {
-    Path script = createExecutableScript("#!/bin/bash\necho hello\n");
+    Path script = createExecutableScript("#!/bin/bash\necho hello\n", "@echo off\r\necho hello\r\n");
     CommandApiService service = newService("ALL:" + script);
 
     Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
@@ -299,7 +324,8 @@ class CommandApiServiceTest {
   void outputExceedingCapIsTruncated() throws Exception {
     // Each echoed line is exactly 10 bytes; with a 10-byte cap the first line just fits and the
     // second is dropped (but the script itself still runs to completion either way).
-    Path script = createExecutableScript("#!/bin/bash\necho AAAAAAAAAA\necho BBBBBBBBBB\n");
+    Path script = createExecutableScript("#!/bin/bash\necho AAAAAAAAAA\necho BBBBBBBBBB\n",
+        "@echo off\r\necho AAAAAAAAAA\r\necho BBBBBBBBBB\r\n");
 
     MockEnvironment env = new MockEnvironment();
     env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
@@ -318,7 +344,9 @@ class CommandApiServiceTest {
   @Test
   void commaSeparatedParametersAreSplitIntoSeparateArguments() throws Exception {
     Path script = createExecutableScript(
-        "#!/bin/bash\necho \"count:$#\"\necho \"1:$1\"\necho \"2:$2\"\n");
+        "#!/bin/bash\necho \"count:$#\"\necho \"1:$1\"\necho \"2:$2\"\n",
+        "@echo off\r\nset count=0\r\nfor %%A in (%*) do set /a count+=1\r\n"
+            + "echo count:%count%\r\necho 1:%1\r\necho 2:%2\r\n");
     CommandApiService service = newService("ALL:" + script);
 
     Map<String, String> result =
@@ -334,7 +362,8 @@ class CommandApiServiceTest {
   void noParametersPassesNoArgumentsAtAll() throws Exception {
     // Regression test: paramsString.split(" ") on an empty string used to return {""}, passing a
     // spurious empty-string first argument ($# == 1) when no parameters were specified at all.
-    Path script = createExecutableScript("#!/bin/bash\necho \"count:$#\"\n");
+    Path script = createExecutableScript("#!/bin/bash\necho \"count:$#\"\n",
+        "@echo off\r\nset count=0\r\nfor %%A in (%*) do set /a count+=1\r\necho count:%count%\r\n");
     CommandApiService service = newService("ALL:" + script);
 
     Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
