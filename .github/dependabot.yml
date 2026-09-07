@@ -4,7 +4,7 @@ updates:
     directory: "/"
     schedule:
       interval: "cron"
-      cronjob: "0 9 20 * *"
+      cron: "0 9 20 * *"
       timezone: "Asia/Tokyo"
     target-branch: "develop"
     groups:
