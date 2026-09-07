@@ -41,14 +41,11 @@ public class HousekeepFilesForm {
   // Holds the auth list.
   private List<HousekeepFilesAuthRecord> authInfoRecList;
 
-  private static final String[] HEADER_LABELS_TASK = new String[] {"タスクID", "タスク名",
-      "処理パターン\n日本語名", "処理パターン", "接続先サーバ", "元パス",
-      "元パスディレクトリ", "元パス実施保留日数",
-      "元パス存在なし時処理", "先パス", "先パスディレクトリ", "先パス存在時上書き",
-      "先パス存在時処理"};
+  private static final String[] HEADER_LABELS_TASK =
+      new String[] {"タスクID", "タスク名", "処理パターン\n日本語名", "処理パターン", "接続先サーバ", "元パス", "元パスディレクトリ",
+          "元パス実施保留日数", "元パス存在なし時処理", "先パス", "先パスディレクトリ", "先パス存在時上書き", "先パス存在時処理"};
   private static final String[] HEADER_LABELS_AUTH =
-      new String[] {"サーバ名", "protocol", "port", "認証方式", "ユーザ名",
-          "password / passphrase", "秘密鍵パス"};
+      new String[] {"サーバ名", "protocol", "port", "認証方式", "ユーザ名", "password / passphrase", "秘密鍵パス"};
 
   /** only for unit-test. */
   @SuppressWarnings("null")
@@ -80,10 +77,10 @@ public class HousekeepFilesForm {
       taskInfoHdRec.recList =
           new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesTaskRecord>(
               HousekeepFilesTaskRecord.class, "タスク設定", HEADER_LABELS_TASK)
-                  .withIgnoresAdditionalColumnsOfHeaderData(true).readToBean(excelPath);
+                  .withIgnoresAdditionalColumnsOfHeaderData(true).readToBean(excelPath, true);
       authInfoRecList = new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesAuthRecord>(
-          HousekeepFilesAuthRecord.class, "サーバ認証設定", HEADER_LABELS_AUTH)
-              .readToBean(excelPath);
+          HousekeepFilesAuthRecord.class, "サーバ認証設定", HEADER_LABELS_AUTH).readToBean(excelPath,
+              true);
 
     } catch (Exception ex) {
       throw new RuntimeException(ex);

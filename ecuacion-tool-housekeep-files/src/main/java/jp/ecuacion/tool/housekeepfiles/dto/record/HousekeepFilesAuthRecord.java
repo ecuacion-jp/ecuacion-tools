@@ -22,13 +22,26 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.Arrays;
 import java.util.List;
+import jp.ecuacion.lib.validation.constraints.EnumElement;
+import jp.ecuacion.lib.validation.constraints.IntegerString;
+import jp.ecuacion.lib.validation.constraints.NotEmptyWhen;
+import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
 import jp.ecuacion.tool.housekeepfiles.enums.AuthTypeEnum;
+import jp.ecuacion.tool.housekeepfiles.enums.FileManipulateProtocolEnum;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.jspecify.annotations.Nullable;
 
 /**
  * Store Auth info.
  */
+// keyPath is required only when authType is KEY, since AbstractTaskSftp#getConnection()
+// unconditionally calls ssh.addIdentity(auth.getKeyPath()) in that case.
+@NotEmptyWhen(propertyPath = "keyPath", conditionPropertyPath = "authType",
+    conditionValue = ConditionValue.STRING, conditionValueString = "KEY")
+// password is required only when authType is PASSWORD; for KEY it is an optional passphrase,
+// and for KERBEROS it is unused.
+@NotEmptyWhen(propertyPath = "password", conditionPropertyPath = "authType",
+    conditionValue = ConditionValue.STRING, conditionValueString = "PASSWORD")
 @SuppressWarnings("NullAway.Init")
 public class HousekeepFilesAuthRecord extends StringExcelTableBean {
 
@@ -38,16 +51,20 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
   private String remoteServer;
 
   @NotEmpty
+  @EnumElement(enumClass = FileManipulateProtocolEnum.class)
   private String protocol;
 
   @NotEmpty
+  @IntegerString
   @DecimalMin(value = "0")
   @DecimalMax(value = "99999")
   private String port;
 
   @NotEmpty
+  @EnumElement(enumClass = AuthTypeEnum.class)
   private String authType;
 
+  @NotEmpty
   @Size(min = 1, max = 40)
   @Pattern(regexp = "^[^!\"#\\$%&'\\(\\)=\\^~\\\\\\|`\\[\\{;\\+:\\\\*\\]\\},<>/\\?]*$")
   private String userName;
@@ -78,8 +95,9 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
    * only for unit test.
    */
   @SuppressWarnings("null")
-  public HousekeepFilesAuthRecord(String remoteServer, String protocol, String port,
-      String authType, String userName, String password, String keyPath) {
+  public HousekeepFilesAuthRecord(@Nullable String remoteServer, @Nullable String protocol,
+      @Nullable String port, @Nullable String authType, @Nullable String userName,
+      @Nullable String password, @Nullable String keyPath) {
 
     super(Arrays.asList(
         new String[] {remoteServer, protocol, port, authType, userName, password, keyPath}));
