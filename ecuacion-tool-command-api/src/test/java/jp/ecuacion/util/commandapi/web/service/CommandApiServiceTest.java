@@ -115,7 +115,9 @@ class CommandApiServiceTest {
 
   @Test
   void scriptFilePathWithInvalidCharacterIsRejected() {
-    CommandApiService service = newService("ALL:/tmp/some#script.sh");
+    // '&' is a cmd.exe metacharacter (see the denylist in CommandApiService), unlike e.g. '#'
+    // or non-ASCII characters, which a script path may legitimately contain.
+    CommandApiService service = newService("ALL:/tmp/some&script.sh");
 
     ResponseStatusException ex = assertThrows(ResponseStatusException.class,
         () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
@@ -124,7 +126,7 @@ class CommandApiServiceTest {
     assertTrue(Objects.requireNonNull(ex.getReason()).contains(SCRIPT_ID));
     // The registered (invalid) path is server-side config detail; only scriptId is safe to
     // hand back.
-    assertFalse(Objects.requireNonNull(ex.getReason()).contains("some#script.sh"));
+    assertFalse(Objects.requireNonNull(ex.getReason()).contains("some&script.sh"));
   }
 
   @Test
