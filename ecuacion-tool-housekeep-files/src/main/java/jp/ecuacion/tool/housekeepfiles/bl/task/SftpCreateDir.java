@@ -17,8 +17,8 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.SftpException;
-import java.io.File;
 import java.util.List;
+import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
@@ -92,7 +92,7 @@ public class SftpCreateDir extends AbstractTaskSftp implements CreateDirInterfac
   private void createDirRecursively(ChannelSftp channel, HousekeepFilesTaskRecord taskRec,
       String destPath) throws SftpException {
 
-    String parentPath = new File(destPath).getParent();
+    String parentPath = FileUtil.getParentDirPath(destPath);
 
     if (!remoteExists(channel, parentPath)) {
       // If the parent does not exist, recursively create the parent directory.
