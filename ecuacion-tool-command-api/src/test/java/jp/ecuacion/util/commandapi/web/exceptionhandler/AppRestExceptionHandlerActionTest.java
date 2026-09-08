@@ -17,7 +17,7 @@ package jp.ecuacion.util.commandapi.web.exceptionhandler;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-
+import java.util.Objects;
 import jp.ecuacion.splib.core.exceptionhandler.SplibRestExceptionHandlerAction;
 import jp.ecuacion.splib.core.util.SplibMailUtil;
 import org.assertj.core.api.Assertions;
@@ -35,6 +35,7 @@ class AppRestExceptionHandlerActionTest {
   @Test
   @DisplayName("implements SplibRestExceptionHandlerAction")
   void implementsRestActionInterface() {
+    @SuppressWarnings("null")
     AppRestExceptionHandlerAction action = new AppRestExceptionHandlerAction(mock(SplibMailUtil.class));
 
     Assertions.assertThat(action).isInstanceOf(SplibRestExceptionHandlerAction.class);
@@ -43,7 +44,7 @@ class AppRestExceptionHandlerActionTest {
   @Test
   @DisplayName("execute sends an error mail for the given throwable")
   void executeSendsErrorMail() {
-    SplibMailUtil splibMailUtil = mock(SplibMailUtil.class);
+    SplibMailUtil splibMailUtil = Objects.requireNonNull(mock(SplibMailUtil.class));
     AppRestExceptionHandlerAction action = new AppRestExceptionHandlerAction(splibMailUtil);
     RuntimeException exception = new RuntimeException("test");
 
