@@ -132,8 +132,10 @@ class HousekeepFilesBlfTest {
       File zippedFile1 = new File(fromFile1.getAbsolutePath() + ".zip");
       File zippedFile2 = new File(fromFile2.getAbsolutePath() + ".zip");
 
+      // Built via java.io.File rather than Path#resolve: on Windows, Path validates
+      // characters eagerly and rejects "*" with InvalidPathException.
       HousekeepFilesForm form = form("test-system",
-          zipDeleteOrigRecord(tempDir.resolve("test*.txt").toString()));
+          zipDeleteOrigRecord(new File(tempDir.toFile(), "test*.txt").getAbsolutePath()));
 
       assertThat(zippedFile1).doesNotExist();
       assertThat(zippedFile2).doesNotExist();
