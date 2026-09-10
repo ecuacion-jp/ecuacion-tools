@@ -55,6 +55,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
+import org.springframework.mock.env.MockEnvironment;
 
 /**
  * Integration tests for {@link HousekeepDbTasklet}, common to every supported database.
@@ -1358,6 +1359,67 @@ abstract class AbstractHousekeepDbTaskletTest {
       assertThat(countRows("select count(*) from loc_parent where num1 = 2 and rem_flg = false"))
           .isEqualTo(1);
       assertThat(countRows("select count(*) from loc_child where rem_flg = true")).isEqualTo(1);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // DB Connection Settings: password ${VAR} expansion
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("DB Connection Settings: password ${VAR} expansion")
+  class PasswordVarExpansion {
+
+    @Test
+    @DisplayName("a ${VAR} reference in the password column resolves via the Spring Environment "
+        + "and successfully connects, keeping the actual password out of the settings excel file")
+    void passwordVarReferenceIsResolvedViaEnvironment() throws Exception {
+      execute("create table pw_var (num1 integer primary key, char1 varchar(20))");
+      execute("insert into pw_var values (1, 'a')");
+
+      String[] row = dbConnectionRow("conn1");
+      String actualPassword = row[8];
+      row[8] = "${DB_PASSWORD}";
+
+      Path excel = buildExcelFile(List.<String[]>of(row),
+          List.<String[]>of(
+              new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "pw_var", "num1",
+                  "(none)", null, null, null, null, null, null, null, null}),
+          List.of(), List.of());
+
+      MockEnvironment env = new MockEnvironment();
+      env.setProperty("DB_PASSWORD", actualPassword);
+      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(excel.toString(), 1000);
+      tasklet.env = env;
+
+      RepeatStatus status =
+          tasklet.execute(mock(StepContribution.class), mock(ChunkContext.class));
+
+      assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+      assertThat(countRows("select count(*) from pw_var")).isZero();
+    }
+
+    @Test
+    @DisplayName("a ${VAR} reference that cannot be resolved (no Environment) fails fast before "
+        + "any deletion is attempted")
+    void unresolvedPasswordVarReferenceFailsFast() throws Exception {
+      execute("create table pw_var_unresolved (num1 integer primary key)");
+      execute("insert into pw_var_unresolved values (1)");
+
+      String[] row = dbConnectionRow("conn1");
+      row[8] = "${DB_PASSWORD}";
+
+      Path excel = buildExcelFile(List.<String[]>of(row),
+          List.<String[]>of(
+              new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "pw_var_unresolved",
+                  "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(), List.of());
+
+      // No env set on the tasklet (as when it isn't Spring-managed), so "${DB_PASSWORD}" cannot
+      // resolve.
+      assertThatThrownBy(() -> runTasklet(excel)).isInstanceOf(RuntimeException.class);
+
+      assertThat(countRows("select count(*) from pw_var_unresolved")).isEqualTo(1);
     }
   }
 }
