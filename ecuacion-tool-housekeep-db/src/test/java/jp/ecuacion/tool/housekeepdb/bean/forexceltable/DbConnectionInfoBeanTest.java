@@ -121,4 +121,44 @@ class DbConnectionInfoBeanTest {
         Arguments.of("password", new DbConnectionInfoBean("conn1", "org.postgresql.Driver",
             "postgresql", "localhost", "5432", "mydb", "public", "user1", "")));
   }
+
+  // -------------------------------------------------------------------------
+  // password ${VAR} expansion
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("password")
+  class Password {
+
+    @Test
+    @DisplayName("getPassword() returns the raw Excel value when setEnvVarValueGetter was never "
+        + "called")
+    void getPasswordReturnsRawValueByDefault() {
+      assertThat(valid().getPassword()).isEqualTo("pass1");
+    }
+
+    @Test
+    @DisplayName("getPassword() expands a ${VAR} reference via the resolver set through "
+        + "setEnvVarValueGetter(), so a secret can be kept out of the settings Excel file")
+    void getPasswordExpandsEnvVarReference() {
+      DbConnectionInfoBean bean = new DbConnectionInfoBean("conn1", "org.postgresql.Driver",
+          "postgresql", "localhost", "5432", "mydb", "public", "user1", "${DB_PASSWORD}");
+
+      bean.setEnvVarValueGetter(key -> "DB_PASSWORD".equals(key) ? "secret-value" : null);
+
+      assertThat(bean.getPassword()).isEqualTo("secret-value");
+    }
+
+    @Test
+    @DisplayName("setPassword() clears a previously-computed expansion")
+    void setPasswordClearsExpansion() {
+      DbConnectionInfoBean bean = new DbConnectionInfoBean("conn1", "org.postgresql.Driver",
+          "postgresql", "localhost", "5432", "mydb", "public", "user1", "${DB_PASSWORD}");
+      bean.setEnvVarValueGetter(key -> "DB_PASSWORD".equals(key) ? "secret-value" : null);
+
+      bean.setPassword("plainPassword");
+
+      assertThat(bean.getPassword()).isEqualTo("plainPassword");
+    }
+  }
 }

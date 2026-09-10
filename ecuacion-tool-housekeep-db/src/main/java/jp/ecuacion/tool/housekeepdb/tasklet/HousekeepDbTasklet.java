@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
@@ -32,6 +33,7 @@ import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepMainTableDeleter;
 import jp.ecuacion.util.excel.util.ExcelReadUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.jspecify.annotations.Nullable;
@@ -39,7 +41,9 @@ import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 /**
@@ -62,6 +66,11 @@ public class HousekeepDbTasklet implements Tasklet {
   @FileExtension(".xlsx")
   private final @Nullable String excelPath;
   private final int maxSelectLines;
+
+  // Not set when this tasklet is instantiated directly (e.g. in tests) instead of through Spring.
+  @Autowired(required = false)
+  @Nullable
+  Environment env;
 
   /**
    * Creates the tasklet, reading the excel file path and the per-commit row limit from the
@@ -98,6 +107,14 @@ public class HousekeepDbTasklet implements Tasklet {
     Map<String, DbConnectionInfoBean> dbConnectionInfoMap = configLoader.getDbConnectionInfoMap();
     List<HousekeepInfoBean> housekeepInfoList = configLoader.getHousekeepInfoList();
 
+    // Resolve ${VAR} references in every DB connection's password up front (fails fast), so the
+    // actual secret can be kept out of the settings Excel file and supplied via environment
+    // variable instead (e.g. "${DB_PASSWORD}").
+    Function<String, String> envVarValueGetter = createEnvVarValueGetter();
+    for (DbConnectionInfoBean dbInfo : dbConnectionInfoMap.values()) {
+      dbInfo.setEnvVarValueGetter(envVarValueGetter);
+    }
+
     if (housekeepInfoList.isEmpty()) {
       detailLogger.warn("\"Housekeep DB Settings\" sheet has no data rows. Nothing to do.");
     }
@@ -118,6 +135,22 @@ public class HousekeepDbTasklet implements Tasklet {
     detailLogger.info("housekeep-db finished successfully.");
 
     return RepeatStatus.FINISHED;
+  }
+
+  /**
+   * Builds the ${VAR} value resolver used to expand DB connection passwords: resolves via
+   * {@code env} (application.properties, OS environment variables, JVM system properties,
+   * command-line arguments - anything Spring Boot's Environment can resolve). {@code env} may be
+   * {@code null} (e.g. when exercised outside of Spring, such as in unit tests), in which case
+   * every key resolves to {@code null} (i.e. "not found"). An empty-string property value also
+   * resolves to {@code null} rather than silently expanding to an empty password.
+   */
+  /** Package-private for unit testing. */
+  Function<String, String> createEnvVarValueGetter() {
+    return key -> {
+      String value = env == null ? null : env.getProperty(key);
+      return StringUtils.isEmpty(value) ? null : value;
+    };
   }
 
   private String validateExcelPath() {
