@@ -24,6 +24,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Map;
+import jp.ecuacion.lib.core.exception.ViolationException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.lib.validation.constraints.BooleanString;
 import jp.ecuacion.lib.validation.constraints.EnumElement;
@@ -202,6 +204,76 @@ class HousekeepFilesTaskRecordTest {
           null, "aPath", "TRUE", "7", "無視", "aPath", "TRUE", "FALSE", "IGNORE");
 
       assertSingleViolation(validate(rec), EnumElement.class, "actionForNoSrcPathEnumName");
+    }
+  }
+
+  @Nested
+  @DisplayName("afterReading(): source path fields must be all empty or all filled")
+  class AfterReadingSrcPathFields {
+
+    private HousekeepFilesTaskRecord record(@Nullable String srcPath,
+        @Nullable String isSrcPathDirEnumName, @Nullable String value,
+        @Nullable String actionForNoSrcPathEnumName) {
+      return new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE", null, srcPath,
+          isSrcPathDirEnumName, value, actionForNoSrcPathEnumName, "aPath", "TRUE", "TRUE",
+          "IGNORE");
+    }
+
+    @Test
+    @DisplayName("all empty: passes")
+    void allEmpty() {
+      record(null, null, null, null).afterReading();
+    }
+
+    @Test
+    @DisplayName("all filled: passes")
+    void allFilled() {
+      record("aPath", "TRUE", "7", "IGNORE").afterReading();
+    }
+
+    @Test
+    @DisplayName("partially filled: throws MSG_ERR_FIELDS_ARE_EITHER_ALL_EMPTY_OR_ALL_NOT_EMPTY")
+    void partiallyFilled() {
+      assertThatThrownBy(() -> record("aPath", null, null, null).afterReading())
+          .isInstanceOfSatisfying(ViolationException.class,
+              ex -> assertThat(ex.getViolations().getBusinessViolations())
+                  .extracting(BusinessViolation::getMessageId)
+                  .containsExactly("MSG_ERR_FIELDS_ARE_EITHER_ALL_EMPTY_OR_ALL_NOT_EMPTY"));
+    }
+  }
+
+  @Nested
+  @DisplayName("afterReading(): destination path fields must be all empty or all filled")
+  class AfterReadingDestPathFields {
+
+    private HousekeepFilesTaskRecord record(@Nullable String destPath,
+        @Nullable String isDestPathDirEnumName, @Nullable String doesOverwriteDestPathEnumName,
+        @Nullable String actionForDestFileExistsEnumName) {
+      return new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "DELETE", null, "aPath", "TRUE",
+          "7", "IGNORE", destPath, isDestPathDirEnumName, doesOverwriteDestPathEnumName,
+          actionForDestFileExistsEnumName);
+    }
+
+    @Test
+    @DisplayName("all empty: passes")
+    void allEmpty() {
+      record(null, null, null, null).afterReading();
+    }
+
+    @Test
+    @DisplayName("all filled: passes")
+    void allFilled() {
+      record("aPath", "TRUE", "FALSE", "IGNORE").afterReading();
+    }
+
+    @Test
+    @DisplayName("partially filled: throws MSG_ERR_FIELDS_ARE_EITHER_ALL_EMPTY_OR_ALL_NOT_EMPTY")
+    void partiallyFilled() {
+      assertThatThrownBy(() -> record("aPath", "TRUE", null, null).afterReading())
+          .isInstanceOfSatisfying(ViolationException.class,
+              ex -> assertThat(ex.getViolations().getBusinessViolations())
+                  .extracting(BusinessViolation::getMessageId)
+                  .containsExactly("MSG_ERR_FIELDS_ARE_EITHER_ALL_EMPTY_OR_ALL_NOT_EMPTY"));
     }
   }
 

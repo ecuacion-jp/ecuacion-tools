@@ -61,6 +61,7 @@ class AbstractTaskTest {
       }
     }
 
+    @SuppressWarnings("null")
     static Stream<Arguments> provideCheckPatterns() {
       return Stream.of(
           Arguments.of(TaskAttrCheckPtnEnum.REQUIRED, null, "MSG_ERR_TASK_REQUIRED_CHECK"),
