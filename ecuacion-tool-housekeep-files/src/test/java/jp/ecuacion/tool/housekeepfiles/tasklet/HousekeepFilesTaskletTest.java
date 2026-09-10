@@ -49,11 +49,12 @@ class HousekeepFilesTaskletTest {
 
   /**
    * Writes a settings excel file whose sheet names and header labels are localized to "en", the
-   * same way {@link HousekeepFilesTasklet} (via {@link jp.ecuacion.tool.housekeepfiles.dto.form.
-   * HousekeepFilesForm}) localizes them when reading it back from the "locale" row of the "Info"
-   * sheet. Exercises the real Excel-reading path end to end (unlike the other tests here, which
-   * only cover pre-read validation), including {@link jp.ecuacion.tool.housekeepfiles.reader.
-   * ExcelInfoListReader}'s ja-then-en header-label fallback for the "Info" sheet.
+   * same way {@link HousekeepFilesTasklet} (via
+   * {@link jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm}) localizes them when
+   * reading it back from the "locale" row of the "Info" sheet. Exercises the real Excel-reading
+   * path end to end (unlike the other tests here, which only cover pre-read validation),
+   * including {@link jp.ecuacion.tool.housekeepfiles.reader.ExcelInfoListReader}'s ja-then-en
+   * header-label fallback for the "Info" sheet.
    */
   private static Path buildExcelFile(List<String @Nullable []> taskRows) throws IOException {
     LangExcelUtil lang = new LangExcelUtil(java.util.Locale.of("en"));
