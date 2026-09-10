@@ -80,6 +80,17 @@ public class DateTimeUtil {
   }
 
   /**
+   * Returns the current date and time with YYYYMMDD-HHMMSS format.
+   */
+  public String getDateTimeStr15() {
+    Calendar cal = Calendar.getInstance();
+    return getDateStr8() + "-"
+        + lpadZero(cal.get(Calendar.HOUR_OF_DAY), 2)
+        + lpadZero(cal.get(Calendar.MINUTE), 2)
+        + lpadZero(cal.get(Calendar.SECOND), 2);
+  }
+
+  /**
    * Provides boolean whether designated term (in days) passes.
    */
   public boolean hasDesignatedTermPassed(long lastModified, int value) {

@@ -101,6 +101,7 @@ public class HousekeepFilesBl {
   public Map<String, String> createBuiltInVariableMap() throws UnknownHostException {
     Map<String, String> builtInVariableMap = new HashMap<>();
     builtInVariableMap.put(Constants.ENV_VAR_DATE, dateUtil.getDateStr8());
+    builtInVariableMap.put(Constants.ENV_VAR_DATETIME, dateUtil.getDateTimeStr15());
     builtInVariableMap.put(Constants.ENV_VAR_TIMESTAMP, dateUtil.getTimestampNumString());
     builtInVariableMap.put(Constants.ENV_VAR_HOSTNAME, InetAddress.getLocalHost().getHostName());
 
