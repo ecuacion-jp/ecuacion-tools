@@ -32,7 +32,7 @@
   -->
   <Match>
     <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE" />
-    <Class name="~jp\.ecuacion\.tool\.housekeepfiles\.bl\.task\.(AbstractTaskZip|CreateDir|CreateFile|Delete|SftpCopyFromServer|SftpCopyToServer|SftpCreateDir|SftpDeleteFromServer|SftpMoveFromServer|SftpMoveToServer)" />
+    <Class name="~jp\.ecuacion\.tool\.housekeepfiles\.bl\.task\.(AbstractTaskZip|AbstractTaskUnzip|CreateDir|CreateFile|Delete|SftpCopyFromServer|SftpCopyToServer|SftpCreateDir|SftpDeleteFromServer|SftpMoveFromServer|SftpMoveToServer)" />
   </Match>
 
 </FindBugsFilter>

@@ -16,20 +16,87 @@
 package jp.ecuacion.tool.housekeepfiles.bl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 import java.util.function.Function;
+import jp.ecuacion.lib.core.exception.ViolationException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepfiles.constant.Constants;
+import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
+import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 
 /** Tests for {@link HousekeepFilesBl}. */
+@SuppressWarnings("null")
 @DisplayName("HousekeepFilesBl")
 class HousekeepFilesBlTest {
 
   private final HousekeepFilesBl bl = new HousekeepFilesBl();
+
+  private HousekeepFilesTaskRecord createDirRecord(String taskId, String taskName,
+      String destPath) {
+    return new HousekeepFilesTaskRecord(taskId, taskName, "CREATE_DIR", null, null, null, null,
+        null, destPath, "TRUE", "FALSE", "IGNORE");
+  }
+
+  @Nested
+  @DisplayName("consistencyCheckBetweenMultipleData()")
+  class ConsistencyCheckBetweenMultipleData {
+
+    @Test
+    @DisplayName("throws MSG_ERR_AT_LEAST_ONE_TASK_NEEDED when the task list is empty")
+    void emptyTaskList() {
+      HousekeepFilesForm form = new HousekeepFilesForm();
+
+      assertThatThrownBy(() -> bl.consistencyCheckBetweenMultipleData(form))
+          .isInstanceOfSatisfying(ViolationException.class,
+              ex -> assertThat(ex.getViolations().getBusinessViolations())
+                  .extracting(BusinessViolation::getMessageId)
+                  .containsExactly("MSG_ERR_AT_LEAST_ONE_TASK_NEEDED"));
+    }
+
+    @Test
+    @DisplayName("throws MSG_ERR_TASK_ID_DUPLICATED when taskId is duplicated")
+    void duplicatedTaskId() {
+      HousekeepFilesForm form = new HousekeepFilesForm();
+      form.getTaskInfoHdRec().recList.add(createDirRecord("01", "task01", "/a"));
+      form.getTaskInfoHdRec().recList.add(createDirRecord("01", "task02", "/b"));
+
+      assertThatThrownBy(() -> bl.consistencyCheckBetweenMultipleData(form))
+          .isInstanceOfSatisfying(ViolationException.class,
+              ex -> assertThat(ex.getViolations().getBusinessViolations())
+                  .extracting(BusinessViolation::getMessageId)
+                  .containsExactly("MSG_ERR_TASK_ID_DUPLICATED"));
+    }
+
+    @Test
+    @DisplayName("throws MSG_ERR_TASK_NAME_DUPLICATED when taskName is duplicated")
+    void duplicatedTaskName() {
+      HousekeepFilesForm form = new HousekeepFilesForm();
+      form.getTaskInfoHdRec().recList.add(createDirRecord("01", "task01", "/a"));
+      form.getTaskInfoHdRec().recList.add(createDirRecord("02", "task01", "/b"));
+
+      assertThatThrownBy(() -> bl.consistencyCheckBetweenMultipleData(form))
+          .isInstanceOfSatisfying(ViolationException.class,
+              ex -> assertThat(ex.getViolations().getBusinessViolations())
+                  .extracting(BusinessViolation::getMessageId)
+                  .containsExactly("MSG_ERR_TASK_NAME_DUPLICATED"));
+    }
+
+    @Test
+    @DisplayName("passes when taskId and taskName are both unique")
+    void distinctTaskIdAndName() {
+      HousekeepFilesForm form = new HousekeepFilesForm();
+      form.getTaskInfoHdRec().recList.add(createDirRecord("01", "task01", "/a"));
+      form.getTaskInfoHdRec().recList.add(createDirRecord("02", "task02", "/b"));
+
+      bl.consistencyCheckBetweenMultipleData(form);
+    }
+  }
 
   @Nested
   @DisplayName("createBuiltInVariableMap()")

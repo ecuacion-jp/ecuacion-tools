@@ -29,7 +29,7 @@ public class ZipDeleteOrig extends AbstractTaskZip {
    * Constructs a new instance.
    */
   public ZipDeleteOrig() {
-    taskPtn = TaskPtnEnum.UNZIP_DELETE_ORIG;
+    taskPtn = TaskPtnEnum.ZIP_DELETE_ORIG;
   }
 
   @Override

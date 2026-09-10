@@ -187,7 +187,7 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
         SftpATTRS attrs = sftpChannel.stat(path);
 
         // If it exists: return that file/directory.
-        rtnList.add(new FileInfo(path, true, ((long) attrs.getMTime() * 1000L), false));
+        rtnList.add(new FileInfo(path, attrs.isDir(), ((long) attrs.getMTime() * 1000L), false));
         return rtnList;
 
       } catch (Exception e) {
@@ -203,6 +203,12 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
         files = (Vector<ChannelSftp.LsEntry>) sftpChannel.ls(path);
 
       } catch (SftpException sftpEx) {
+        // Not found (e.g. a brand-new destination path, or a wildcard matching nothing) is not an
+        // error here - it simply means there is nothing to return.
+        if (sftpEx.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+          return new ArrayList<>();
+        }
+
         dlog.error("*** If not exist, CREATE DIRECTORY : " + path);
         throw sftpEx;
       }
