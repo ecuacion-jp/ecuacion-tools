@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
@@ -77,10 +78,7 @@ public class HousekeepFilesBlf {
    *     built-in variables resolve and the system name is omitted.
    */
   public void execute(HousekeepFilesForm form, @Nullable Environment env) throws Exception {
-    String systemName = env == null ? null : env.getProperty(Constants.PROP_SYSTEM_NAME);
-
-    // Log output.
-    logJobStartMsg(form, systemName);
+    final String systemName = env == null ? null : env.getProperty(Constants.PROP_SYSTEM_NAME);
 
     // List to hold warning information.
     final List<BusinessViolation> warnList = new ArrayList<>();
@@ -111,10 +109,15 @@ public class HousekeepFilesBlf {
 
     // Map to store multiple connections.
     Map<String, ConnectionToRemoteServer> connectionMap = new HashMap<>();
+    dlog.info("Per-task procedure started.");
     try {
       // Execute task.
       for (HousekeepFilesTaskRecord taskInfo : form.getTaskInfoHdRec().recList) {
+        SplibLogUtil.info(dlog, "Task started  : " + taskInfo.getTaskId(), 1);
+
         execEachTask(taskInfo.task, connectionMap, taskInfo, authMap, warnList);
+
+        SplibLogUtil.info(dlog, "Task finished : " + taskInfo.getTaskId(), 1);
       }
 
     } finally {
@@ -129,19 +132,7 @@ public class HousekeepFilesBlf {
       bl.sendWarnMail(warnList, systemName);
     }
 
-    // Log output.
-    logJobFinishMsg(systemName);
-  }
-
-  private void logJobStartMsg(HousekeepFilesForm form, @Nullable String systemName) {
-    dlog.debug("####################");
-    dlog.debug("##### startJob" + (systemName == null ? "" : " :" + systemName));
-    dlog.debug("##### format-version: " + form.getFormatVersion() + ", locale: "
-        + form.getLocale());
-  }
-
-  private void logJobFinishMsg(@Nullable String systemName) {
-    dlog.debug("##### finishJob" + (systemName == null ? "" : ":" + systemName));
+    dlog.info("housekeep-files finished successfully.");
   }
 
   /**
@@ -149,8 +140,8 @@ public class HousekeepFilesBlf {
    */
   protected void execEachTask(AbstractTask task,
       Map<String, ConnectionToRemoteServer> connectionMap, HousekeepFilesTaskRecord taskInfo,
-      Map<String, HousekeepFilesAuthRecord> authMap,
-      List<BusinessViolation> warnList) throws Exception {
+      Map<String, HousekeepFilesAuthRecord> authMap, List<BusinessViolation> warnList)
+      throws Exception {
 
     // Retrieve connection if not already held.
     final String connectionKey = taskInfo.getRemoteServer() + "." + task.getConnectionProtocol();
@@ -164,8 +155,7 @@ public class HousekeepFilesBlf {
     ConnectionToRemoteServer conn = connectionMap.get(connectionKey);
 
     // Expand ${VAR} references and wildcards in PATH.
-    HousekeepFilesExpandedPathsInfo pathInfo =
-        bl.expandAllPath(task, taskInfo, conn);
+    HousekeepFilesExpandedPathsInfo pathInfo = bl.expandAllPath(task, taskInfo, conn);
 
     // Checks passed, so populate toPath in pathInfoMap.
     // For task patterns with no destination (delete, zip), pathInfo.tmpToFileList will be

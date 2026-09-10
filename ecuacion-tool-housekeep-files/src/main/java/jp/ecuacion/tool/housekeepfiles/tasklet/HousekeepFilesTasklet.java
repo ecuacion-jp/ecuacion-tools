@@ -19,6 +19,7 @@ import jakarta.validation.Validation;
 import jakarta.validation.constraints.NotEmpty;
 import java.io.IOException;
 import java.util.Objects;
+import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.lib.validation.constraints.FileExists;
@@ -46,6 +47,8 @@ import org.springframework.stereotype.Component;
 public class HousekeepFilesTasklet implements Tasklet {
 
   public static final String PROP_EXCEL_PATH = "jp.ecuacion.tool.housekeep-files.excel-path";
+
+  private DetailLogger detailLogger = new DetailLogger(this);
 
   HousekeepFilesBlf blf = new HousekeepFilesBlf();
   @Nullable
@@ -80,6 +83,9 @@ public class HousekeepFilesTasklet implements Tasklet {
 
     String excelPath = validateExcelPath();
 
+    detailLogger.info("housekeep-files started.");
+    detailLogger.info("- Excel File Path     : " + excelPath);
+
     // AbstractTaskSftp is instantiated by reflection outside of Spring's DI, so it cannot read
     // this property from the Environment directly. Bridge it through a JVM system property here,
     // which also makes values set in application.properties / application_profile.properties
@@ -91,9 +97,13 @@ public class HousekeepFilesTasklet implements Tasklet {
           Objects.requireNonNull(env).getProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING)));
     }
 
-    form = getFormFromExcel(excelPath);
+    HousekeepFilesForm nonnullForm = getFormFromExcel(excelPath);
+    form = nonnullForm;
 
-    blf.execute(Objects.requireNonNull(form), env);
+    detailLogger.info("- Format Excel Version: " + nonnullForm.getFormatVersion());
+    detailLogger.info("- Locale              : " + nonnullForm.getLocale());
+
+    blf.execute(nonnullForm, env);
 
     return RepeatStatus.FINISHED;
   }
