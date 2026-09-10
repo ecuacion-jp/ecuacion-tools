@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Map;
 import java.util.function.Function;
 import jp.ecuacion.tool.housekeepfiles.constant.Constants;
-import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -32,25 +31,17 @@ class HousekeepFilesBlTest {
 
   private final HousekeepFilesBl bl = new HousekeepFilesBl();
 
-  private HousekeepFilesForm form(String sysName) {
-    HousekeepFilesForm form = new HousekeepFilesForm();
-    form.getTaskInfoHdRec().setSysName(sysName);
-    return form;
-  }
-
   @Nested
   @DisplayName("createBuiltInVariableMap()")
   class CreateBuiltInVariableMap {
 
     @Test
-    @DisplayName("contains SYS_NAME, YYYYMMDD, TIMESTAMP and HOSTNAME")
+    @DisplayName("contains YYYYMMDD, TIMESTAMP and HOSTNAME")
     void containsAllBuiltInVariables() throws Exception {
-      Map<String, String> map = bl.createBuiltInVariableMap(form("test-system"));
+      Map<String, String> map = bl.createBuiltInVariableMap();
 
-      assertThat(map).containsKey(Constants.ENV_VAR_SYS_NAME)
-          .containsKey(Constants.ENV_VAR_DATE).containsKey(Constants.ENV_VAR_TIMESTAMP)
+      assertThat(map).containsKey(Constants.ENV_VAR_DATE).containsKey(Constants.ENV_VAR_TIMESTAMP)
           .containsKey(Constants.ENV_VAR_HOSTNAME);
-      assertThat(map.get(Constants.ENV_VAR_SYS_NAME)).isEqualTo("test-system");
     }
   }
 
@@ -61,20 +52,21 @@ class HousekeepFilesBlTest {
     @Test
     @DisplayName("a built-in variable takes precedence over env")
     void builtInVariableTakesPrecedenceOverEnv() throws Exception {
-      Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap(form("test-system"));
+      Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap();
+      String actualHostname = builtInVariableMap.get(Constants.ENV_VAR_HOSTNAME);
 
       MockEnvironment env = new MockEnvironment();
-      env.setProperty(Constants.ENV_VAR_SYS_NAME, "overridden-by-env");
+      env.setProperty(Constants.ENV_VAR_HOSTNAME, "overridden-by-env");
 
       Function<String, String> getter = bl.createEnvVarValueGetter(builtInVariableMap, env);
 
-      assertThat(getter.apply(Constants.ENV_VAR_SYS_NAME)).isEqualTo("test-system");
+      assertThat(getter.apply(Constants.ENV_VAR_HOSTNAME)).isEqualTo(actualHostname);
     }
 
     @Test
     @DisplayName("a non-built-in key falls back to env")
     void nonBuiltInKeyFallsBackToEnv() throws Exception {
-      Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap(form("test-system"));
+      Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap();
 
       MockEnvironment env = new MockEnvironment();
       env.setProperty("BASE_DIR", "/tmp/base-dir");
@@ -87,7 +79,7 @@ class HousekeepFilesBlTest {
     @Test
     @DisplayName("when env is null, a non-built-in key resolves to null")
     void nonBuiltInKeyResolvesToNullWhenEnvIsNull() throws Exception {
-      Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap(form("test-system"));
+      Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap();
 
       Function<String, String> getter = bl.createEnvVarValueGetter(builtInVariableMap, null);
 

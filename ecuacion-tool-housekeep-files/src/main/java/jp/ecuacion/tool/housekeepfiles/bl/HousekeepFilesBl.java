@@ -15,7 +15,6 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl;
 
-import jakarta.validation.Validation;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
@@ -43,7 +42,6 @@ import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.other.HousekeepFilesExpandedPathsInfo;
-import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
@@ -69,13 +67,6 @@ public class HousekeepFilesBl {
 
   /** Validates cross-record consistency such as duplicate task IDs and task names. */
   public void consistencyCheckBetweenMultipleData(HousekeepFilesForm form) {
-    // taskInfoHdRec is not read by the reader, so validation check is not run - run it here.
-    // Effectively checks for the existence of sysName.
-    new Violations()
-        .addAll(Validation.buildDefaultValidatorFactory().getValidator()
-            .validate(form.getTaskInfoHdRec()))
-        .throwIfAny();
-
     // Error if task count is zero.
     if (form.getTaskInfoHdRec().recList == null || form.getTaskInfoHdRec().recList.size() == 0) {
       new Violations().add(new BusinessViolation("MSG_ERR_AT_LEAST_ONE_TASK_NEEDED")).throwIfAny();
@@ -105,11 +96,9 @@ public class HousekeepFilesBl {
     }
   }
 
-  /** Creates a map of the built-in path variables (sys name, date, timestamp, hostname). */
-  public Map<String, String> createBuiltInVariableMap(HousekeepFilesForm form)
-      throws UnknownHostException {
+  /** Creates a map of the built-in path variables (date, timestamp, hostname). */
+  public Map<String, String> createBuiltInVariableMap() throws UnknownHostException {
     Map<String, String> builtInVariableMap = new HashMap<>();
-    builtInVariableMap.put(Constants.ENV_VAR_SYS_NAME, form.getTaskInfoHdRec().getSysName());
     builtInVariableMap.put(Constants.ENV_VAR_DATE, dateUtil.getDateStr8());
     builtInVariableMap.put(Constants.ENV_VAR_TIMESTAMP, dateUtil.getTimestampNumString());
     builtInVariableMap.put(Constants.ENV_VAR_HOSTNAME, InetAddress.getLocalHost().getHostName());
@@ -422,8 +411,13 @@ public class HousekeepFilesBl {
     return task;
   }
 
-  /** Sends a warning email listing all accumulated violations to the configured recipients. */
-  public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
+  /**
+   * Sends a warning email listing all accumulated violations to the configured recipients.
+   *
+   * @param systemName optional system name (from {@link Constants#PROP_SYSTEM_NAME}) appended to
+   *     the email subject; may be {@code null}, in which case it's simply omitted.
+   */
+  public void sendWarnMail(List<BusinessViolation> warnList, @Nullable String systemName)
       throws Exception {
     // Retrieve the list of error messages.
     List<String> msgList = new ArrayList<>();
@@ -437,7 +431,7 @@ public class HousekeepFilesBl {
 
     // Build the message.
     final String title = PropertiesFileUtil.getApplication("jp.ecuacion.lib.core.mail.title-prefix")
-        + "[WARN] HousekeepFiles:" + hdE.getSysName();
+        + "[WARN] HousekeepFiles" + (systemName == null ? "" : ":" + systemName);
     String hostname = InetAddress.getLocalHost().getHostName();
     StringBuilder msg = new StringBuilder();
     msg.append("hostname: " + hostname + "\n\n" + "You've got warnings: \n\n");

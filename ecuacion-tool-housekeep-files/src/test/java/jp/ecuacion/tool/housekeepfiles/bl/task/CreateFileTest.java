@@ -27,8 +27,8 @@ import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
-import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,6 @@ class CreateFileTest {
   private HousekeepFilesForm form(HousekeepFilesTaskRecord taskRec) {
     HousekeepFilesForm form = new HousekeepFilesForm();
     form.getTaskInfoHdRec().recList.add(taskRec);
-    form.getTaskInfoHdRec().setSysName("test-system");
 
     return form;
   }
@@ -171,7 +170,7 @@ class CreateFileTest {
       AtomicBoolean warnMailSent = new AtomicBoolean();
       HousekeepFilesBl bl = new HousekeepFilesBl() {
         @Override
-        public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
+        public void sendWarnMail(List<BusinessViolation> warnList, @Nullable String systemName)
             throws Exception {
           warnMailSent.set(true);
         }
