@@ -23,7 +23,8 @@ public class Constants {
   public static final String HOUSEKEEP_FILES_PATH_LIST_XML = "housekeepFile-pathList.xml";
 
   public static final String ENV_VAR_TASK_NAME = "TASK_NAME";
-  public static final String ENV_VAR_DATE = "YYYYMMDD";
+  public static final String ENV_VAR_DATE = "DATE";
+  public static final String ENV_VAR_DATETIME = "DATETIME";
   public static final String ENV_VAR_TIMESTAMP = "TIMESTAMP";
   public static final String ENV_VAR_HOSTNAME = "HOSTNAME";
 

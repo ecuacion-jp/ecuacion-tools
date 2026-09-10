@@ -61,8 +61,8 @@ public class HousekeepFilesBlf {
    * Executes housekeeping.
    *
    * <p>Convenience overload for callers with no Spring Environment (e.g. most existing unit
-   * tests) - only built-in path variables (YYYYMMDD/TIMESTAMP/HOSTNAME) resolve, and the optional
-   * system name (see {@link Constants#PROP_SYSTEM_NAME}) is omitted from logs/emails.</p>
+   * tests) - only built-in path variables (DATE/DATETIME/TIMESTAMP/HOSTNAME) resolve, and the
+   * optional system name (see {@link Constants#PROP_SYSTEM_NAME}) is omitted from logs/emails.</p>
    */
   public void execute(HousekeepFilesForm form) throws Exception {
     execute(form, null);
@@ -72,7 +72,7 @@ public class HousekeepFilesBlf {
    * Executes housekeeping.
    *
    * @param env the Spring Environment used to resolve ${VAR} references in srcPath/destPath
-   *     that aren't one of the built-in variables (YYYYMMDD/TIMESTAMP/HOSTNAME), and to look up
+   *     that aren't one of the built-in variables (DATE/DATETIME/TIMESTAMP/HOSTNAME), and to look up
    *     the optional system name (see {@link Constants#PROP_SYSTEM_NAME}) shown in job
    *     start/finish logs and the warning email subject; may be {@code null}, in which case only
    *     built-in variables resolve and the system name is omitted.
