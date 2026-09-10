@@ -19,21 +19,21 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import jp.ecuacion.util.excel.exception.FarLeftHeaderLabelNotFoundException;
 import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
 
 /**
- * Reads info sheet of the settings excel.
+ * Reads the hidden Info sheet of the settings excel (format-version, locale, etc.).
+ *
+ * <p>The Info sheet's own header labels are localized too ("項目"/"値" in the ja sample,
+ * "item"/"value" in the en sample), but locale isn't known yet at this point - it's the very
+ * value this class is reading. So the ja labels are tried first, falling back to the en labels
+ * if not found, rather than looking up a locale-specific header label.</p>
  */
-public class ExcelInfoListReader extends StringOneLineHeaderExcelTableReader {
+public class ExcelInfoListReader {
 
-  private static final String[] headerLabels = new String[] {"項目", "値"};
-
-  /**
-   * Constructs a new instance.
-   */
-  public ExcelInfoListReader() {
-    super("基礎情報設定", headerLabels);
-  }
+  private static final String[] HEADER_LABELS_JA = new String[] {"項目", "値"};
+  private static final String[] HEADER_LABELS_EN = new String[] {"item", "value"};
 
   /**
    * Returns excel data as map format.
@@ -42,7 +42,15 @@ public class ExcelInfoListReader extends StringOneLineHeaderExcelTableReader {
     // Retrieve the table data as a list.
     List<List<String>> rowList;
     try {
-      rowList = read(excelPath);
+      rowList = readRows(excelPath, HEADER_LABELS_JA);
+    } catch (FarLeftHeaderLabelNotFoundException ex) {
+      try {
+        rowList = readRows(excelPath, HEADER_LABELS_EN);
+      } catch (IOException e) {
+        throw e;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     } catch (IOException e) {
       throw e;
     } catch (Exception e) {
@@ -55,5 +63,9 @@ public class ExcelInfoListReader extends StringOneLineHeaderExcelTableReader {
     }
 
     return rtnMap;
+  }
+
+  private List<List<String>> readRows(String excelPath, String[] headerLabels) throws Exception {
+    return new StringOneLineHeaderExcelTableReader("Info", headerLabels).read(excelPath);
   }
 }

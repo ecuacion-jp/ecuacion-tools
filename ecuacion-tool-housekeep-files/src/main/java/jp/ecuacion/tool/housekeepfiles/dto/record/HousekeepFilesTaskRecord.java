@@ -34,6 +34,7 @@ import jp.ecuacion.lib.validation.constraints.IntegerString;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
+import jp.ecuacion.tool.housekeepfiles.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -43,6 +44,8 @@ import org.jspecify.annotations.Nullable;
  */
 @SuppressWarnings("NullAway.Init")
 public class HousekeepFilesTaskRecord extends StringExcelTableBean {
+
+  public static final String[] HEADER_LABEL_KEYS = LangExcelUtil.TaskSettings.HEADER_LABELS;
 
   @NotEmpty
   @Size(min = 1, max = 10)
@@ -67,6 +70,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   public String isSrcPathDirEnumName;
 
   @Size(min = 1, max = 300)
+  @Pattern(regexp = "^[^\\x00-\\x1F\"<>|]*$")
   private String srcPath;
 
   @IntegerString
@@ -78,7 +82,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   public String actionForNoSrcPathEnumName;
 
   @Size(min = 1, max = 300)
-  @Pattern(regexp = "^[^*?]*$")
+  @Pattern(regexp = "^[^\\x00-\\x1F\"*<>?|]*$")
   private String destPath;
 
   @BooleanString

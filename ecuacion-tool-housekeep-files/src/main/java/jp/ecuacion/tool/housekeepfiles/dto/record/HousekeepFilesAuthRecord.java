@@ -28,6 +28,7 @@ import jp.ecuacion.lib.validation.constraints.NotEmptyWhen;
 import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
 import jp.ecuacion.tool.housekeepfiles.enums.AuthTypeEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.FileManipulateProtocolEnum;
+import jp.ecuacion.tool.housekeepfiles.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.jspecify.annotations.Nullable;
 
@@ -44,6 +45,8 @@ import org.jspecify.annotations.Nullable;
     conditionValue = ConditionValue.STRING, conditionValueString = "PASSWORD")
 @SuppressWarnings("NullAway.Init")
 public class HousekeepFilesAuthRecord extends StringExcelTableBean {
+
+  public static final String[] HEADER_LABEL_KEYS = LangExcelUtil.ServerAuthSettings.HEADER_LABELS;
 
   @NotEmpty
   @Size(min = 1, max = 40)
@@ -73,6 +76,7 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
   private String password;
 
   @Size(min = 1, max = 300)
+  @Pattern(regexp = "^[^\\x00-\\x1F\"*<>?|]*$")
   private String keyPath;
 
   @Override
