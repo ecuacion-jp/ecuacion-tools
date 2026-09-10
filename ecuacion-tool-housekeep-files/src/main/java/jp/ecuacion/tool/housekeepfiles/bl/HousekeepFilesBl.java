@@ -35,6 +35,7 @@ import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.core.util.StringUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum;
@@ -366,31 +367,20 @@ public class HousekeepFilesBl {
         task.doTask(conn, taskRec, fromPath, pathInfo.toPath, warnList);
       }
     }
-
-    // Log output.
-    logTaskFinishMsg(taskRec, pathInfo);
   }
 
   private void logTaskStartMsg(HousekeepFilesTaskRecord rec) {
-    String taskId = rec.getTaskId();
-    dlog.debug("### startTask  :" + taskId);
-    logWithTaskId(taskId, "taskName              = " + rec.getTaskName());
-    logWithTaskId(taskId, "taskPtn               = " + rec.getTaskPtn());
-    logWithTaskId(taskId, "remoteServer          = " + rec.getRemoteServer());
-    logWithTaskId(taskId, "pathFrom              = " + rec.getSrcPath());
-    logWithTaskId(taskId, "isSrcPathDir         = " + rec.getIsSrcPathDir());
-    logWithTaskId(taskId, "value                 = " + rec.getValue());
-    logWithTaskId(taskId, "actionForNoSrcPath   = " + rec.getActionForNoSrcPath());
-    logWithTaskId(taskId, "pathTo                = " + rec.getDestPath());
-    logWithTaskId(taskId, "isDestPathDir           = " + rec.getIsDestPathDir());
-    logWithTaskId(taskId, "doesOverwriteDestPath   = " + rec.getDoesOverwriteDestPath());
-    logWithTaskId(taskId, "actionForToFileExists = " + rec.getActionForDestFileExists());
-  }
-
-  private void logTaskFinishMsg(HousekeepFilesTaskRecord taskRec,
-      HousekeepFilesExpandedPathsInfo pathInfo) {
-    dlog.debug("### finishTask :" + taskRec.getTaskId() + " | processed file/directory count:"
-        + pathInfo.fromFileList.size());
+    SplibLogUtil.debug(dlog, "- taskName              : " + rec.getTaskName(), 1);
+    SplibLogUtil.debug(dlog, "- taskPtn               : " + rec.getTaskPtn(), 1);
+    SplibLogUtil.debug(dlog, "- remoteServer          : " + rec.getRemoteServer(), 1);
+    SplibLogUtil.debug(dlog, "- pathFrom              : " + rec.getSrcPath(), 1);
+    SplibLogUtil.debug(dlog, "- isSrcPathDir          : " + rec.getIsSrcPathDir(), 1);
+    SplibLogUtil.debug(dlog, "- value                 : " + rec.getValue(), 1);
+    SplibLogUtil.debug(dlog, "- getActionForNoSrcPath : " + rec.getActionForNoSrcPath(), 1);
+    SplibLogUtil.debug(dlog, "- pathTo                : " + rec.getDestPath(), 1);
+    SplibLogUtil.debug(dlog, "- isDestPathDir         : " + rec.getIsDestPathDir(), 1);
+    SplibLogUtil.debug(dlog, "- doesOverwriteDestPath : " + rec.getDoesOverwriteDestPath(), 1);
+    SplibLogUtil.debug(dlog, "- actionForToFileExists : " + rec.getActionForDestFileExists(), 1);
   }
 
   private void logWithTaskId(String taskId, String msg) {
