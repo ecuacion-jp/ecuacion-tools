@@ -26,6 +26,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import jp.ecuacion.tool.housekeepfiles.constant.Constants;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,11 @@ import org.junit.jupiter.api.io.TempDir;
 class CompressUtilTest {
 
   private final CompressUtil cu = new CompressUtil();
+
+  @AfterEach
+  void clearSystemProperties() {
+    System.clearProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES);
+  }
 
   @Nested
   @DisplayName("zipFile() / unzip()")
@@ -141,6 +148,71 @@ class CompressUtilTest {
           .isInstanceOf(IOException.class).hasMessageContaining("zip slip");
 
       assertThat(outsideMarker).doesNotExist();
+    }
+  }
+
+  @Nested
+  @DisplayName("zipDirectory(): symbolic link protection")
+  class ZipDirectorySymbolicLinkProtection {
+
+    @Test
+    @DisplayName("a symbolic link found while archiving a directory is rejected")
+    void rejectsSymbolicLinkInSourceTree(@TempDir Path tempDir) throws IOException {
+      Path srcDir = tempDir.resolve("srcDir");
+      Files.createDirectory(srcDir);
+      Files.writeString(srcDir.resolve("real.txt"), "real");
+      Path linkTarget = tempDir.resolve("outsideTarget.txt");
+      Files.writeString(linkTarget, "outside-content");
+      Files.createSymbolicLink(srcDir.resolve("link"), linkTarget);
+
+      Path zip = tempDir.resolve("out.zip");
+
+      assertThatThrownBy(() -> cu.zipDirectory(srcDir.toString(), zip.toString()))
+          .isInstanceOf(IOException.class).hasMessageContaining("Symbolic link");
+    }
+  }
+
+  @Nested
+  @DisplayName("unzip(): zip bomb protection")
+  class UnzipZipBombProtection {
+
+    @Test
+    @DisplayName("cumulative uncompressed size exceeding the configured limit is rejected")
+    void rejectsWhenCumulativeSizeExceedsLimit(@TempDir Path tempDir) throws IOException {
+      // Set a tiny limit so a small, legitimately-compressible payload is enough to trip it,
+      // without needing an actual zip bomb in the test.
+      System.setProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES, "10");
+
+      Path src = tempDir.resolve("src.txt");
+      Files.writeString(src, "this content is longer than ten bytes");
+      Path zip = tempDir.resolve("out.zip");
+      Path unzipDir = tempDir.resolve("unzipped");
+      Files.createDirectory(unzipDir);
+
+      cu.zipFile(src.toString(), zip.toString());
+
+      assertThatThrownBy(() -> cu.unzip(zip.toString(), unzipDir.toString()))
+          .hasRootCauseInstanceOf(IOException.class)
+          .hasRootCauseMessage("Cumulative uncompressed size of the zip entries exceeds the limit "
+              + "(10 bytes, see " + Constants.PROP_UNZIP_MAX_TOTAL_BYTES + "); aborting to avoid "
+              + "filling the disk with a zip bomb.");
+    }
+
+    @Test
+    @DisplayName("cumulative uncompressed size within the configured limit succeeds")
+    void succeedsWhenCumulativeSizeWithinLimit(@TempDir Path tempDir) throws IOException {
+      System.setProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES, "1000");
+
+      Path src = tempDir.resolve("src.txt");
+      Files.writeString(src, "short");
+      Path zip = tempDir.resolve("out.zip");
+      Path unzipDir = tempDir.resolve("unzipped");
+      Files.createDirectory(unzipDir);
+
+      cu.zipFile(src.toString(), zip.toString());
+      cu.unzip(zip.toString(), unzipDir.toString());
+
+      assertThat(unzipDir.resolve("src.txt")).hasContent("short");
     }
   }
 }
