@@ -103,12 +103,12 @@ class HousekeepFilesBlTest {
   class CreateBuiltInVariableMap {
 
     @Test
-    @DisplayName("contains YYYYMMDD, TIMESTAMP and HOSTNAME")
+    @DisplayName("contains DATE, DATETIME, TIMESTAMP and HOSTNAME")
     void containsAllBuiltInVariables() throws Exception {
       Map<String, String> map = bl.createBuiltInVariableMap();
 
-      assertThat(map).containsKey(Constants.ENV_VAR_DATE).containsKey(Constants.ENV_VAR_TIMESTAMP)
-          .containsKey(Constants.ENV_VAR_HOSTNAME);
+      assertThat(map).containsKey(Constants.ENV_VAR_DATE).containsKey(Constants.ENV_VAR_DATETIME)
+          .containsKey(Constants.ENV_VAR_TIMESTAMP).containsKey(Constants.ENV_VAR_HOSTNAME);
     }
   }
 
