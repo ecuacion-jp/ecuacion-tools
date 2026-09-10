@@ -51,8 +51,6 @@ public class HousekeepFilesTasklet implements Tasklet {
   private DetailLogger detailLogger = new DetailLogger(this);
 
   HousekeepFilesBlf blf = new HousekeepFilesBlf();
-  @Nullable
-  HousekeepFilesForm form;
 
   @NotEmpty
   @FileExists
@@ -98,7 +96,6 @@ public class HousekeepFilesTasklet implements Tasklet {
     }
 
     HousekeepFilesForm nonnullForm = getFormFromExcel(excelPath);
-    form = nonnullForm;
 
     detailLogger.info("- Format Excel Version: " + nonnullForm.getFormatVersion());
     detailLogger.info("- Locale              : " + nonnullForm.getLocale());
