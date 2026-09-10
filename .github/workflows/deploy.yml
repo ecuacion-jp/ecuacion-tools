@@ -22,42 +22,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      # Checkout dependency repos in sibling directories to match local relativePath setup
-      - name: Checkout ecuacion-lib
-        uses: actions/checkout@v5
-        with:
-          repository: ecuacion-jp/ecuacion-lib
-          path: ecuacion-lib
-
-      - name: Checkout ecuacion-utils
-        uses: actions/checkout@v5
-        with:
-          repository: ecuacion-jp/ecuacion-utils
-          path: ecuacion-utils
-
-      - name: Checkout ecuacion-splib
-        uses: actions/checkout@v5
-        with:
-          repository: ecuacion-jp/ecuacion-splib
-          path: ecuacion-splib
-
       - name: Checkout
         uses: actions/checkout@v5
         with:
           path: ecuacion-tools
 
-      - name: Resolve tag
+      - uses: ecuacion-jp/ecuacion-lib/.github/actions/resolve-tag@main
         id: tag
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_TAG: ${{ github.event.inputs.tag }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "value=$INPUT_TAG" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=$REF_NAME" >> "$GITHUB_OUTPUT"
-          fi
 
       - uses: actions/setup-java@v5
         with:
@@ -65,17 +36,23 @@ jobs:
           distribution: 'temurin'
 
       # Install dependencies in order (ecuacion-lib → ecuacion-utils → ecuacion-splib)
-      - name: Install ecuacion-lib
-        working-directory: ecuacion-lib
-        run: mvn install -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dlicense.skip=true -Djacoco.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dallure.report.skip=true -Dwagon.skip=true
+      - uses: ecuacion-jp/ecuacion-lib/.github/actions/install-ecuacion-dependency@main
+        with:
+          repository: ecuacion-jp/ecuacion-lib
+          path: ecuacion-lib
+          extra-mvn-args: -Dwagon.skip=true
 
-      - name: Install ecuacion-utils
-        working-directory: ecuacion-utils
-        run: mvn install -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dlicense.skip=true -Djacoco.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dallure.report.skip=true -Dwagon.skip=true
+      - uses: ecuacion-jp/ecuacion-lib/.github/actions/install-ecuacion-dependency@main
+        with:
+          repository: ecuacion-jp/ecuacion-utils
+          path: ecuacion-utils
+          extra-mvn-args: -Dwagon.skip=true
 
-      - name: Install ecuacion-splib
-        working-directory: ecuacion-splib
-        run: mvn install -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dlicense.skip=true -Djacoco.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dallure.report.skip=true -Dwagon.skip=true
+      - uses: ecuacion-jp/ecuacion-lib/.github/actions/install-ecuacion-dependency@main
+        with:
+          repository: ecuacion-jp/ecuacion-splib
+          path: ecuacion-splib
+          extra-mvn-args: -Dwagon.skip=true
 
       - name: Set version
         working-directory: ecuacion-tools
