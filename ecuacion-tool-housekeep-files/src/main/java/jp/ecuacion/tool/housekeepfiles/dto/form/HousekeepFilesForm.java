@@ -17,13 +17,16 @@ package jp.ecuacion.tool.housekeepfiles.dto.form;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.reader.ExcelInfoListReader;
+import jp.ecuacion.tool.housekeepfiles.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableToBeanReader;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Stores multiple records.
@@ -31,8 +34,9 @@ import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTabl
 @SuppressWarnings("NullAway.Init")
 public class HousekeepFilesForm {
 
-  /** info records are stored as map format. */
-  private Map<String, String> infoMap;
+  // format-version / locale from the hidden Info sheet.
+  private @Nullable String formatVersion;
+  private @Nullable String locale;
 
   // Holds the task list.
   // Slightly different structure from others because it has header information.
@@ -40,12 +44,6 @@ public class HousekeepFilesForm {
 
   // Holds the auth list.
   private List<HousekeepFilesAuthRecord> authInfoRecList;
-
-  private static final String[] HEADER_LABELS_TASK =
-      new String[] {"タスクID", "タスク名", "処理パターン\n日本語名", "処理パターン", "接続先サーバ", "元パス", "元パスディレクトリ",
-          "元パス実施保留日数", "元パス存在なし時処理", "先パス", "先パスディレクトリ", "先パス存在時上書き", "先パス存在時処理"};
-  private static final String[] HEADER_LABELS_AUTH =
-      new String[] {"サーバ名", "protocol", "port", "認証方式", "ユーザ名", "password / passphrase", "秘密鍵パス"};
 
   /** only for unit-test. */
   @SuppressWarnings("null")
@@ -71,15 +69,20 @@ public class HousekeepFilesForm {
    */
   protected void readExcel(String excelPath) {
     try {
-      infoMap = new ExcelInfoListReader().readToMap(excelPath);
+      Map<String, String> infoMap = new ExcelInfoListReader().readToMap(excelPath);
+      formatVersion = infoMap.get("format-version");
+      locale = infoMap.get("locale");
+      LangExcelUtil lang = new LangExcelUtil(Locale.of(Objects.requireNonNull(locale)));
+
       taskInfoHdRec = new HousekeepFilesHdRecord();
-      taskInfoHdRec.setSysName(Objects.requireNonNull(infoMap.get("env-name")));
       taskInfoHdRec.recList =
           new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesTaskRecord>(
-              HousekeepFilesTaskRecord.class, "タスク設定", HEADER_LABELS_TASK)
+              HousekeepFilesTaskRecord.class, lang.get(LangExcelUtil.TASK_SETTINGS),
+              lang.getHeaderLabels(HousekeepFilesTaskRecord.HEADER_LABEL_KEYS))
                   .withIgnoresAdditionalColumnsOfHeaderData(true).readToBean(excelPath, true);
       authInfoRecList = new StringOneLineHeaderExcelTableToBeanReader<HousekeepFilesAuthRecord>(
-          HousekeepFilesAuthRecord.class, "サーバ認証設定", HEADER_LABELS_AUTH).readToBean(excelPath,
+          HousekeepFilesAuthRecord.class, lang.get(LangExcelUtil.SERVER_AUTH_SETTINGS),
+          lang.getHeaderLabels(HousekeepFilesAuthRecord.HEADER_LABEL_KEYS)).readToBean(excelPath,
               true);
 
     } catch (Exception ex) {
@@ -87,8 +90,12 @@ public class HousekeepFilesForm {
     }
   }
 
-  public Map<String, String> getInfoMap() {
-    return infoMap;
+  public @Nullable String getFormatVersion() {
+    return formatVersion;
+  }
+
+  public @Nullable String getLocale() {
+    return locale;
   }
 
   public HousekeepFilesHdRecord getTaskInfoHdRec() {
