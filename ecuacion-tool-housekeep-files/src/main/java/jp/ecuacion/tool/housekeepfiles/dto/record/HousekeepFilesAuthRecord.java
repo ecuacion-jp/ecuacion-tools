@@ -22,6 +22,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
+import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.validation.constraints.EnumElement;
 import jp.ecuacion.lib.validation.constraints.IntegerString;
 import jp.ecuacion.lib.validation.constraints.NotEmptyWhen;
@@ -72,12 +74,21 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
   @Pattern(regexp = "^[^!\"#\\$%&'\\(\\)=\\^~\\\\\\|`\\[\\{;\\+:\\\\*\\]\\},<>/\\?]*$")
   private String userName;
 
-  @Size(min = 1, max = 30)
+  // No @Size here (unlike the other string fields above): a password/passphrase's length is
+  // dictated by the remote server/key, not by this tool, and any length cap here would surface
+  // the offending value itself in the validation error message (see getPassword()'s javadoc for
+  // why that matters) the moment someone used a longer one.
   private String password;
 
   @Size(min = 1, max = 300)
   @Pattern(regexp = "^[^\\x00-\\x1F\"*<>?|]*$")
   private String keyPath;
+
+  // Fields not in the Excel sheet.
+
+  private @Nullable String envVarExpandedPassword;
+
+  private Function<String, String> envVarValueGetter;
 
   @Override
   protected @Nullable String[] getFieldNameArray() {
@@ -127,12 +138,46 @@ public class HousekeepFilesAuthRecord extends StringExcelTableBean {
     return userName;
   }
 
+  /**
+   * Returns the password/passphrase, with any {@code ${VAR}} reference it contains already
+   * expanded via {@link #setEnvVarValueGetter}, if that was called; otherwise returns the raw
+   * Excel value unchanged (e.g. when this record was built directly in a test without going
+   * through {@link jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf#execute}).
+   *
+   * <p>This lets an operator keep the actual secret out of the settings Excel file entirely by
+   * writing e.g. {@code ${SFTP_PASSWORD}} and defining {@code SFTP_PASSWORD} as an OS environment
+   * variable / JVM system property / {@code application.properties} entry instead - the same
+   * mechanism already used for srcPath/destPath.</p>
+   */
   public String getPassword() {
+    String expanded = envVarExpandedPassword;
+    if (expanded != null) {
+      return expanded;
+    }
+
     return password;
   }
 
   public String getKeyPath() {
     return keyPath;
+  }
+
+  /**
+   * Sets the ${VAR} value resolver and eagerly expands any {@code ${VAR}} reference in
+   * {@code password}, throwing (via EmbeddedVariableUtil.VariableNotFoundException, wrapped in
+   * RuntimeException) if a referenced variable cannot be resolved.
+   */
+  public void setEnvVarValueGetter(Function<String, String> envVarValueGetter) {
+    this.envVarValueGetter = envVarValueGetter == null ? key -> null : envVarValueGetter;
+    envVarExpandedPassword = password == null ? null : substituteEnvVars(password);
+  }
+
+  private String substituteEnvVars(String value) {
+    try {
+      return EmbeddedVariableUtil.getVariableReplacedString(value, "${", "}", envVarValueGetter);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

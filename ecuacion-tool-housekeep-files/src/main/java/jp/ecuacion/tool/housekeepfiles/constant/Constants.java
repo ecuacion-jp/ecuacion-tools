@@ -43,4 +43,29 @@ public class Constants {
    */
   public static final String PROP_SYSTEM_NAME = "jp.ecuacion.tool.housekeep-files.system-name";
 
+  /**
+   * SFTP session/channel connect timeout in milliseconds (in {@code application.properties} /
+   * {@code application_profile.properties} or as a JVM {@code -D} system property). Without a
+   * timeout, a server that never responds to the TCP handshake or the SSH negotiation hangs the
+   * batch indefinitely. Defaults to {@link #DEFAULT_SFTP_CONNECT_TIMEOUT_MILLIS} when unset or
+   * not a valid integer.
+   */
+  public static final String PROP_SFTP_CONNECT_TIMEOUT_MILLIS =
+      "jp.ecuacion.tool.housekeep-files.sftp.connect-timeout-millis";
+
+  public static final int DEFAULT_SFTP_CONNECT_TIMEOUT_MILLIS = 30000;
+
+  /**
+   * Upper bound, in bytes, on the total uncompressed size an {@code UNZIP_*} task will write for a
+   * single archive (in {@code application.properties} / {@code application_profile.properties} or
+   * as a JVM {@code -D} system property). Guards against a "zip bomb" - a small archive that
+   * decompresses to an enormous size and fills the disk - placed in a monitored directory by a
+   * less-trusted party. Defaults to {@link #DEFAULT_UNZIP_MAX_TOTAL_BYTES} when unset or not a
+   * valid long.
+   */
+  public static final String PROP_UNZIP_MAX_TOTAL_BYTES =
+      "jp.ecuacion.tool.housekeep-files.unzip.max-total-bytes";
+
+  public static final long DEFAULT_UNZIP_MAX_TOTAL_BYTES = 10L * 1024 * 1024 * 1024; // 10 GiB
+
 }

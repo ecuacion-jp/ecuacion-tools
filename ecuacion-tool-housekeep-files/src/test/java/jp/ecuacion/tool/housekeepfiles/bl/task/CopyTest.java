@@ -229,5 +229,23 @@ class CopyTest {
           form(copyDirRecord(srcDir.getAbsolutePath(), destDir.getAbsolutePath())),
           "MSG_ERR_TO_DIR_EXISTS_AND_COPY_SETTING_VAGUE");
     }
+
+    @Test
+    @DisplayName("source directory contains a symbolic link: MSG_ERR_SRC_PATH_CONTAINS_SYMLINK, "
+        + "nothing copied")
+    void srcDirContainsSymbolicLink() throws Exception {
+      File srcDir = tempDir.resolve("srcDir").toFile();
+      srcDir.mkdir();
+      Path linkTarget = tempDir.resolve("outsideTarget.txt");
+      Files.writeString(linkTarget, "outside-content");
+      Files.createSymbolicLink(srcDir.toPath().resolve("link"), linkTarget);
+      File destDir = tempDir.resolve("destDir").toFile();
+      destDir.mkdir();
+
+      assertSingleBusinessViolation(
+          form(copyDirRecord(srcDir.getAbsolutePath(), destDir.getAbsolutePath())),
+          "MSG_ERR_SRC_PATH_CONTAINS_SYMLINK");
+      assertThat(destDir.toPath().resolve("srcDir")).doesNotExist();
+    }
   }
 }

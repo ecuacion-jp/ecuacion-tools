@@ -17,16 +17,22 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -98,6 +104,44 @@ class AbstractTaskTest {
       move.check(rec);
 
       assertThat(checkTaskItemCallCount.get()).isEqualTo(3);
+    }
+  }
+
+  @Nested
+  @DisplayName("getLocalFileInfo() / getLocalFileInfoList()")
+  class LockDetection {
+
+    // No test exercises the isLocked()=true branch here: java.nio.channels.FileChannel.tryLock()
+    // (which FileUtil.isLocked() uses) throws OverlappingFileLockException rather than returning
+    // "already locked" for a lock held elsewhere in the *same* JVM, so it can only be observed
+    // with a lock held by another OS process - ecuacion-lib's own FileUtilTest (the source of
+    // truth for isLocked() itself) has the same gap for the same reason. These tests instead
+    // guard the regression this fix addresses: that FileUtil.isLocked()'s result actually reaches
+    // FileInfo.isLocked() (it used to be discarded, leaving isLocked() permanently false - see
+    // 2026-09-10-security-review-housekeep-files.md, finding 8).
+
+    @Test
+    @DisplayName("getLocalFileInfo() reports isLocked=false for a normal, unlocked file")
+    void getLocalFileInfoReportsUnlocked(@TempDir Path tempDir) throws Exception {
+      Path file = tempDir.resolve("plain.txt");
+      Files.writeString(file, "content");
+      Move move = new Move();
+
+      FileInfo fi = Objects.requireNonNull(move.getLocalFileInfo(file.toString()));
+
+      assertThat(fi.isLocked()).isFalse();
+    }
+
+    @Test
+    @DisplayName("getLocalFileInfoList() reports isLocked=false for a normal, unlocked file")
+    void getLocalFileInfoListReportsUnlocked(@TempDir Path tempDir) throws Exception {
+      Path file = tempDir.resolve("plain.txt");
+      Files.writeString(file, "content");
+      Move move = new Move();
+
+      List<FileInfo> list = move.getLocalFileInfoList(file.toString());
+
+      assertThat(list).singleElement().satisfies(fi -> assertThat(fi.isLocked()).isFalse());
     }
   }
 }

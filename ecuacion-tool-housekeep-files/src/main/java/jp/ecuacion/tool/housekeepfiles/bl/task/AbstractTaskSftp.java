@@ -127,13 +127,35 @@ public abstract class AbstractTaskSftp extends AbstractTaskRemote {
     if (password != null) {
       sftpSession.setPassword(password.getBytes(StandardCharsets.UTF_8));
     }
-    sftpSession.connect();
+
+    // A bounded connect timeout, so a server that never responds to the TCP handshake or the SSH
+    // negotiation cannot hang the batch (and every subsequent task, local ones included)
+    // indefinitely.
+    int connectTimeoutMillis = getConnectTimeoutMillis();
+    sftpSession.connect(connectTimeoutMillis);
 
     Channel channel = sftpSession.openChannel("sftp");
-    channel.connect();
+    channel.connect(connectTimeoutMillis);
     ChannelSftp sftpChannel = (ChannelSftp) channel;
 
     return new ConnectionToSftpServer(sftpSession, sftpChannel);
+  }
+
+  /** Package-private for unit testing. */
+  int getConnectTimeoutMillis() {
+    String prop = System.getProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS);
+    if (prop == null) {
+      return Constants.DEFAULT_SFTP_CONNECT_TIMEOUT_MILLIS;
+    }
+
+    try {
+      return Integer.parseInt(prop);
+    } catch (NumberFormatException e) {
+      dlog.warn("'" + Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS + "' is set to a non-integer "
+          + "value ('" + prop + "'); falling back to the default ("
+          + Constants.DEFAULT_SFTP_CONNECT_TIMEOUT_MILLIS + "ms).");
+      return Constants.DEFAULT_SFTP_CONNECT_TIMEOUT_MILLIS;
+    }
   }
 
   @SuppressWarnings("null")

@@ -84,16 +84,15 @@ public class HousekeepFilesTasklet implements Tasklet {
     detailLogger.info("housekeep-files started.");
     detailLogger.info("- Excel File Path     : " + excelPath);
 
-    // AbstractTaskSftp is instantiated by reflection outside of Spring's DI, so it cannot read
-    // this property from the Environment directly. Bridge it through a JVM system property here,
-    // which also makes values set in application.properties / application_profile.properties
-    // effective, not only "-D" arguments. Left untouched when this tasklet is instantiated
-    // directly without Spring (e.g. in tests), in which case only "-D" is honored.
-    if (env != null && Objects.requireNonNull(env)
-        .containsProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING)) {
-      System.setProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING, Objects.requireNonNull(
-          Objects.requireNonNull(env).getProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING)));
-    }
+    // AbstractTaskSftp and CompressUtil are instantiated outside of Spring's DI (by reflection /
+    // plain "new"), so they cannot read these properties from the Environment directly. Bridge
+    // them through JVM system properties here, which also makes values set in
+    // application.properties / application_profile.properties effective, not only "-D"
+    // arguments. Left untouched when this tasklet is instantiated directly without Spring (e.g.
+    // in tests), in which case only "-D" is honored.
+    bridgeEnvPropertyToSystemProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING);
+    bridgeEnvPropertyToSystemProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS);
+    bridgeEnvPropertyToSystemProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES);
 
     HousekeepFilesForm nonnullForm = getFormFromExcel(excelPath);
 
@@ -122,6 +121,16 @@ public class HousekeepFilesTasklet implements Tasklet {
     }
 
     return nonnullExcelPath;
+  }
+
+  /**
+   * Copies a property from the Spring {@code Environment} to a JVM system property of the same
+   * key, if present. See the call site in {@link #execute} for why this bridging is needed.
+   */
+  private void bridgeEnvPropertyToSystemProperty(String key) {
+    if (env != null && Objects.requireNonNull(env).containsProperty(key)) {
+      System.setProperty(key, Objects.requireNonNull(Objects.requireNonNull(env).getProperty(key)));
+    }
   }
 
   /**

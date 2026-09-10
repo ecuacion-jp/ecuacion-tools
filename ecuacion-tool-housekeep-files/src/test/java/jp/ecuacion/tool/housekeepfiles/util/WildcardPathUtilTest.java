@@ -163,5 +163,42 @@ class WildcardPathUtilTest {
       assertThat(WildcardPathUtil.getPathListFromPathWithWildcard(pattern))
           .containsExactly(dir.getAbsolutePath());
     }
+
+    @Test
+    @DisplayName("an intermediate directory whose real name contains unbalanced regex "
+        + "metacharacters (e.g. '(') does not break a wildcard match below it")
+    void intermediateDirWithRegexMetacharactersInName(@TempDir Path tempDir) throws Exception {
+      // The wildcard segment ("*.txt") is below this directory, so its name ends up interpolated
+      // as-is into the generated regex as the literal prefix (parentPath) - an unbalanced '(' here
+      // used to throw PatternSyntaxException instead of matching literally.
+      File weirdDir = tempDir.resolve("weird(unbalanced").toFile();
+      weirdDir.mkdir();
+      File file = new File(weirdDir, "data.txt");
+      file.createNewFile();
+
+      String pattern = new File(weirdDir, "*.txt").getAbsolutePath();
+
+      assertThat(WildcardPathUtil.getPathListFromPathWithWildcard(pattern))
+          .containsExactly(file.getAbsolutePath());
+    }
+
+    @Test
+    @DisplayName("a literal '+' next to a wildcard in the same segment matches only a literal "
+        + "'+', not the regex quantifier meaning \"one or more of the preceding character\"")
+    void literalPlusInWildcardSegmentIsNotARegexQuantifier(@TempDir Path tempDir)
+        throws Exception {
+      // Under the pre-fix behavior, "+" was passed through unescaped into the compiled regex, so
+      // the segment "a+*.txt" became the regex "a+.*\.txt" ("one or more 'a's" + anything +
+      // ".txt"), which would wrongly match "aaax.txt" (no literal '+' at all).
+      File hasLiteralPlus = new File(tempDir.toFile(), "a+x.txt");
+      hasLiteralPlus.createNewFile();
+      File noLiteralPlus = new File(tempDir.toFile(), "aaax.txt");
+      noLiteralPlus.createNewFile();
+
+      String pattern = new File(tempDir.toFile(), "a+*.txt").getAbsolutePath();
+
+      assertThat(WildcardPathUtil.getPathListFromPathWithWildcard(pattern))
+          .containsExactly(hasLiteralPlus.getAbsolutePath());
+    }
   }
 }
