@@ -22,19 +22,24 @@ public class Constants {
   public static final String PACKAGE_HK_TASK = "jp.ecuacion.tool.housekeepfiles.bl.task";
   public static final String HOUSEKEEP_FILES_PATH_LIST_XML = "housekeepFile-pathList.xml";
 
-  public static final String ENV_VAR_SYS_NAME = "SYS_NAME";
   public static final String ENV_VAR_TASK_NAME = "TASK_NAME";
   public static final String ENV_VAR_DATE = "YYYYMMDD";
   public static final String ENV_VAR_TIMESTAMP = "TIMESTAMP";
   public static final String ENV_VAR_HOSTNAME = "HOSTNAME";
 
   /**
-   * Set to {@code false} (in {@code application.properties} / 
+   * Set to {@code false} (in {@code application.properties} /
    * {@code application_profile.properties}
    * or as a JVM {@code -D} system property) to disable SFTP host key verification, e.g. for quick
    * local trials. Never disable it against a production or otherwise untrusted network.
    */
   public static final String PROP_SFTP_STRICT_HOST_KEY_CHECKING =
       "jp.ecuacion.tool.housekeep-files.sftp.strict-host-key-checking";
+
+  /**
+   * Optional system name shown in job start/finish logs and the warning email subject. When
+   * unset, that part of the log/email is simply omitted.
+   */
+  public static final String PROP_SYSTEM_NAME = "jp.ecuacion.tool.housekeep-files.system-name";
 
 }

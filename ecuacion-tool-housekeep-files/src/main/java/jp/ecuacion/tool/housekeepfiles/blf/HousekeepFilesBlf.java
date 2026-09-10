@@ -29,6 +29,7 @@ import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTaskLocal;
+import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.other.HousekeepFilesExpandedPathsInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
@@ -59,7 +60,8 @@ public class HousekeepFilesBlf {
    * Executes housekeeping.
    *
    * <p>Convenience overload for callers with no Spring Environment (e.g. most existing unit
-   * tests) - only built-in path variables (SYS_NAME/YYYYMMDD/TIMESTAMP/HOSTNAME) resolve.</p>
+   * tests) - only built-in path variables (YYYYMMDD/TIMESTAMP/HOSTNAME) resolve, and the optional
+   * system name (see {@link Constants#PROP_SYSTEM_NAME}) is omitted from logs/emails.</p>
    */
   public void execute(HousekeepFilesForm form) throws Exception {
     execute(form, null);
@@ -69,12 +71,16 @@ public class HousekeepFilesBlf {
    * Executes housekeeping.
    *
    * @param env the Spring Environment used to resolve ${VAR} references in srcPath/destPath
-   *     that aren't one of the built-in variables (SYS_NAME/YYYYMMDD/TIMESTAMP/HOSTNAME); may be
-   *     {@code null}, in which case only built-in variables resolve.
+   *     that aren't one of the built-in variables (YYYYMMDD/TIMESTAMP/HOSTNAME), and to look up
+   *     the optional system name (see {@link Constants#PROP_SYSTEM_NAME}) shown in job
+   *     start/finish logs and the warning email subject; may be {@code null}, in which case only
+   *     built-in variables resolve and the system name is omitted.
    */
   public void execute(HousekeepFilesForm form, @Nullable Environment env) throws Exception {
+    String systemName = env == null ? null : env.getProperty(Constants.PROP_SYSTEM_NAME);
+
     // Log output.
-    logJobStartMsg(form);
+    logJobStartMsg(form, systemName);
 
     // List to hold warning information.
     final List<BusinessViolation> warnList = new ArrayList<>();
@@ -83,7 +89,7 @@ public class HousekeepFilesBlf {
     bl.consistencyCheckBetweenMultipleData(form);
 
     // Build the ${VAR} value resolver: built-in variables + env fallback.
-    Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap(form);
+    Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap();
     Function<String, String> envVarValueGetter =
         bl.createEnvVarValueGetter(builtInVariableMap, env);
 
@@ -120,20 +126,22 @@ public class HousekeepFilesBlf {
 
     // Send email if there are warnings.
     if (!warnList.isEmpty()) {
-      bl.sendWarnMail(warnList, form.getTaskInfoHdRec());
+      bl.sendWarnMail(warnList, systemName);
     }
 
     // Log output.
-    logJobFinishMsg(form);
+    logJobFinishMsg(systemName);
   }
 
-  private void logJobStartMsg(HousekeepFilesForm form) {
+  private void logJobStartMsg(HousekeepFilesForm form, @Nullable String systemName) {
     dlog.debug("####################");
-    dlog.debug("##### startJob :" + form.getTaskInfoHdRec().getSysName());
+    dlog.debug("##### startJob" + (systemName == null ? "" : " :" + systemName));
+    dlog.debug("##### format-version: " + form.getFormatVersion() + ", locale: "
+        + form.getLocale());
   }
 
-  private void logJobFinishMsg(HousekeepFilesForm form) {
-    dlog.debug("##### finishJob:" + form.getTaskInfoHdRec().getSysName());
+  private void logJobFinishMsg(@Nullable String systemName) {
+    dlog.debug("##### finishJob" + (systemName == null ? "" : ":" + systemName));
   }
 
   /**

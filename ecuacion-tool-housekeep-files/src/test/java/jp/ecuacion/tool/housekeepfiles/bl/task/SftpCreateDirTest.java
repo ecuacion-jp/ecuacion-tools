@@ -27,9 +27,9 @@ import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
-import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.testtool.AbstractSftpTest;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,6 @@ class SftpCreateDirTest extends AbstractSftpTest {
     HousekeepFilesForm form = new HousekeepFilesForm();
     form.getTaskInfoHdRec().recList.add(taskRec);
     form.getAuthInfoRecList().add(authRec);
-    form.getTaskInfoHdRec().setSysName("test-system");
 
     return form;
   }
@@ -142,7 +141,7 @@ class SftpCreateDirTest extends AbstractSftpTest {
       // Replace HousekeepFilesBl#sendWarnMail to detect when it is called.
       return new HousekeepFilesBl() {
         @Override
-        public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
+        public void sendWarnMail(List<BusinessViolation> warnList, @Nullable String systemName)
             throws Exception {
           warnMailSent.set(true);
         }

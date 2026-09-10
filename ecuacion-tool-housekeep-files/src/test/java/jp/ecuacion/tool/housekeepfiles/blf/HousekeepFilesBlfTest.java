@@ -18,13 +18,10 @@ package jp.ecuacion.tool.housekeepfiles.blf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import jakarta.validation.constraints.NotEmpty;
 import java.io.File;
 import java.nio.file.Path;
-import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,60 +32,11 @@ import org.springframework.mock.env.MockEnvironment;
 @DisplayName("HousekeepFilesBlf")
 class HousekeepFilesBlfTest {
 
-  private HousekeepFilesForm form(@Nullable String sysName, HousekeepFilesTaskRecord taskRec) {
+  private HousekeepFilesForm form(HousekeepFilesTaskRecord taskRec) {
     HousekeepFilesForm form = new HousekeepFilesForm();
     form.getTaskInfoHdRec().recList.add(taskRec);
 
-    if (sysName != null) {
-      form.getTaskInfoHdRec().setSysName(sysName);
-    }
-
     return form;
-  }
-
-  @Nested
-  @DisplayName("execute(): sysName validation")
-  class ExecuteSysNameValidation {
-
-    private HousekeepFilesTaskRecord aTaskRecord(String taskPtn) {
-      return new HousekeepFilesTaskRecord("aTaskId", "aTaskName", taskPtn, null, "aPath", "TRUE",
-          "7", "IGNORE", "aPath", "TRUE", "FALSE", "IGNORE");
-    }
-
-    @Test
-    @DisplayName("null sysName violates @NotEmpty")
-    void sysNameIsNull() {
-      HousekeepFilesForm form = form(null, aTaskRecord("AAA"));
-
-      assertThatThrownBy(() -> new HousekeepFilesBlf().execute(form))
-          .isInstanceOfSatisfying(ViolationException.class,
-              ex -> assertThat(ex.getViolations().getConstraintViolations()).singleElement()
-                  .satisfies(cv -> {
-                    assertThat(cv.getPropertyPath().toString()).isEqualTo("sysName");
-                    assertThat(cv.getConstraintDescriptor().getAnnotation().annotationType())
-                        .isEqualTo(NotEmpty.class);
-                  }));
-    }
-
-    @Test
-    @DisplayName("empty sysName violates @NotEmpty and @Size")
-    void sysNameIsEmpty() {
-      HousekeepFilesForm form = form("", aTaskRecord("AAA"));
-
-      assertThatThrownBy(() -> new HousekeepFilesBlf().execute(form))
-          .isInstanceOfSatisfying(ViolationException.class,
-              ex -> assertThat(ex.getViolations().getConstraintViolations()).hasSize(2)
-                  .allSatisfy(
-                      cv -> assertThat(cv.getPropertyPath().toString()).isEqualTo("sysName")));
-    }
-
-    @Test
-    @DisplayName("valid sysName passes")
-    void sysNameIsValid() throws Exception {
-      HousekeepFilesForm form = form("test-system", aTaskRecord("MOVE"));
-
-      new HousekeepFilesBlf().execute(form);
-    }
   }
 
   @Nested
@@ -112,7 +60,7 @@ class HousekeepFilesBlfTest {
       File zippedFile = new File(fromFile.getAbsolutePath() + ".zip");
 
       HousekeepFilesForm form =
-          form("test-system", zipDeleteOrigRecord(fromFile.getAbsolutePath()));
+          form(zipDeleteOrigRecord(fromFile.getAbsolutePath()));
 
       assertThat(zippedFile).doesNotExist();
 
@@ -134,7 +82,7 @@ class HousekeepFilesBlfTest {
 
       // Built via java.io.File rather than Path#resolve: on Windows, Path validates
       // characters eagerly and rejects "*" with InvalidPathException.
-      HousekeepFilesForm form = form("test-system",
+      HousekeepFilesForm form = form(
           zipDeleteOrigRecord(new File(tempDir.toFile(), "test*.txt").getAbsolutePath()));
 
       assertThat(zippedFile1).doesNotExist();
@@ -174,7 +122,7 @@ class HousekeepFilesBlfTest {
       env.setProperty("BASE_DIR", tempDir.toString());
 
       HousekeepFilesForm form =
-          form("test-system", moveRecord("${BASE_DIR}/from.txt", "${BASE_DIR}/to/"));
+          form(moveRecord("${BASE_DIR}/from.txt", "${BASE_DIR}/to/"));
 
       new HousekeepFilesBlf().execute(form, env);
 
@@ -185,7 +133,7 @@ class HousekeepFilesBlfTest {
     @Test
     @DisplayName("throws when a referenced ${VAR} isn't resolvable via env")
     void throwsWhenVariableUnresolved() {
-      HousekeepFilesForm form = form("test-system",
+      HousekeepFilesForm form = form(
           moveRecord("${UNDEFINED_VAR}/from.txt", tempDir.resolve("to").toString()));
 
       assertThatThrownBy(() -> new HousekeepFilesBlf().execute(form, new MockEnvironment()))
