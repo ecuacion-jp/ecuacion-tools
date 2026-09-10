@@ -16,10 +16,13 @@
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import jp.ecuacion.lib.core.exception.ViolationException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
@@ -105,6 +108,32 @@ class MoveTest {
       assertThat(srcDir).doesNotExist();
       assertThat(destDir.toPath().resolve("srcDir").resolve("child.txt")).hasContent(
           "child-content");
+    }
+
+    @Test
+    @DisplayName("source directory contains a symbolic link: MSG_ERR_SRC_PATH_CONTAINS_SYMLINK, "
+        + "source left in place")
+    void srcDirContainsSymbolicLink() throws Exception {
+      File srcDir = tempDir.resolve("srcDir").toFile();
+      srcDir.mkdir();
+      Path linkTarget = tempDir.resolve("outsideTarget.txt");
+      Files.writeString(linkTarget, "outside-content");
+      Files.createSymbolicLink(srcDir.toPath().resolve("link"), linkTarget);
+      File destDir = tempDir.resolve("destDir").toFile();
+      destDir.mkdir();
+
+      HousekeepFilesTaskRecord rec =
+          new HousekeepFilesTaskRecord("aTaskId", "aTaskName", "MOVE", null,
+              srcDir.getAbsolutePath(), "TRUE", "0", "IGNORE", destDir.getAbsolutePath(), "TRUE",
+              "FALSE", "IGNORE");
+
+      assertThatThrownBy(() -> new HousekeepFilesBlf().execute(form(rec)))
+          .isInstanceOfSatisfying(ViolationException.class,
+              ex -> assertThat(ex.getViolations().getBusinessViolations())
+                  .extracting(BusinessViolation::getMessageId)
+                  .containsExactly("MSG_ERR_SRC_PATH_CONTAINS_SYMLINK"));
+      assertThat(srcDir).exists();
+      assertThat(destDir.toPath().resolve("srcDir")).doesNotExist();
     }
   }
 }

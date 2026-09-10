@@ -276,7 +276,7 @@ public abstract class AbstractTask {
     fi.setLastUpdTimeInMillis(file.lastModified());
     // Check for file lock.
     try {
-      FileUtil.isLocked(path);
+      fi.setLocked(FileUtil.isLocked(path));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -297,7 +297,7 @@ public abstract class AbstractTask {
       fi.setLastUpdTimeInMillis(fileObj.lastModified());
       // Check for file lock.
       try {
-        FileUtil.isLocked(strPath);
+        fi.setLocked(FileUtil.isLocked(strPath));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

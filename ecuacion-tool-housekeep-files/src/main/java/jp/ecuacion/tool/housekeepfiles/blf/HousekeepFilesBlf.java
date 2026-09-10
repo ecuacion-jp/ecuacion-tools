@@ -98,6 +98,9 @@ public class HousekeepFilesBlf {
 
     // Resolve ${VAR} references in every task's srcPath/destPath up front (fails fast).
     bl.setEnvVarValueGetterOnTasks(form.getTaskInfoHdRec().recList, envVarValueGetter);
+    // Resolve ${VAR} references in every auth record's password/passphrase up front, so it can be
+    // kept out of the settings Excel file and supplied via environment variable instead.
+    bl.setEnvVarValueGetterOnAuthRecords(form.getAuthInfoRecList(), envVarValueGetter);
 
     // Per-task processing below.
     // Ideally the following would be a single loop, but grouping task creation and checks first
