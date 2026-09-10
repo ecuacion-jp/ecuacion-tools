@@ -16,6 +16,7 @@
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
@@ -72,6 +73,21 @@ public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
     // compression is used, from becomes a file, so the result already accounts for that.
     boolean isFromDir = (taskRec.getIsSrcPathDir() == true);
     boolean isToDir = (taskRec.getIsDestPathDir() == true);
+
+    // When copying/moving a directory, commons-io follows symbolic links found within it. A
+    // monitored source directory can contain entries placed by a less-trusted party, so refuse
+    // rather than silently follow a symlink outside the intended source tree (or recurse forever
+    // on a self-referential one).
+    if (isFromDir) {
+      try {
+        if (fmu.containsSymbolicLink(srcPath)) {
+          new Violations().add(new BusinessViolation("MSG_ERR_SRC_PATH_CONTAINS_SYMLINK",
+              taskRec.getTaskId(), taskRec.getTaskName(), srcPath)).throwIfAny();
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
 
     // If a file to overwrite exists.
     if (doesOverwrittenFileOrDirExist) {

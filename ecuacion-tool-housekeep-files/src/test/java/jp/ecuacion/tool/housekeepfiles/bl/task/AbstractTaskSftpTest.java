@@ -27,10 +27,12 @@ import java.util.Random;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
+import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.testtool.AbstractSftpTest;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -388,6 +390,40 @@ class AbstractTaskSftpTest extends AbstractSftpTest {
 
       assertThat(task.getRemoteDirChildrenNameList(channel, testRootPath))
           .containsExactlyInAnyOrder("childFile1.txt", "childDir1");
+    }
+  }
+
+  @Nested
+  @DisplayName("getConnectTimeoutMillis()")
+  class GetConnectTimeoutMillis {
+
+    @AfterEach
+    void clearSystemProperty() {
+      System.clearProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS);
+    }
+
+    @Test
+    @DisplayName("returns the default when the property is unset")
+    void defaultsWhenUnset() {
+      assertThat(task.getConnectTimeoutMillis())
+          .isEqualTo(Constants.DEFAULT_SFTP_CONNECT_TIMEOUT_MILLIS);
+    }
+
+    @Test
+    @DisplayName("returns the configured value when the property is a valid integer")
+    void usesConfiguredValue() {
+      System.setProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS, "5000");
+
+      assertThat(task.getConnectTimeoutMillis()).isEqualTo(5000);
+    }
+
+    @Test
+    @DisplayName("falls back to the default when the property is not a valid integer")
+    void fallsBackToDefaultOnInvalidValue() {
+      System.setProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS, "not-a-number");
+
+      assertThat(task.getConnectTimeoutMillis())
+          .isEqualTo(Constants.DEFAULT_SFTP_CONNECT_TIMEOUT_MILLIS);
     }
   }
 }

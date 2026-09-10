@@ -18,12 +18,14 @@ package jp.ecuacion.tool.housekeepfiles.bl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
+import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -151,6 +153,48 @@ class HousekeepFilesBlTest {
       Function<String, String> getter = bl.createEnvVarValueGetter(builtInVariableMap, null);
 
       assertThat(getter.apply("BASE_DIR")).isNull();
+    }
+
+    @Test
+    @DisplayName("an empty-string property value resolves to null (treated as \"not found\"), "
+        + "not to an empty expansion")
+    void emptyStringPropertyResolvesToNull() throws Exception {
+      Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap();
+
+      MockEnvironment env = new MockEnvironment();
+      env.setProperty("BASE_DIR", "");
+
+      Function<String, String> getter = bl.createEnvVarValueGetter(builtInVariableMap, env);
+
+      assertThat(getter.apply("BASE_DIR")).isNull();
+    }
+  }
+
+  @Nested
+  @DisplayName("setEnvVarValueGetterOnAuthRecords()")
+  class SetEnvVarValueGetterOnAuthRecords {
+
+    @Test
+    @DisplayName("expands a ${VAR} reference in password via the given resolver")
+    void expandsPasswordVariable() {
+      HousekeepFilesAuthRecord rec = new HousekeepFilesAuthRecord("aHost", "SFTP", "22",
+          "PASSWORD", "aUser", "${SFTP_PASSWORD}", null);
+
+      bl.setEnvVarValueGetterOnAuthRecords(List.of(rec),
+          key -> "SFTP_PASSWORD".equals(key) ? "secret-value" : null);
+
+      assertThat(rec.getPassword()).isEqualTo("secret-value");
+    }
+
+    @Test
+    @DisplayName("leaves a password with no ${VAR} reference unchanged")
+    void leavesPlainPasswordUnchanged() {
+      HousekeepFilesAuthRecord rec = new HousekeepFilesAuthRecord("aHost", "SFTP", "22",
+          "PASSWORD", "aUser", "plainPassword", null);
+
+      bl.setEnvVarValueGetterOnAuthRecords(List.of(rec), key -> null);
+
+      assertThat(rec.getPassword()).isEqualTo("plainPassword");
     }
   }
 }

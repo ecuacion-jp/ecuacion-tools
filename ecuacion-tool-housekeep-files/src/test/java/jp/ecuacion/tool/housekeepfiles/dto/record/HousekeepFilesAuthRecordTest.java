@@ -187,4 +187,54 @@ class HousekeepFilesAuthRecordTest {
               .isEqualTo(NotEmptyWhen.class));
     }
   }
+
+  @Nested
+  @DisplayName("password")
+  class Password {
+
+    @Test
+    @DisplayName("a password longer than 30 characters is valid (no length cap, unlike the other "
+        + "string fields): a longer passphrase is legitimate and its length shouldn't matter")
+    void longPasswordIsValid() {
+      String longPassword = "a".repeat(200);
+      HousekeepFilesAuthRecord rec = new HousekeepFilesAuthRecord("aHost", "SFTP", "22",
+          "PASSWORD", "aUser", longPassword, null);
+
+      assertThat(validate(rec)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("getPassword() returns the raw Excel value when setEnvVarValueGetter was never "
+        + "called")
+    void getPasswordReturnsRawValueByDefault() {
+      HousekeepFilesAuthRecord rec = new HousekeepFilesAuthRecord("aHost", "SFTP", "22",
+          "PASSWORD", "aUser", "plainPassword", null);
+
+      assertThat(rec.getPassword()).isEqualTo("plainPassword");
+    }
+
+    @Test
+    @DisplayName("getPassword() expands a ${VAR} reference via the resolver set through "
+        + "setEnvVarValueGetter(), so a secret can be kept out of the settings Excel file")
+    void getPasswordExpandsEnvVarReference() {
+      HousekeepFilesAuthRecord rec = new HousekeepFilesAuthRecord("aHost", "SFTP", "22",
+          "PASSWORD", "aUser", "${SFTP_PASSWORD}", null);
+
+      rec.setEnvVarValueGetter(key -> "SFTP_PASSWORD".equals(key) ? "secret-value" : null);
+
+      assertThat(rec.getPassword()).isEqualTo("secret-value");
+    }
+
+    @Test
+    @DisplayName("getPassword() returns null when password is unset (authType KEY, no "
+        + "passphrase), even after setEnvVarValueGetter() was called")
+    void getPasswordNullWhenUnset() {
+      HousekeepFilesAuthRecord rec =
+          new HousekeepFilesAuthRecord("aHost", "SFTP", "22", "KEY", "aUser", null, "/a/key/path");
+
+      rec.setEnvVarValueGetter(key -> null);
+
+      assertThat(rec.getPassword()).isNull();
+    }
+  }
 }

@@ -22,12 +22,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
+import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 
 /**
  * Provides zip and unzip function.
@@ -104,6 +106,16 @@ public class CompressUtil {
     if (targetFile.isDirectory()) {
       File[] files = targetFile.listFiles();
       for (File f : files) {
+        // A monitored directory can contain entries placed by a less-trusted party. Following a
+        // symbolic link here (e.g. "link -> /etc") would archive file-system content the operator
+        // never intended to include, and a self-referential link (e.g. "link -> ..") would recurse
+        // forever, so reject the archive outright rather than silently including or excluding it.
+        if (Files.isSymbolicLink(f.toPath())) {
+          throw new IOException("Symbolic link found while archiving a directory; symbolic links "
+              + "are not supported here to avoid following them outside the source tree: "
+              + f.getAbsolutePath());
+        }
+
         if (f.isDirectory()) {
           archive(outZip, f, f.getAbsolutePath().replace(baseFile.getParent(), "").substring(1));
           archive(outZip, baseFile, f);
@@ -137,16 +149,15 @@ public class CompressUtil {
 
     if (!targetFile.isDirectory()) {
       // Get input stream for the file to compress.
-      BufferedInputStream in = new BufferedInputStream(new FileInputStream(targetFile));
-      // Write the file to the ZIP output.
-      int readSize = 0;
-      // Read buffer.
-      byte[] buffer = new byte[1024];
-      while ((readSize = in.read(buffer, 0, buffer.length)) != -1) {
-        outZip.write(buffer, 0, readSize);
+      try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(targetFile))) {
+        // Write the file to the ZIP output.
+        int readSize = 0;
+        // Read buffer.
+        byte[] buffer = new byte[1024];
+        while ((readSize = in.read(buffer, 0, buffer.length)) != -1) {
+          outZip.write(buffer, 0, readSize);
+        }
       }
-      // Close.
-      in.close();
     }
     // Close ZIP entry.
     outZip.closeEntry();
@@ -159,14 +170,17 @@ public class CompressUtil {
    *     Notice that this app mainly uses org.apache.tools.zip.ZipEntry.</p>
    *
    * @throws IOException if a zip entry's name would resolve to a path outside
-   *     {@code toFullDirPath} (a "zip slip" entry, e.g. containing {@code ../}), or on any other
-   *     I/O failure.
+   *     {@code toFullDirPath} (a "zip slip" entry, e.g. containing {@code ../}), if the
+   *     cumulative uncompressed size exceeds {@link Constants#PROP_UNZIP_MAX_TOTAL_BYTES} (a
+   *     "zip bomb" guard), or on any other I/O failure.
    */
   public void unzip(String fromFullFilePath, String toFullDirPath) throws IOException {
     File baseDir = new File(toFullDirPath);
     // Trailing separator so a sibling directory sharing the base dir's name as a prefix
     // (e.g. "/out" vs "/out-evil") is not mistaken for a path inside it.
     String baseDirCanonicalPath = baseDir.getCanonicalPath() + File.separator;
+    long maxTotalBytes = getMaxUnzipTotalBytes();
+    long totalBytesWritten = 0;
 
     // Unzip.
     try (ZipFile zf = new ZipFile(fromFullFilePath);) {
@@ -201,6 +215,18 @@ public class CompressUtil {
             int len;
 
             while ((len = input.read(buf)) != -1) {
+              // Checked (and the running total updated) on every chunk, not just once per entry,
+              // so a single oversized entry is stopped mid-write rather than after it has already
+              // filled the disk (a "zip bomb": a small archive engineered to decompress to an
+              // enormous size).
+              totalBytesWritten += len;
+              if (totalBytesWritten > maxTotalBytes) {
+                throw new IOException("Cumulative uncompressed size of the zip entries exceeds "
+                    + "the limit (" + maxTotalBytes + " bytes, see "
+                    + Constants.PROP_UNZIP_MAX_TOTAL_BYTES + "); aborting to avoid filling the "
+                    + "disk with a zip bomb.");
+              }
+
               output.write(buf, 0, len);
             }
           } catch (IOException ioe) {
@@ -208,6 +234,19 @@ public class CompressUtil {
           }
         }
       }
+    }
+  }
+
+  private long getMaxUnzipTotalBytes() {
+    String prop = System.getProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES);
+    if (prop == null) {
+      return Constants.DEFAULT_UNZIP_MAX_TOTAL_BYTES;
+    }
+
+    try {
+      return Long.parseLong(prop);
+    } catch (NumberFormatException e) {
+      return Constants.DEFAULT_UNZIP_MAX_TOTAL_BYTES;
     }
   }
 }

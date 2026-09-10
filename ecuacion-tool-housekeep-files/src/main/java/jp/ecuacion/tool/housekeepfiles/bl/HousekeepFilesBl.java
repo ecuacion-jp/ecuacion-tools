@@ -43,6 +43,7 @@ import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.other.HousekeepFilesExpandedPathsInfo;
+import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
@@ -50,6 +51,7 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.util.DateTimeUtil;
 import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
 import jp.ecuacion.tool.housekeepfiles.util.WildcardPathUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.env.Environment;
 
@@ -109,17 +111,28 @@ public class HousekeepFilesBl {
   }
 
   /**
-   * Builds the ${VAR} value resolver used to expand srcPath/destPath: built-in variables (see
-   * {@link #createBuiltInVariableMap}) take precedence and cannot be overridden; any other key
-   * falls back to {@code env} (application.properties, OS environment variables, JVM system
+   * Builds the ${VAR} value resolver used to expand srcPath/destPath/password: built-in variables
+   * (see {@link #createBuiltInVariableMap}) take precedence and cannot be overridden; any other
+   * key falls back to {@code env} (application.properties, OS environment variables, JVM system
    * properties, command-line arguments - anything Spring Boot's Environment can resolve).
    * {@code env} may be {@code null} (e.g. when exercised outside of Spring, such as in unit
-   * tests), in which case any non-built-in key resolves to {@code null} (i.e. "not found").
+   * tests), in which case any non-built-in key resolves to {@code null} (i.e. "not found"). An
+   * empty-string property value also resolves to {@code null} ("not found") rather than silently
+   * expanding to nothing - a variable resolving to "" can quietly change which file/directory a
+   * path refers to (e.g. {@code "${BASE_DIR}/work"} becomes {@code "/work"} when
+   * {@code BASE_DIR=""}), which is exactly the kind of mistake this tool should fail fast on
+   * rather than act on.
    */
   public Function<String, String> createEnvVarValueGetter(Map<String, String> builtInVariableMap,
       @Nullable Environment env) {
-    return key -> builtInVariableMap.containsKey(key) ? builtInVariableMap.get(key)
-        : (env == null ? null : env.getProperty(key));
+    return key -> {
+      if (builtInVariableMap.containsKey(key)) {
+        return builtInVariableMap.get(key);
+      }
+
+      String value = env == null ? null : env.getProperty(key);
+      return StringUtils.isEmpty(value) ? null : value;
+    };
   }
 
   /**
@@ -131,6 +144,19 @@ public class HousekeepFilesBl {
   public void setEnvVarValueGetterOnTasks(List<HousekeepFilesTaskRecord> taskRecList,
       Function<String, String> envVarValueGetter) {
     for (HousekeepFilesTaskRecord rec : taskRecList) {
+      rec.setEnvVarValueGetter(envVarValueGetter);
+    }
+  }
+
+  /**
+   * Sets the ${VAR} value resolver on every auth record, which eagerly expands password (allowing
+   * SFTP passwords/passphrases to be kept out of the settings Excel file and supplied via
+   * environment variable, e.g. {@code ${SFTP_PASSWORD}}) the same way srcPath/destPath are
+   * expanded. See {@link #setEnvVarValueGetterOnTasks}.
+   */
+  public void setEnvVarValueGetterOnAuthRecords(List<HousekeepFilesAuthRecord> authRecList,
+      Function<String, String> envVarValueGetter) {
+    for (HousekeepFilesAuthRecord rec : authRecList) {
       rec.setEnvVarValueGetter(envVarValueGetter);
     }
   }
