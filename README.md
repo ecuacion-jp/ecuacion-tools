@@ -24,7 +24,7 @@ This project follows the spirit of [Semantic Versioning](https://semver.org/). M
 
 ## Documentation
 
-- [ecuacion-references](https://references.ecuacion.jp/ecuacion-references-tools/public/showMarkdown/page?id=home) — Official reference documentation
+- Official reference documentation - [ecuacion-references-tools](https://references.ecuacion.jp/ecuacion-references-tools/public/showMarkdown/page?id=home)
 
 ## Download & Usage
 
