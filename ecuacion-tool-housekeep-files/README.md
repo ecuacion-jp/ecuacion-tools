@@ -8,6 +8,8 @@
 - It supports file transfer with remote servers via SFTP, in addition to the local filesystem.
 - It processes only files matching wildcard path patterns and older than a configured number of days.
 
+Check out the reference documentation below for setup instructions, a quick start guide, and more!
+
 ## Documentation
 
-- [ecuacion-references-tools](https://references.ecuacion.jp/ecuacion-references-tools/public/showMarkdown/page?id=housekeep-files/overview) — Official reference documentation
+- Official reference documentation - [ecuacion-references-tools](https://references.ecuacion.jp/ecuacion-references-tools/public/showMarkdown/page?id=housekeep-files/overview)
