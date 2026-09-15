@@ -8,6 +8,8 @@
  - Script Parameters — parameters can be passed to the script through the `parameter=` query parameter.
  - Environment Variable Resolution in Script Path — script paths registered in `ecuacion-tool-command-api.properties` can contain `${ENV_VAR}` placeholders.
 
+ Check out the reference documentation below for setup instructions, a quick start guide, and more!
+
  ## Documentation
 
- - [ecuacion-references-tools](https://references.ecuacion.jp/ecuacion-references-tools/public/showMarkdown/page?id=command-api/overview) — Official reference documentation
+ - Official reference documentation - [ecuacion-references-tools](https://references.ecuacion.jp/ecuacion-references-tools/public/showMarkdown/page?id=command-api/overview)
