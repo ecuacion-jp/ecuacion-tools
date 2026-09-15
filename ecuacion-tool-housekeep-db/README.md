@@ -9,6 +9,8 @@
 - It is able to delete records in related tables at the same time.
 - It is able to skip deletion when a record in related table exists.
 
+Check out the reference documentation below for setup instructions, a quick start guide, and more!
+
 ## Documentation
 
-- [ecuacion-references-tools](https://references.ecuacion.jp/ecuacion-references-tools/public/showMarkdown/page?id=housekeep-db/overview) — Official reference documentation
+- Official reference documentation - [ecuacion-references-tools](https://references.ecuacion.jp/ecuacion-references-tools/public/showMarkdown/page?id=housekeep-db/overview)
