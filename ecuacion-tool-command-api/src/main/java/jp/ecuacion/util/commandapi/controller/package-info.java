@@ -15,9 +15,9 @@
  */
 
 /**
- * Provides exception handling procedures for the command API web application.
+ * Provides REST controllers for the command API web application.
  */
 @NullMarked
-package jp.ecuacion.util.commandapi.web.exceptionhandler;
+package jp.ecuacion.util.commandapi.controller;
 
 import org.jspecify.annotations.NullMarked;

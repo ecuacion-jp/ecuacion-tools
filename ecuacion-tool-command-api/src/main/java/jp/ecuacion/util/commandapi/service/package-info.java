@@ -15,9 +15,9 @@
  */
 
 /**
- * Provides Spring configuration classes for the command API web application.
+ * Provides services for the command API web application.
  */
 @NullMarked
-package jp.ecuacion.util.commandapi.web.config;
+package jp.ecuacion.util.commandapi.service;
 
 import org.jspecify.annotations.NullMarked;

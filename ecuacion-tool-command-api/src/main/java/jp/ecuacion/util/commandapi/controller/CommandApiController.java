@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jp.ecuacion.util.commandapi.web.controller;
+package jp.ecuacion.util.commandapi.controller;
 
 import java.util.Map;
-import jp.ecuacion.util.commandapi.web.service.CommandApiService;
+import jp.ecuacion.util.commandapi.service.CommandApiService;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
