@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jp.ecuacion.tool.housekeepdb.exceptionhandler;
+package jp.ecuacion.tool.housekeepcommon.exceptionhandler;
 
 import jp.ecuacion.splib.core.exceptionhandler.SplibExceptionHandlerAction;
 import jp.ecuacion.splib.core.exceptionhandler.SplibRestExceptionHandlerAction;
@@ -23,10 +23,11 @@ import org.springframework.stereotype.Component;
 /**
  * Sends a mail on a system error, when mail settings exist.
  *
- * <p>Implements {@link SplibRestExceptionHandlerAction} — the extension point
+ * <p>Shared by housekeep-db and housekeep-files, both of which are batch-only (no web/REST
+ *     frontend). Implements {@link SplibRestExceptionHandlerAction} — the extension point
  *     {@code SplibRestExceptionHandler} uses for command-api's REST frontend (e.g.
- *     {@code /api/**} endpoints). command-api has no web/batch frontend, so there's no
- *     {@code SplibExceptionHandlerAction} consumer to also implement here.</p>
+ *     {@code /api/**} endpoints). command-api has its own implementation instead, since it has
+ *     no batch frontend and thus no {@code SplibExceptionHandlerAction} consumer.</p>
  */
 @Component
 public class AppExceptionHandlerAction implements SplibExceptionHandlerAction {

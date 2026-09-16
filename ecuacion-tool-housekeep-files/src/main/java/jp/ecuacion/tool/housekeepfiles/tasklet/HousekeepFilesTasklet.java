@@ -15,21 +15,16 @@
  */
 package jp.ecuacion.tool.housekeepfiles.tasklet;
 
-import jakarta.validation.Validation;
 import jakarta.validation.constraints.NotEmpty;
-import java.io.IOException;
 import java.util.Objects;
 import jp.ecuacion.lib.core.logging.DetailLogger;
-import jp.ecuacion.lib.core.violation.BusinessViolation;
-import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.lib.validation.constraints.FileExists;
 import jp.ecuacion.lib.validation.constraints.FileExtension;
+import jp.ecuacion.tool.housekeepcommon.util.ExcelPathValidator;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepLogUtil;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
-import jp.ecuacion.util.excel.util.ExcelReadUtil;
-import org.apache.poi.EncryptedDocumentException;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.jspecify.annotations.Nullable;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
@@ -81,8 +76,10 @@ public class HousekeepFilesTasklet implements Tasklet {
 
     String excelPath = validateExcelPath();
 
-    detailLogger.info("housekeep-files started.");
-    detailLogger.info("- Excel File Path     : " + excelPath);
+    @Nullable String targetSystemName = env == null ? null
+        : Objects.requireNonNull(env).getProperty(Constants.PROP_TARGET_SYSTEM_NAME);
+
+    HousekeepLogUtil.logStarted(detailLogger, "housekeep-files", excelPath, targetSystemName);
 
     // AbstractTaskSftp and CompressUtil are instantiated outside of Spring's DI (by reflection /
     // plain "new"), so they cannot read these properties from the Environment directly. Bridge
@@ -96,8 +93,8 @@ public class HousekeepFilesTasklet implements Tasklet {
 
     HousekeepFilesForm nonnullForm = getFormFromExcel(excelPath);
 
-    detailLogger.info("- Format Excel Version: " + nonnullForm.getFormatVersion());
-    detailLogger.info("- Locale              : " + nonnullForm.getLocale());
+    HousekeepLogUtil.logExcelFormatInfo(detailLogger, nonnullForm.getFormatVersion(),
+        nonnullForm.getLocale());
 
     blf.execute(nonnullForm, env);
 
@@ -105,22 +102,7 @@ public class HousekeepFilesTasklet implements Tasklet {
   }
 
   private String validateExcelPath() {
-    new Violations().addAll(Validation.buildDefaultValidatorFactory().getValidator().validate(this))
-        .messageParameters(Violations.newMessageParameters().isMessageWithItemName(true))
-        .throwIfAny();
-
-    String nonnullExcelPath = Objects.requireNonNull(excelPath);
-
-    try (Workbook workbook = ExcelReadUtil.openForRead(nonnullExcelPath)) {
-      // Only verifying the file can be opened as an excel file here.
-      // Its content is read later.
-    } catch (EncryptedDocumentException | IOException e) {
-      new Violations()
-          .add(new BusinessViolation("MSG_ERR_EXCEL_PATH_CANNOT_OPEN", nonnullExcelPath))
-          .throwIfAny();
-    }
-
-    return nonnullExcelPath;
+    return ExcelPathValidator.validate(this, excelPath);
   }
 
   /**

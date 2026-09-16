@@ -26,6 +26,7 @@ import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.splib.core.util.SplibLogUtil;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepLogUtil;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
@@ -62,7 +63,8 @@ public class HousekeepFilesBlf {
    *
    * <p>Convenience overload for callers with no Spring Environment (e.g. most existing unit
    * tests) - only built-in path variables (DATE/DATETIME/TIMESTAMP/HOSTNAME) resolve, and the
-   * optional system name (see {@link Constants#PROP_SYSTEM_NAME}) is omitted from logs/emails.</p>
+   * optional target system name (see {@link Constants#PROP_TARGET_SYSTEM_NAME}) is omitted from
+   * logs/emails.</p>
    */
   public void execute(HousekeepFilesForm form) throws Exception {
     execute(form, null);
@@ -73,12 +75,13 @@ public class HousekeepFilesBlf {
    *
    * @param env the Spring Environment used to resolve ${VAR} references in srcPath/destPath
    *     that aren't one of the built-in variables (DATE/DATETIME/TIMESTAMP/HOSTNAME), and to look up
-   *     the optional system name (see {@link Constants#PROP_SYSTEM_NAME}) shown in job
-   *     start/finish logs and the warning email subject; may be {@code null}, in which case only
-   *     built-in variables resolve and the system name is omitted.
+   *     the optional target system name (see {@link Constants#PROP_TARGET_SYSTEM_NAME}) shown in
+   *     the startup log and the warning email subject; may be {@code null}, in which case only
+   *     built-in variables resolve and the target system name is omitted.
    */
   public void execute(HousekeepFilesForm form, @Nullable Environment env) throws Exception {
-    final String systemName = env == null ? null : env.getProperty(Constants.PROP_SYSTEM_NAME);
+    final @Nullable String targetSystemName =
+        env == null ? null : env.getProperty(Constants.PROP_TARGET_SYSTEM_NAME);
 
     // List to hold warning information.
     final List<BusinessViolation> warnList = new ArrayList<>();
@@ -132,10 +135,10 @@ public class HousekeepFilesBlf {
 
     // Send email if there are warnings.
     if (!warnList.isEmpty()) {
-      bl.sendWarnMail(warnList, systemName);
+      bl.sendWarnMail(warnList, targetSystemName);
     }
 
-    dlog.info("housekeep-files finished successfully.");
+    HousekeepLogUtil.logFinishedSuccessfully(dlog, "housekeep-files");
   }
 
   /**

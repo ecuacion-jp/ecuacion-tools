@@ -15,9 +15,9 @@
  */
 
 /**
- * Provides exception handlers for the housekeep-files tool.
+ * Provides exception handlers shared between the housekeep-db and housekeep-files tools.
  */
 @NullMarked
-package jp.ecuacion.tool.housekeepfiles.exceptionhandler;
+package jp.ecuacion.tool.housekeepcommon.exceptionhandler;
 
 import org.jspecify.annotations.NullMarked;
