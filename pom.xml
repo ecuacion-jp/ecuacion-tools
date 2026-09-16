@@ -35,6 +35,7 @@
 
 	<modules>
 		<module>ecuacion-tool-command-api</module>
+		<module>ecuacion-tool-housekeep-common</module>
 		<module>ecuacion-tool-housekeep-db</module>
 		<module>ecuacion-tool-housekeep-files</module>
 	</modules>

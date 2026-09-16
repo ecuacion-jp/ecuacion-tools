@@ -15,27 +15,21 @@
  */
 package jp.ecuacion.tool.housekeepdb.tasklet;
 
-import jakarta.validation.Validation;
 import jakarta.validation.constraints.NotEmpty;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import jp.ecuacion.lib.core.logging.DetailLogger;
-import jp.ecuacion.lib.core.violation.BusinessViolation;
-import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.lib.validation.constraints.FileExists;
 import jp.ecuacion.lib.validation.constraints.FileExtension;
 import jp.ecuacion.splib.core.util.SplibLogUtil;
+import jp.ecuacion.tool.housekeepcommon.util.ExcelPathValidator;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepLogUtil;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepMainTableDeleter;
-import jp.ecuacion.util.excel.util.ExcelReadUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.poi.EncryptedDocumentException;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.jspecify.annotations.Nullable;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
@@ -59,6 +53,13 @@ public class HousekeepDbTasklet implements Tasklet {
   public static final String PROP_EXCEL_PATH = "jp.ecuacion.tool.housekeep-db.excel-path";
   public static final String PROP_MAX_SELECT_LINES =
       "jp.ecuacion.tool.housekeep-db.max-select-lines";
+
+  /**
+   * Optional name of the system whose DB records this housekeeping instance manages, shown in
+   * the startup log. When unset, that part of the log is simply omitted.
+   */
+  public static final String PROP_TARGET_SYSTEM_NAME =
+      "jp.ecuacion.tool.housekeep-db.target-system-name";
 
   private DetailLogger detailLogger = new DetailLogger(this);
   @NotEmpty
@@ -94,15 +95,17 @@ public class HousekeepDbTasklet implements Tasklet {
 
     String excelPath = validateExcelPath();
 
-    detailLogger.info("housekeep-db started.");
-    detailLogger.info("- Excel File Path     : " + excelPath);
+    @Nullable String targetSystemName =
+        env == null ? null : env.getProperty(PROP_TARGET_SYSTEM_NAME);
+
+    HousekeepLogUtil.logStarted(detailLogger, "housekeep-db", excelPath, targetSystemName);
 
     HousekeepConfigLoader configLoader = new HousekeepConfigLoader();
     configLoader.load(excelPath);
 
     Map<String, String> infoMap = configLoader.getInfoMap();
-    detailLogger.info("- Format Excel Version: " + infoMap.get("format-version"));
-    detailLogger.info("- Locale              : " + infoMap.get("locale"));
+    HousekeepLogUtil.logExcelFormatInfo(detailLogger, infoMap.get("format-version"),
+        infoMap.get("locale"));
 
     Map<String, DbConnectionInfoBean> dbConnectionInfoMap = configLoader.getDbConnectionInfoMap();
     List<HousekeepInfoBean> housekeepInfoList = configLoader.getHousekeepInfoList();
@@ -132,7 +135,7 @@ public class HousekeepDbTasklet implements Tasklet {
       SplibLogUtil.info(detailLogger, "Task finished : " + info.getTaskId(), 1);
     }
 
-    detailLogger.info("housekeep-db finished successfully.");
+    HousekeepLogUtil.logFinishedSuccessfully(detailLogger, "housekeep-db");
 
     return RepeatStatus.FINISHED;
   }
@@ -154,21 +157,6 @@ public class HousekeepDbTasklet implements Tasklet {
   }
 
   private String validateExcelPath() {
-    new Violations().addAll(Validation.buildDefaultValidatorFactory().getValidator().validate(this))
-        .messageParameters(Violations.newMessageParameters().isMessageWithItemName(true))
-        .throwIfAny();
-
-    String nonnullExcelPath = Objects.requireNonNull(excelPath);
-
-    try (Workbook workbook = ExcelReadUtil.openForRead(nonnullExcelPath)) {
-      // Only verifying the file can be opened as an excel file here.
-      // Its content is read later.
-    } catch (EncryptedDocumentException | IOException e) {
-      new Violations()
-          .add(new BusinessViolation("MSG_ERR_EXCEL_PATH_CANNOT_OPEN", nonnullExcelPath))
-          .throwIfAny();
-    }
-
-    return nonnullExcelPath;
+    return ExcelPathValidator.validate(this, excelPath);
   }
 }
