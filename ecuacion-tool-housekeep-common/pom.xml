@@ -18,7 +18,7 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>ecuacion-tool-housekeep-db</artifactId>
+	<artifactId>ecuacion-tool-housekeep-common</artifactId>
 	<packaging>jar</packaging>
 	<parent>
 		<groupId>jp.ecuacion.tool</groupId>
@@ -29,10 +29,21 @@
 
 	<build>
 		<resources>
-			<!-- Enable filtering only for version.properties, so that @project.version@
-			     is replaced with this project's actual version at build time. Other
-			     resource files are intentionally excluded from filtering to avoid
-			     unintended substitution of "@...@" or "${...}" patterns they may contain. -->
+			<!-- Enable filtering only for version_ecuacion-tools.properties, so that
+			     @project.version@ is replaced with this project's actual version at build
+			     time. Other resource files are intentionally excluded from filtering to avoid
+			     unintended substitution of "@...@" or "${...}" patterns they may contain.
+			     No unsuffixed version.properties here, deliberately: this module is also a
+			     dependency of ecuacion-references-tools (for this file, to show a version on
+			     its navbar), and that app also carries its own unsuffixed version.properties
+			     (via ecuacion-references-internal-utils) to show its own version on splib-web's
+			     built-in config page. If this module carried an unsuffixed version.properties
+			     too, both would land on ecuacion-references-tools' classpath under the same
+			     name, and VersionUtil.getVersion("") would resolve to whichever one the
+			     classloader happens to find first — not reliably references' own.
+			     ecuacion-tool-housekeep-db and ecuacion-tool-housekeep-files each carry their
+			     own unsuffixed version.properties instead, since ecuacion-references-tools
+			     does not depend on either of those. -->
 			<resource>
 				<directory>src/main/resources</directory>
 				<filtering>false</filtering>
@@ -40,34 +51,19 @@
 			<resource>
 				<directory>src/main/resources</directory>
 				<includes>
-					<include>version.properties</include>
+					<include>version_ecuacion-tools.properties</include>
 				</includes>
 				<filtering>true</filtering>
 			</resource>
 		</resources>
-		<plugins>
-
-			<!-- for batch -->
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-
-		</plugins>
 	</build>
+
 	<dependencies>
 
 		<!-- spring boot -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
-		
-		<!-- ecuacion-tool -->
-		<dependency>
-			<groupId>jp.ecuacion.tool</groupId>
-			<artifactId>ecuacion-tool-housekeep-common</artifactId>
-			<version>${app.version}</version>
 		</dependency>
 
 		<!-- ecuacion-splib -->
@@ -86,34 +82,6 @@
 		<dependency>
 			<groupId>jp.ecuacion.lib</groupId>
 			<artifactId>ecuacion-lib-validation-business-messages</artifactId>
-		</dependency>
-
-		<!-- other -->
-
-		<!-- DB driver -->
-		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.mariadb.jdbc</groupId>
-			<artifactId>mariadb-java-client</artifactId>
-		</dependency>
-
-		<!-- Real Postgres for tests, launched without Docker (see HousekeepDbTaskletTest). -->
-		<dependency>
-			<groupId>io.zonky.test</groupId>
-			<artifactId>embedded-postgres</artifactId>
-			<version>2.2.2</version>
-			<scope>test</scope>
-		</dependency>
-
-		<!-- No true embedded MySQL exists, so MySQL/MariaDB-flavored SQL is verified against H2's
-		     MySQL compatibility mode instead (see HousekeepDbTaskletMysqlTest). -->
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>test</scope>
 		</dependency>
 
 	</dependencies>

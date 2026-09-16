@@ -28,6 +28,23 @@
 	</parent>
 
 	<build>
+		<resources>
+			<!-- Enable filtering only for version.properties, so that @project.version@
+			     is replaced with this project's actual version at build time. Other
+			     resource files are intentionally excluded from filtering to avoid
+			     unintended substitution of "@...@" or "${...}" patterns they may contain. -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>version.properties</include>
+				</includes>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<plugins>
 
 			<!-- for batch -->
@@ -45,6 +62,13 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
+		<!-- ecuacion-tool -->
+		<dependency>
+			<groupId>jp.ecuacion.tool</groupId>
+			<artifactId>ecuacion-tool-housekeep-common</artifactId>
+			<version>${app.version}</version>
 		</dependency>
 
 		<!-- ecuacion-splib -->

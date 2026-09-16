@@ -38,10 +38,12 @@ public class Constants {
       "jp.ecuacion.tool.housekeep-files.sftp.strict-host-key-checking";
 
   /**
-   * Optional system name shown in job start/finish logs and the warning email subject. When
-   * unset, that part of the log/email is simply omitted.
+   * Optional name of the system whose files this housekeeping instance manages, shown in the
+   * startup log and the warning email subject. When unset, that part of the log/email is simply
+   * omitted.
    */
-  public static final String PROP_SYSTEM_NAME = "jp.ecuacion.tool.housekeep-files.system-name";
+  public static final String PROP_TARGET_SYSTEM_NAME =
+      "jp.ecuacion.tool.housekeep-files.target-system-name";
 
   /**
    * SFTP session/channel connect timeout in milliseconds (in {@code application.properties} /

@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -27,6 +29,7 @@ import java.nio.file.Path;
 import java.util.List;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.util.LangExcelUtil;
@@ -38,9 +41,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
+import org.springframework.mock.env.MockEnvironment;
 
 /** Tests for {@link HousekeepFilesTasklet}. */
 @SuppressWarnings("null")
@@ -120,6 +125,105 @@ class HousekeepFilesTaskletTest {
 
       assertThat(status).isEqualTo(RepeatStatus.FINISHED);
       assertThat(destDir).isDirectory();
+    }
+  }
+
+  /** The ROOT logger's level as found before {@link #attachLogCapture()} last changed it. */
+  private static ch.qos.logback.classic.@Nullable Level levelBeforeCapture;
+
+  /**
+   * Attaches a started {@link ListAppender} to the ROOT logger, capturing every log event
+   * emitted anywhere during the test. Also lowers the ROOT logger's level to {@code DEBUG} for
+   * the duration of the capture - the previous level is restored by {@link #detachLogCapture}.
+   */
+  private static ListAppender<ILoggingEvent> attachLogCapture() {
+    ch.qos.logback.classic.Logger rootLogger =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(
+            ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+
+    levelBeforeCapture = rootLogger.getLevel();
+    rootLogger.setLevel(ch.qos.logback.classic.Level.DEBUG);
+
+    ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    appender.setContext(rootLogger.getLoggerContext());
+    appender.start();
+    rootLogger.addAppender(appender);
+
+    return appender;
+  }
+
+  /**
+   * Detaches and stops an appender previously returned by {@link #attachLogCapture()}, and
+   * restores the ROOT logger's level to what it was before that call.
+   */
+  private static void detachLogCapture(ListAppender<ILoggingEvent> appender) {
+    ch.qos.logback.classic.Logger rootLogger =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(
+            ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+    rootLogger.detachAppender(appender);
+    appender.stop();
+    rootLogger.setLevel(levelBeforeCapture);
+  }
+
+  @Nested
+  @DisplayName("execute(): target system name")
+  class TargetSystemName {
+
+    @SuppressWarnings("null")
+    @Test
+    @DisplayName("when set, is logged as an additional startup info line, alongside the "
+        + "unmodified start/finish messages")
+    void loggedAsStartupInfoLineWhenSet(@TempDir Path tempDir) throws Exception {
+      Path destDir = tempDir.resolve("created-dir");
+      String @Nullable [] taskRow = new String[] {"01", "task01", "Create Directory",
+          "CREATE_DIR", null, null, null, null, null, destDir.toString(), "TRUE", "FALSE",
+          "IGNORE"};
+      Path excelFile = buildExcelFile(java.util.Collections.singletonList(taskRow));
+
+      MockEnvironment env = new MockEnvironment();
+      env.setProperty(Constants.PROP_TARGET_SYSTEM_NAME, "my-system");
+      HousekeepFilesTasklet tasklet = new HousekeepFilesTasklet(excelFile.toString());
+      tasklet.env = env;
+
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      try {
+        tasklet.execute(mock(StepContribution.class), mock(ChunkContext.class));
+
+        List<String> messages =
+            appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+        assertThat(messages).anyMatch(msg -> msg.equals("housekeep-files started."));
+        assertThat(messages)
+            .anyMatch(msg -> msg.equals("- Target System Name  : my-system"));
+        assertThat(messages)
+            .anyMatch(msg -> msg.equals("housekeep-files finished successfully."));
+      } finally {
+        detachLogCapture(appender);
+      }
+    }
+
+    @Test
+    @DisplayName("when unset, the startup info line is omitted")
+    void omittedFromStartupInfoWhenUnset(@TempDir Path tempDir) throws Exception {
+      Path destDir = tempDir.resolve("created-dir");
+      String @Nullable [] taskRow = new String[] {"01", "task01", "Create Directory",
+          "CREATE_DIR", null, null, null, null, null, destDir.toString(), "TRUE", "FALSE",
+          "IGNORE"};
+      Path excelFile = buildExcelFile(java.util.Collections.singletonList(taskRow));
+
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      try {
+        new HousekeepFilesTasklet(excelFile.toString())
+            .execute(mock(StepContribution.class), mock(ChunkContext.class));
+
+        List<String> messages =
+            appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+        assertThat(messages).anyMatch(msg -> msg.equals("housekeep-files started."));
+        assertThat(messages).noneMatch(msg -> msg.contains("Target System Name"));
+        assertThat(messages)
+            .anyMatch(msg -> msg.equals("housekeep-files finished successfully."));
+      } finally {
+        detachLogCapture(appender);
+      }
     }
   }
 

@@ -431,10 +431,11 @@ public class HousekeepFilesBl {
   /**
    * Sends a warning email listing all accumulated violations to the configured recipients.
    *
-   * @param systemName optional system name (from {@link Constants#PROP_SYSTEM_NAME}) appended to
-   *     the email subject; may be {@code null}, in which case it's simply omitted.
+   * @param targetSystemName optional name of the system whose files are being housekept (from
+   *     {@link Constants#PROP_TARGET_SYSTEM_NAME}) appended to the email subject; may be
+   *     {@code null}, in which case it's simply omitted.
    */
-  public void sendWarnMail(List<BusinessViolation> warnList, @Nullable String systemName)
+  public void sendWarnMail(List<BusinessViolation> warnList, @Nullable String targetSystemName)
       throws Exception {
     // Retrieve the list of error messages.
     List<String> msgList = new ArrayList<>();
@@ -448,7 +449,8 @@ public class HousekeepFilesBl {
 
     // Build the message.
     final String title = PropertiesFileUtil.getApplication("jp.ecuacion.lib.core.mail.title-prefix")
-        + "[WARN] HousekeepFiles" + (systemName == null ? "" : ":" + systemName);
+        + "[WARN] HousekeepFiles"
+        + (targetSystemName == null ? "" : ":" + targetSystemName);
     String hostname = InetAddress.getLocalHost().getHostName();
     StringBuilder msg = new StringBuilder();
     msg.append("hostname: " + hostname + "\n\n" + "You've got warnings: \n\n");

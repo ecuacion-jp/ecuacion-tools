@@ -34,7 +34,8 @@ import org.springframework.transaction.PlatformTransactionManager;
  * Provides batch config.
  */
 @Configuration
-@ComponentScan(basePackages = "jp.ecuacion.splib.batch.config")
+@ComponentScan(
+    basePackages = {"jp.ecuacion.splib.batch.config", "jp.ecuacion.tool.housekeepcommon"})
 @SuppressWarnings("NullAway.Init")
 public class AppBatchConfig extends SplibAppParentBatchConfig {
 

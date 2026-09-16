@@ -15,9 +15,9 @@
  */
 
 /**
- * Provides exception handling procedures for the command API web application.
+ * Provides classes shared between the housekeep-db and housekeep-files tools.
  */
 @NullMarked
-package jp.ecuacion.tool.housekeepdb.exceptionhandler;
+package jp.ecuacion.tool.housekeepcommon;
 
 import org.jspecify.annotations.NullMarked;

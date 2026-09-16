@@ -623,6 +623,63 @@ abstract class AbstractHousekeepDbTaskletTest {
   }
 
   // -------------------------------------------------------------------------
+  // target system name (jp.ecuacion.tool.housekeep-db.target-system-name)
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("target system name")
+  class TargetSystemName {
+
+    @SuppressWarnings("null")
+    @Test
+    @DisplayName("when set, is logged as an additional startup info line, alongside the "
+        + "unmodified start/finish messages")
+    void loggedAsStartupInfoLineWhenSet() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")), List.of(),
+          List.of(), List.of());
+
+      MockEnvironment env = new MockEnvironment();
+      env.setProperty(HousekeepDbTasklet.PROP_TARGET_SYSTEM_NAME, "my-system");
+      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(excel.toString(), 1000);
+      tasklet.env = env;
+
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      try {
+        tasklet.execute(mock(StepContribution.class), mock(ChunkContext.class));
+
+        List<String> messages =
+            appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+        assertThat(messages).anyMatch(msg -> msg.equals("housekeep-db started."));
+        assertThat(messages)
+            .anyMatch(msg -> msg.equals("- Target System Name  : my-system"));
+        assertThat(messages).anyMatch(msg -> msg.equals("housekeep-db finished successfully."));
+      } finally {
+        detachLogCapture(appender);
+      }
+    }
+
+    @Test
+    @DisplayName("when unset, the startup info line is omitted")
+    void omittedFromStartupInfoWhenUnset() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")), List.of(),
+          List.of(), List.of());
+
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      try {
+        runTasklet(excel);
+
+        List<String> messages =
+            appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+        assertThat(messages).anyMatch(msg -> msg.equals("housekeep-db started."));
+        assertThat(messages).noneMatch(msg -> msg.contains("Target System Name"));
+        assertThat(messages).anyMatch(msg -> msg.equals("housekeep-db finished successfully."));
+      } finally {
+        detachLogCapture(appender);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // paging (maxSelectLines)
   // -------------------------------------------------------------------------
 
