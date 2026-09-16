@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jp.ecuacion.util.commandapi.web.controller;
+package jp.ecuacion.util.commandapi.controller;
 
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -51,7 +51,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * {@code api/public/execute} GET/POST endpoints, and the always-key-required
  * {@code api/key/execute} GET/POST endpoints (authenticated by ecuacion-splib-rest's
  * {@link SplibApiKeyAuthenticationFilter} via
- * {@link jp.ecuacion.util.commandapi.web.config.CommandApiKeyProvider}), including the per-script
+ * {@link jp.ecuacion.util.commandapi.config.CommandApiKeyProvider}), including the per-script
  * {@code GET:} / {@code POST:} / {@code ALL:} method restriction.
  */
 class CommandApiControllerTest {

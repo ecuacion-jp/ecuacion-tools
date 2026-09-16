@@ -13,11 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package jp.ecuacion.util.commandapi.config;
+
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.PropertySources;
 
 /**
- * Provides REST controllers for the command API web application.
+ * Provides app config.
  */
-@NullMarked
-package jp.ecuacion.util.commandapi.web.controller;
-
-import org.jspecify.annotations.NullMarked;
+@Configuration
+@ComponentScan(basePackages = "jp.ecuacion.splib.rest.config"
+    + ",jp.ecuacion.splib.jpa.config")
+@PropertySources({
+  @PropertySource(value = "classpath:application-builtin.properties")
+})
+public class AppConfig {
+  
+}

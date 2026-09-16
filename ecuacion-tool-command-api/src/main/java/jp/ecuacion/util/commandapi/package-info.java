@@ -18,6 +18,6 @@
  * Provides the web application entry point for the command API tool.
  */
 @NullMarked
-package jp.ecuacion.util.commandapi.web;
+package jp.ecuacion.util.commandapi;
 
 import org.jspecify.annotations.NullMarked;
