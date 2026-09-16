@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jp.ecuacion.util.commandapi.web.service;
+package jp.ecuacion.util.commandapi.service;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -39,7 +39,7 @@ import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.splib.core.util.SplibLogUtil;
-import jp.ecuacion.util.commandapi.web.config.CommandApiKeyFileLocator;
+import jp.ecuacion.util.commandapi.config.CommandApiKeyFileLocator;
 import org.jspecify.annotations.Nullable;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.env.ConfigurableEnvironment;
