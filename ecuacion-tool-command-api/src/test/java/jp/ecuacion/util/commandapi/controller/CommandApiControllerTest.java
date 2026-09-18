@@ -69,6 +69,7 @@ class CommandApiControllerTest {
       "jp.ecuacion.tool.command-api.api-key-file-path";
   private static final String CORRECT_API_KEY = "s3cr3t-key";
 
+  @SuppressWarnings("null")
   private static boolean isWindows() {
     return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
   }

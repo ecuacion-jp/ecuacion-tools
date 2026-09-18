@@ -35,7 +35,6 @@ import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -68,10 +67,7 @@ public class HousekeepDbTasklet implements Tasklet {
   private final @Nullable String excelPath;
   private final int maxSelectLines;
 
-  // Not set when this tasklet is instantiated directly (e.g. in tests) instead of through Spring.
-  @Autowired(required = false)
-  @Nullable
-  Environment env;
+  private final Environment env;
 
   /**
    * Creates the tasklet, reading the excel file path and the per-commit row limit from the
@@ -79,11 +75,14 @@ public class HousekeepDbTasklet implements Tasklet {
    *
    * @param excelPath the excel file path, or {@code null} if unset
    * @param maxSelectLines the number of rows selected and committed per loop iteration
+   * @param env the Spring {@link Environment}, used to resolve the optional target system name
+   *     and any {@code ${VAR}} references in DB connection passwords
    */
   public HousekeepDbTasklet(@Value("${" + PROP_EXCEL_PATH + ":#{null}}") @Nullable String excelPath,
-      @Value("${" + PROP_MAX_SELECT_LINES + ":1000}") int maxSelectLines) {
+      @Value("${" + PROP_MAX_SELECT_LINES + ":1000}") int maxSelectLines, Environment env) {
     this.excelPath = excelPath;
     this.maxSelectLines = maxSelectLines;
+    this.env = env;
   }
 
   /**
@@ -95,8 +94,7 @@ public class HousekeepDbTasklet implements Tasklet {
 
     String excelPath = validateExcelPath();
 
-    @Nullable String targetSystemName =
-        env == null ? null : env.getProperty(PROP_TARGET_SYSTEM_NAME);
+    @Nullable String targetSystemName = env.getProperty(PROP_TARGET_SYSTEM_NAME);
 
     HousekeepLogUtil.logStarted(detailLogger, "housekeep-db", excelPath, targetSystemName);
 
@@ -143,15 +141,14 @@ public class HousekeepDbTasklet implements Tasklet {
   /**
    * Builds the ${VAR} value resolver used to expand DB connection passwords: resolves via
    * {@code env} (application.properties, OS environment variables, JVM system properties,
-   * command-line arguments - anything Spring Boot's Environment can resolve). {@code env} may be
-   * {@code null} (e.g. when exercised outside of Spring, such as in unit tests), in which case
-   * every key resolves to {@code null} (i.e. "not found"). An empty-string property value also
-   * resolves to {@code null} rather than silently expanding to an empty password.
+   * command-line arguments - anything Spring Boot's Environment can resolve). An empty-string
+   * property value resolves to {@code null} (i.e. "not found") rather than silently expanding to
+   * an empty password.
    */
   /** Package-private for unit testing. */
   Function<String, String> createEnvVarValueGetter() {
     return key -> {
-      String value = env == null ? null : env.getProperty(key);
+      String value = env.getProperty(key);
       return StringUtils.isEmpty(value) ? null : value;
     };
   }
