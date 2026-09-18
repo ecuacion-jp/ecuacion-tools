@@ -104,6 +104,7 @@ class CommandApiServiceTest {
     assertTrue(Objects.requireNonNull(ex.getMessage()).contains("api-key-file-path"));
   }
 
+  @SuppressWarnings("null")
   private static boolean isWindows() {
     return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
   }
