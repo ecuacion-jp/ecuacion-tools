@@ -107,8 +107,9 @@ abstract class AbstractHousekeepDbTaskletTest {
 
   @SuppressWarnings("null")
   protected static void runTasklet(Path excelFile, int maxSelectLines) throws Exception {
-    RepeatStatus status = new HousekeepDbTasklet(excelFile.toString(), maxSelectLines)
-        .execute(mock(StepContribution.class), mock(ChunkContext.class));
+    RepeatStatus status =
+        new HousekeepDbTasklet(excelFile.toString(), maxSelectLines, new MockEnvironment())
+            .execute(mock(StepContribution.class), mock(ChunkContext.class));
 
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
   }
@@ -640,8 +641,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       MockEnvironment env = new MockEnvironment();
       env.setProperty(HousekeepDbTasklet.PROP_TARGET_SYSTEM_NAME, "my-system");
-      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(excel.toString(), 1000);
-      tasklet.env = env;
+      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(excel.toString(), 1000, env);
 
       ListAppender<ILoggingEvent> appender = attachLogCapture();
       try {
@@ -983,7 +983,7 @@ abstract class AbstractHousekeepDbTaskletTest {
     @Test
     @DisplayName("a null excelPath fails @NotEmpty validation")
     void nullExcelPathFails() {
-      assertThatThrownBy(() -> new HousekeepDbTasklet(null, 1000).execute(
+      assertThatThrownBy(() -> new HousekeepDbTasklet(null, 1000, new MockEnvironment()).execute(
           mock(StepContribution.class), mock(ChunkContext.class)))
               .isInstanceOf(ViolationException.class);
     }
@@ -992,8 +992,9 @@ abstract class AbstractHousekeepDbTaskletTest {
     @Test
     @DisplayName("a path pointing to a non-existent file fails @FileExists validation")
     void nonExistentFileFails() {
-      assertThatThrownBy(() -> new HousekeepDbTasklet("/no/such/file.xlsx", 1000)
-          .execute(mock(StepContribution.class), mock(ChunkContext.class)))
+      assertThatThrownBy(() -> new HousekeepDbTasklet("/no/such/file.xlsx", 1000,
+          new MockEnvironment())
+              .execute(mock(StepContribution.class), mock(ChunkContext.class)))
               .isInstanceOf(ViolationException.class);
     }
 
@@ -1004,7 +1005,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path file = tempDir.resolve("settings.txt");
       Files.writeString(file, "not an excel file");
 
-      assertThatThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000)
+      assertThatThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000, new MockEnvironment())
           .execute(mock(StepContribution.class), mock(ChunkContext.class)))
               .isInstanceOf(ViolationException.class);
     }
@@ -1017,7 +1018,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       Files.writeString(file, "not actually an xlsx file");
 
       assertThatExceptionOfType(ViolationException.class)
-          .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000)
+          .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000, new MockEnvironment())
               .execute(mock(StepContribution.class), mock(ChunkContext.class)))
           .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
               .extracting(BusinessViolation::getMessageId)
@@ -1055,7 +1056,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       }
 
       assertThatExceptionOfType(ViolationException.class)
-          .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000)
+          .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000, new MockEnvironment())
               .execute(mock(StepContribution.class), mock(ChunkContext.class)))
           .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
               .extracting(BusinessViolation::getMessageId)
@@ -1446,8 +1447,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       MockEnvironment env = new MockEnvironment();
       env.setProperty("DB_PASSWORD", actualPassword);
-      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(excel.toString(), 1000);
-      tasklet.env = env;
+      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(excel.toString(), 1000, env);
 
       RepeatStatus status =
           tasklet.execute(mock(StepContribution.class), mock(ChunkContext.class));
@@ -1472,8 +1472,7 @@ abstract class AbstractHousekeepDbTaskletTest {
                   "num1", "(none)", null, null, null, null, null, null, null, null}),
           List.of(), List.of());
 
-      // No env set on the tasklet (as when it isn't Spring-managed), so "${DB_PASSWORD}" cannot
-      // resolve.
+      // runTasklet() uses an empty MockEnvironment, so "${DB_PASSWORD}" cannot resolve.
       assertThatThrownBy(() -> runTasklet(excel)).isInstanceOf(RuntimeException.class);
 
       assertThat(countRows("select count(*) from pw_var_unresolved")).isEqualTo(1);
