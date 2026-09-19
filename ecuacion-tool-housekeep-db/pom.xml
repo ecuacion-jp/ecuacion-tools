@@ -28,6 +28,23 @@
 	</parent>
 
 	<build>
+		<resources>
+			<!-- Enable filtering only for version.properties, so that @project.version@
+			     is replaced with this project's actual version at build time. Other
+			     resource files are intentionally excluded from filtering to avoid
+			     unintended substitution of "@...@" or "${...}" patterns they may contain. -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>version.properties</include>
+				</includes>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<plugins>
 
 			<!-- for batch -->
@@ -46,6 +63,13 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 		
+		<!-- ecuacion-tool -->
+		<dependency>
+			<groupId>jp.ecuacion.tool</groupId>
+			<artifactId>ecuacion-tool-housekeep-common</artifactId>
+			<version>${app.version}</version>
+		</dependency>
+
 		<!-- ecuacion-splib -->
 		<dependency>
 			<groupId>jp.ecuacion.splib</groupId>
@@ -58,6 +82,12 @@
 			<artifactId>ecuacion-util-excel-table</artifactId>
 		</dependency>
 
+		<!-- ecuacion-lib -->
+		<dependency>
+			<groupId>jp.ecuacion.lib</groupId>
+			<artifactId>ecuacion-lib-validation-business-messages</artifactId>
+		</dependency>
+
 		<!-- other -->
 
 		<!-- DB driver -->
@@ -65,14 +95,26 @@
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 		</dependency>
-
-		<!-- DB for Batch -->
 		<dependency>
-			<groupId>org.hsqldb</groupId>
-			<artifactId>hsqldb</artifactId>
-			<scope>runtime</scope>
+			<groupId>org.mariadb.jdbc</groupId>
+			<artifactId>mariadb-java-client</artifactId>
 		</dependency>
 
+		<!-- Real Postgres for tests, launched without Docker (see HousekeepDbTaskletTest). -->
+		<dependency>
+			<groupId>io.zonky.test</groupId>
+			<artifactId>embedded-postgres</artifactId>
+			<version>2.2.2</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- No true embedded MySQL exists, so MySQL/MariaDB-flavored SQL is verified against H2's
+		     MySQL compatibility mode instead (see HousekeepDbTaskletMysqlTest). -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
 
 	</dependencies>
 </project>

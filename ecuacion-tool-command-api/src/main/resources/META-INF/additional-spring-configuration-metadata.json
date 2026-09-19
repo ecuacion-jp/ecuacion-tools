@@ -8,5 +8,10 @@
     "name": "jp.ecuacion.tool.command-api.api-key-file-path",
     "type": "java.lang.String",
     "description": "Path to the file containing the shared secret compared against the 'apiKey' POST parameter of executeScript. Supports ${ENV_VAR} resolution."
+  },
+  {
+    "name": "jp.ecuacion.tool.command-api.api-key-comparison-mode",
+    "type": "java.lang.String",
+    "description": "How every key in the api-key file is compared: PLAIN or BCRYPT. Applies to the whole file, not per line. Defaults to PLAIN when unset; an unrecognized value is logged as a warning and treated as PLAIN."
   }
 ]}

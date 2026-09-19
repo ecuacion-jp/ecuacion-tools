@@ -15,23 +15,19 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl;
 
-import jakarta.validation.Validation;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
-import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.ExceptionUtil;
 import jp.ecuacion.lib.core.util.FileUtil;
 import jp.ecuacion.lib.core.util.MailUtil;
@@ -39,6 +35,8 @@ import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.core.util.StringUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
+import jp.ecuacion.splib.core.util.SplibLogUtil.LogKeyValue;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum;
@@ -46,8 +44,7 @@ import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.other.FileInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.other.HousekeepFilesExpandedPathsInfo;
-import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesHdRecord;
-import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesPathRecord;
+import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
@@ -55,7 +52,10 @@ import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.util.DateTimeUtil;
 import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
 import jp.ecuacion.tool.housekeepfiles.util.WildcardPathUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.event.Level;
+import org.springframework.core.env.Environment;
 
 /**
  * Provides business logics.
@@ -72,16 +72,9 @@ public class HousekeepFilesBl {
 
   /** Validates cross-record consistency such as duplicate task IDs and task names. */
   public void consistencyCheckBetweenMultipleData(HousekeepFilesForm form) {
-    // taskInfoHdRec is not read by the reader, so validation check is not run - run it here.
-    // Effectively checks for the existence of sysName.
-    new Violations()
-        .addAll(Validation.buildDefaultValidatorFactory().getValidator()
-            .validate(form.getTaskInfoHdRec()))
-        .throwIfAny();
-
     // Error if task count is zero.
     if (form.getTaskInfoHdRec().recList == null || form.getTaskInfoHdRec().recList.size() == 0) {
-      new Violations().add(new BusinessViolation("MSG_ERR_AT_LEAST_ONE_TASK_NEEDED")).throwIfAny();
+      new Violations().add("MSG_ERR_AT_LEAST_ONE_TASK_NEEDED").throwIfAny();
     }
 
     // Verify that taskId and taskName are not duplicated.
@@ -90,8 +83,7 @@ public class HousekeepFilesBl {
     for (HousekeepFilesTaskRecord rec : form.getTaskInfoHdRec().recList) {
       // taskId
       if (taskIdSet.contains(rec.getTaskId())) {
-        new Violations().add(new BusinessViolation("MSG_ERR_TASK_ID_DUPLICATED",
-            rec.getTaskId())).throwIfAny();
+        new Violations().add("MSG_ERR_TASK_ID_DUPLICATED", rec.getTaskId()).throwIfAny();
 
       } else {
         taskIdSet.add(rec.getTaskId());
@@ -99,8 +91,7 @@ public class HousekeepFilesBl {
 
       // taskName
       if (taskNameSet.contains(rec.getTaskName())) {
-        new Violations().add(new BusinessViolation("MSG_ERR_TASK_NAME_DUPLICATED",
-            rec.getTaskName())).throwIfAny();
+        new Violations().add("MSG_ERR_TASK_NAME_DUPLICATED", rec.getTaskName()).throwIfAny();
 
       } else {
         taskNameSet.add(rec.getTaskName());
@@ -108,61 +99,71 @@ public class HousekeepFilesBl {
     }
   }
 
-  /** Creates a map of path variables from the form's path info records and built-in variables. */
-  public Map<String, String> createPathInfoMap(HousekeepFilesForm form)
-      throws UnknownHostException {
-    Map<String, String> pathInfoMap = new HashMap<>();
-    for (HousekeepFilesPathRecord pathInfo : form.getPathInfoRecList()) {
-      pathInfoMap.put(pathInfo.getKey(), pathInfo.getValue());
-    }
+  /** Creates a map of the built-in path variables (date, timestamp, hostname). */
+  public Map<String, String> createBuiltInVariableMap() throws UnknownHostException {
+    Map<String, String> builtInVariableMap = new HashMap<>();
+    builtInVariableMap.put(Constants.ENV_VAR_DATE, dateUtil.getDateStr8());
+    builtInVariableMap.put(Constants.ENV_VAR_DATETIME, dateUtil.getDateTimeStr15());
+    builtInVariableMap.put(Constants.ENV_VAR_TIMESTAMP, dateUtil.getTimestampNumString());
+    builtInVariableMap.put(Constants.ENV_VAR_HOSTNAME, InetAddress.getLocalHost().getHostName());
 
-    // Add fields provided by default.
-    pathInfoMap.put(Constants.ENV_VAR_SYS_NAME, form.getTaskInfoHdRec().getSysName());
-    pathInfoMap.put(Constants.ENV_VAR_DATE, dateUtil.getDateStr8());
-    pathInfoMap.put(Constants.ENV_VAR_TIMESTAMP, dateUtil.getTimestampNumString());
-    pathInfoMap.put(Constants.ENV_VAR_HOSTNAME, InetAddress.getLocalHost().getHostName());
-
-    return pathInfoMap;
+    return builtInVariableMap;
   }
 
-  /** Validates env variable references in paths and stores the variable map in each task record. */
-  public void envVarExistenceCheckAndSetEnvBarExpandedPaths(
-      List<HousekeepFilesTaskRecord> taskRecList, Map<String, String> envVarInfoMap) {
-    // Validate pathFrom and pathTo.
+  /**
+   * Builds the ${VAR} value resolver used to expand srcPath/destPath/password: built-in variables
+   * (see {@link #createBuiltInVariableMap}) take precedence and cannot be overridden; any other
+   * key falls back to {@code env} (application.properties, OS environment variables, JVM system
+   * properties, command-line arguments - anything Spring Boot's Environment can resolve).
+   * {@code env} may be {@code null} (e.g. when exercised outside of Spring, such as in unit
+   * tests), in which case any non-built-in key resolves to {@code null} (i.e. "not found"). An
+   * empty-string property value also resolves to {@code null} ("not found") rather than silently
+   * expanding to nothing - a variable resolving to "" can quietly change which file/directory a
+   * path refers to (e.g. {@code "${BASE_DIR}/work"} becomes {@code "/work"} when
+   * {@code BASE_DIR=""}), which is exactly the kind of mistake this tool should fail fast on
+   * rather than act on.
+   */
+  public Function<String, String> createEnvVarValueGetter(Map<String, String> builtInVariableMap,
+      @Nullable Environment env) {
+    return key -> {
+      if (builtInVariableMap.containsKey(key)) {
+        return builtInVariableMap.get(key);
+      }
+
+      String value = env == null ? null : env.getProperty(key);
+      return StringUtils.isEmpty(value) ? null : value;
+    };
+  }
+
+  /**
+   * Sets the ${VAR} value resolver on every task record, which eagerly expands srcPath/destPath
+   * and throws (via EmbeddedVariableUtil.VariableNotFoundException, wrapped in RuntimeException)
+   * if any referenced variable cannot be resolved. All records are processed before any task is
+   * executed, so a missing variable anywhere fails the whole batch before it does anything.
+   */
+  public void setEnvVarValueGetterOnTasks(List<HousekeepFilesTaskRecord> taskRecList,
+      Function<String, String> envVarValueGetter) {
     for (HousekeepFilesTaskRecord rec : taskRecList) {
-      // Verify that ${xxx} variable names in the path exist in the path list.
-      if (rec.getSrcPath() != null) {
-        analyzePathVarAndCheckIfExistsInSet(envVarInfoMap.keySet(), rec.getSrcPath());
-      }
-
-      if (rec.getDestPath() != null) {
-        analyzePathVarAndCheckIfExistsInSet(envVarInfoMap.keySet(), rec.getDestPath());
-      }
-
-      // If no issues, set envVarInfoMap on taskRec to generate environment-variable-expanded paths.
-      rec.setEnvVarInfoMap(envVarInfoMap);
+      rec.setEnvVarValueGetter(envVarValueGetter);
     }
   }
 
-  private void analyzePathVarAndCheckIfExistsInSet(Set<String> pathKeySet, String path) {
-
-    // Create new keySet to add reserved keys.
-    Set<String> keySet = new HashSet<>(pathKeySet);
-    keySet.addAll(Arrays.asList(new String[] {Constants.ENV_VAR_TASK_NAME, Constants.ENV_VAR_DATE,
-        Constants.ENV_VAR_TIMESTAMP, Constants.ENV_VAR_HOSTNAME}));
-
-    // To check the existence of keys, create map by set value the same value as key.
-    Map<String, String> paramMap = keySet.stream().collect(Collectors.toMap(s -> s, s -> s));
-    try {
-      EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", paramMap);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+  /**
+   * Sets the ${VAR} value resolver on every auth record, which eagerly expands password (allowing
+   * SFTP passwords/passphrases to be kept out of the settings Excel file and supplied via
+   * environment variable, e.g. {@code ${SFTP_PASSWORD}}) the same way srcPath/destPath are
+   * expanded. See {@link #setEnvVarValueGetterOnTasks}.
+   */
+  public void setEnvVarValueGetterOnAuthRecords(List<HousekeepFilesAuthRecord> authRecList,
+      Function<String, String> envVarValueGetter) {
+    for (HousekeepFilesAuthRecord rec : authRecList) {
+      rec.setEnvVarValueGetter(envVarValueGetter);
     }
   }
 
   /** Creates task instances for all task records and runs task-specific input validation. */
-  public void createTaskAndTaskDependentCheck(HousekeepFilesForm form,
-      Violations violations) throws Exception {
+  public void createTaskAndTaskDependentCheck(HousekeepFilesForm form, Violations violations)
+      throws Exception {
     for (HousekeepFilesTaskRecord dtRec : form.getTaskInfoHdRec().recList) {
       createTaskInstance(dtRec, dtRec.getTaskPtn());
       // Per-task required/prohibited field validation.
@@ -187,8 +188,8 @@ public class HousekeepFilesBl {
 
   /** Expands all path patterns for the given task and returns source and destination path lists. */
   public HousekeepFilesExpandedPathsInfo expandAllPath(AbstractTask task,
-      HousekeepFilesTaskRecord taskRec,
-      @Nullable ConnectionToRemoteServer connection) throws Exception {
+      HousekeepFilesTaskRecord taskRec, @Nullable ConnectionToRemoteServer connection)
+      throws Exception {
 
     List<String> fromPathList = new ArrayList<String>();
     List<String> toPathList = new ArrayList<String>();
@@ -223,16 +224,15 @@ public class HousekeepFilesBl {
       }
       // Further filter to entries whose last-modified date satisfies the elapsed-time condition.
       // Exclude entries that have not yet passed the required period.
-      if (!dateUtil.hasDesignatedTermPassed(fi.getLastUpdTimeInMillis(), taskRec.getUnit(),
-          taskRec.getValue())) {
+      if (!dateUtil.hasDesignatedTermPassed(fi.getLastUpdTimeInMillis(), taskRec.getValue())) {
         continue;
       }
 
       // If the file is locked, skip adding it to the list and only output a warning log.
       // This applies only to supported protocols (currently only the local filesystem).
       if (fi.isLocked()) {
-        logWithTaskId(taskRec.getTaskId(), "Skipping because the file is locked: "
-            + fi.getFilePath());
+        logWithTaskId(taskRec.getTaskId(),
+            "Skipping because the file is locked: " + fi.getFilePath());
         continue;
       }
 
@@ -308,22 +308,23 @@ public class HousekeepFilesBl {
     // When the destination is a file, there must be exactly one source.
     if (rec.getIsDestPathDir() != null && rec.getIsDestPathDir() == false
         && pathInfo.fromFileList.size() > 1) {
-      new Violations().add(new BusinessViolation(
-          "MSG_ERR_FROM_PATH_MUST_BE_ONLY_ONE_WHEN_TO_PATH_IS_FILE",
-          rec.getTaskId(), rec.getTaskName())).throwIfAny();
+      new Violations()
+          .add(new BusinessViolation("MSG_ERR_FROM_PATH_MUST_BE_ONLY_ONE_WHEN_TO_PATH_IS_FILE",
+              rec.getTaskId(), rec.getTaskName()))
+          .throwIfAny();
     }
 
     // Check that the source path exists.
     if (rec.getSrcPath() != null && task.isSrcPathLocal() != null && task.isSrcPathLocal()
         && pathInfo.fromFileList.size() == 0) {
       if (rec.getActionForNoSrcPath() == IncidentTreatedAsEnum.ERROR) {
-        new Violations().add(new BusinessViolation("MSG_ERR_FROM_PATH_NOT_EXIST",
-            rec.getTaskId(), rec.getTaskName(), rec.getSrcPath())).throwIfAny();
+        new Violations().add(new BusinessViolation("MSG_ERR_FROM_PATH_NOT_EXIST", rec.getTaskId(),
+            rec.getTaskName(), rec.getSrcPath())).throwIfAny();
       }
 
       if (rec.getActionForNoSrcPath() == IncidentTreatedAsEnum.WARN) {
-        warnList.add(new BusinessViolation("MSG_ERR_FROM_PATH_NOT_EXIST",
-            rec.getTaskId(), rec.getTaskName(), rec.getSrcPath()));
+        warnList.add(new BusinessViolation("MSG_ERR_FROM_PATH_NOT_EXIST", rec.getTaskId(),
+            rec.getTaskName(), rec.getSrcPath()));
       }
     }
 
@@ -338,8 +339,9 @@ public class HousekeepFilesBl {
               rec.getTaskId(), rec.getTaskName())).throwIfAny();
 
         } else if (pathInfo.tmpToFileList.size() > 1) {
-          new Violations().add(new BusinessViolation("MSG_ERR_TO_PATH_NOT_ONE",
-              rec.getTaskId(), rec.getTaskName())).throwIfAny();
+          new Violations().add(
+              new BusinessViolation("MSG_ERR_TO_PATH_NOT_ONE", rec.getTaskId(), rec.getTaskName()))
+              .throwIfAny();
         }
       }
 
@@ -355,9 +357,10 @@ public class HousekeepFilesBl {
           // Note: if the source is a directory with compression specified, it is treated as a file,
           // so that case is excluded.
           if (rec.getIsSrcPathDir() == true && rec.getIsDestPathDir() == true) {
-            new Violations().add(new BusinessViolation(
-                "MSG_ERR_TO_DIR_EXISTS_AND_COPY_SETTING_VAGUE",
-                rec.getTaskId(), rec.getTaskName())).throwIfAny();
+            new Violations()
+                .add(new BusinessViolation("MSG_ERR_TO_DIR_EXISTS_AND_COPY_SETTING_VAGUE",
+                    rec.getTaskId(), rec.getTaskName()))
+                .throwIfAny();
           } else {
             BusinessViolation blV = new BusinessViolation("MSG_ERR_DEST_PATH_EXISTSS",
                 rec.getTaskId(), rec.getTaskName(), toPath);
@@ -394,33 +397,21 @@ public class HousekeepFilesBl {
         task.doTask(conn, taskRec, fromPath, pathInfo.toPath, warnList);
       }
     }
-
-    // Log output.
-    logTaskFinishMsg(taskRec, pathInfo);
   }
 
   private void logTaskStartMsg(HousekeepFilesTaskRecord rec) {
-    String taskId = rec.getTaskId();
-    dlog.debug("### startTask  :" + taskId);
-    logWithTaskId(taskId, "taskName              = " + rec.getTaskName());
-    logWithTaskId(taskId, "taskPtn               = " + rec.getTaskPtn());
-    logWithTaskId(taskId, "remoteServer          = " + rec.getRemoteServer());
-    logWithTaskId(taskId, "pathFrom              = " + rec.getSrcPath());
-    logWithTaskId(taskId, "isSrcPathDir         = " + rec.getIsSrcPathDir());
-    logWithTaskId(taskId, "unit                  = " + rec.getUnit());
-    logWithTaskId(taskId, "value                 = " + rec.getValue());
-    logWithTaskId(taskId, "actionForNoSrcPath   = " + rec.getActionForNoSrcPath());
-    logWithTaskId(taskId, "pathTo                = " + rec.getDestPath());
-    logWithTaskId(taskId, "isDestPathDir           = " + rec.getIsDestPathDir());
-    logWithTaskId(taskId, "doesOverwriteDestPath   = " + rec.getDoesOverwriteDestPath());
-    logWithTaskId(taskId, "actionForToFileExists = " + rec.getActionForDestFileExists());
-    logWithTaskId(taskId, "options               = " + rec.options);
-  }
-
-  private void logTaskFinishMsg(HousekeepFilesTaskRecord taskRec,
-      HousekeepFilesExpandedPathsInfo pathInfo) {
-    dlog.debug("### finishTask :" + taskRec.getTaskId() + " | processed file/directory count:"
-        + pathInfo.fromFileList.size());
+    List<LogKeyValue> list = List.of(new LogKeyValue("taskName", rec.getTaskName()),
+        new LogKeyValue("taskPtn", rec.getTaskPtn().toString()),
+        new LogKeyValue("remoteServer", rec.getRemoteServer()),
+        new LogKeyValue("pathFrom", rec.getSrcPath()),
+        new LogKeyValue("isSrcPathDir", String.valueOf(rec.getIsSrcPathDir())),
+        new LogKeyValue("value", String.valueOf(rec.getValue())),
+        new LogKeyValue("getActionForNoSrcPath", String.valueOf(rec.getActionForNoSrcPath())),
+        new LogKeyValue("pathTo", rec.getDestPath()),
+        new LogKeyValue("isDestPathDir", String.valueOf(rec.getIsDestPathDir())),
+        new LogKeyValue("doesOverwriteDestPath", String.valueOf(rec.getDoesOverwriteDestPath())),
+        new LogKeyValue("actionForToFileExists", String.valueOf(rec.getActionForDestFileExists())));
+    SplibLogUtil.logKeyValueList(dlog, Level.DEBUG, 1, list);
   }
 
   private void logWithTaskId(String taskId, String msg) {
@@ -441,8 +432,14 @@ public class HousekeepFilesBl {
     return task;
   }
 
-  /** Sends a warning email listing all accumulated violations to the configured recipients. */
-  public void sendWarnMail(List<BusinessViolation> warnList, HousekeepFilesHdRecord hdE)
+  /**
+   * Sends a warning email listing all accumulated violations to the configured recipients.
+   *
+   * @param targetSystemName optional name of the system whose files are being housekept (from
+   *     {@link Constants#PROP_TARGET_SYSTEM_NAME}) appended to the email subject; may be
+   *     {@code null}, in which case it's simply omitted.
+   */
+  public void sendWarnMail(List<BusinessViolation> warnList, @Nullable String targetSystemName)
       throws Exception {
     // Retrieve the list of error messages.
     List<String> msgList = new ArrayList<>();
@@ -456,7 +453,7 @@ public class HousekeepFilesBl {
 
     // Build the message.
     final String title = PropertiesFileUtil.getApplication("jp.ecuacion.lib.core.mail.title-prefix")
-        + "[WARN] HousekeepFiles:" + hdE.getSysName();
+        + "[WARN] HousekeepFiles" + (targetSystemName == null ? "" : ":" + targetSystemName);
     String hostname = InetAddress.getLocalHost().getHostName();
     StringBuilder msg = new StringBuilder();
     msg.append("hostname: " + hostname + "\n\n" + "You've got warnings: \n\n");

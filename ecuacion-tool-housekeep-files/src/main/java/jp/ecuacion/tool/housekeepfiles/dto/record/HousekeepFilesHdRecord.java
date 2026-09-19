@@ -15,9 +15,6 @@
  */
 package jp.ecuacion.tool.housekeepfiles.dto.record;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,20 +24,5 @@ import java.util.List;
 @SuppressWarnings("NullAway.Init")
 public class HousekeepFilesHdRecord {
 
-  @SuppressWarnings("null")
-  @NotEmpty
-  @Size(min = 1, max = 40)
-  @Pattern(regexp = "^[^!\"#\\$%&'\\(\\)=\\^~\\\\\\|`\\[\\{;\\+:\\\\*\\]\\},<>/\\?]*$")
-  private String sysName;
-
   public List<HousekeepFilesTaskRecord> recList = new ArrayList<HousekeepFilesTaskRecord>();
-
-  // accessor:sysName
-  public String getSysName() {
-    return sysName;
-  }
-
-  public void setSysName(String sysName) {
-    this.sysName = sysName;
-  }
 }

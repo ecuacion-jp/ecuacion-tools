@@ -20,18 +20,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepLogUtil;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTaskLocal;
+import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.other.HousekeepFilesExpandedPathsInfo;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
+import org.jspecify.annotations.Nullable;
+import org.springframework.core.env.Environment;
 
 /**
  * Provides business logics for housekeeping files.
@@ -54,10 +60,29 @@ public class HousekeepFilesBlf {
 
   /**
    * Executes housekeeping.
+   *
+   * <p>Convenience overload for callers with no Spring Environment (e.g. most existing unit
+   * tests) - only built-in path variables (DATE/DATETIME/TIMESTAMP/HOSTNAME) resolve, and the
+   * optional target system name (see {@link Constants#PROP_TARGET_SYSTEM_NAME}) is omitted from
+   * logs/emails.</p>
    */
   public void execute(HousekeepFilesForm form) throws Exception {
-    // Log output.
-    logJobStartMsg(form);
+    execute(form, null);
+  }
+
+  /**
+   * Executes housekeeping.
+   *
+   * @param env the Spring Environment used to resolve ${VAR} references in srcPath/destPath
+   *     that aren't one of the built-in variables (DATE/DATETIME/TIMESTAMP/HOSTNAME), 
+   *     and to look up
+   *     the optional target system name (see {@link Constants#PROP_TARGET_SYSTEM_NAME}) shown in
+   *     the startup log and the warning email subject; may be {@code null}, in which case only
+   *     built-in variables resolve and the target system name is omitted.
+   */
+  public void execute(HousekeepFilesForm form, @Nullable Environment env) throws Exception {
+    final @Nullable String targetSystemName =
+        env == null ? null : env.getProperty(Constants.PROP_TARGET_SYSTEM_NAME);
 
     // List to hold warning information.
     final List<BusinessViolation> warnList = new ArrayList<>();
@@ -65,18 +90,21 @@ public class HousekeepFilesBlf {
     // Cross-record and cross-data-type validation.
     bl.consistencyCheckBetweenMultipleData(form);
 
-    // Build envVarInfo as a Map.
-    Map<String, String> envVarInfoMap = bl.createPathInfoMap(form);
+    // Build the ${VAR} value resolver: built-in variables + env fallback.
+    Map<String, String> builtInVariableMap = bl.createBuiltInVariableMap();
+    Function<String, String> envVarValueGetter =
+        bl.createEnvVarValueGetter(builtInVariableMap, env);
 
     // Build authInfo as a Map. The key is "<server name>-<protocol>".
     final Map<String, HousekeepFilesAuthRecord> authMap =
         form.getAuthInfoRecList().stream().collect(
             Collectors.toMap(rec -> rec.getRemoteServer() + "-" + rec.getProtocol(), rec -> rec));
 
-    // Verify that environment variables in srcPath and destPath exist in envVarInfoMap,
-    // and set the expanded paths.
-    bl.envVarExistenceCheckAndSetEnvBarExpandedPaths(form.getTaskInfoHdRec().recList,
-        envVarInfoMap);
+    // Resolve ${VAR} references in every task's srcPath/destPath up front (fails fast).
+    bl.setEnvVarValueGetterOnTasks(form.getTaskInfoHdRec().recList, envVarValueGetter);
+    // Resolve ${VAR} references in every auth record's password/passphrase up front, so it can be
+    // kept out of the settings Excel file and supplied via environment variable instead.
+    bl.setEnvVarValueGetterOnAuthRecords(form.getAuthInfoRecList(), envVarValueGetter);
 
     // Per-task processing below.
     // Ideally the following would be a single loop, but grouping task creation and checks first
@@ -88,10 +116,15 @@ public class HousekeepFilesBlf {
 
     // Map to store multiple connections.
     Map<String, ConnectionToRemoteServer> connectionMap = new HashMap<>();
+    dlog.info("Per-task procedure started.");
     try {
       // Execute task.
       for (HousekeepFilesTaskRecord taskInfo : form.getTaskInfoHdRec().recList) {
+        SplibLogUtil.info(dlog, "Task started  : " + taskInfo.getTaskId(), 1);
+
         execEachTask(taskInfo.task, connectionMap, taskInfo, authMap, warnList);
+
+        SplibLogUtil.info(dlog, "Task finished : " + taskInfo.getTaskId(), 1);
       }
 
     } finally {
@@ -103,20 +136,10 @@ public class HousekeepFilesBlf {
 
     // Send email if there are warnings.
     if (!warnList.isEmpty()) {
-      bl.sendWarnMail(warnList, form.getTaskInfoHdRec());
+      bl.sendWarnMail(warnList, targetSystemName);
     }
 
-    // Log output.
-    logJobFinishMsg(form);
-  }
-
-  private void logJobStartMsg(HousekeepFilesForm form) {
-    dlog.debug("####################");
-    dlog.debug("##### startJob :" + form.getTaskInfoHdRec().getSysName());
-  }
-
-  private void logJobFinishMsg(HousekeepFilesForm form) {
-    dlog.debug("##### finishJob:" + form.getTaskInfoHdRec().getSysName());
+    HousekeepLogUtil.logFinishedSuccessfully(dlog, Constants.TOOL_NAME);
   }
 
   /**
@@ -124,8 +147,8 @@ public class HousekeepFilesBlf {
    */
   protected void execEachTask(AbstractTask task,
       Map<String, ConnectionToRemoteServer> connectionMap, HousekeepFilesTaskRecord taskInfo,
-      Map<String, HousekeepFilesAuthRecord> authMap,
-      List<BusinessViolation> warnList) throws Exception {
+      Map<String, HousekeepFilesAuthRecord> authMap, List<BusinessViolation> warnList)
+      throws Exception {
 
     // Retrieve connection if not already held.
     final String connectionKey = taskInfo.getRemoteServer() + "." + task.getConnectionProtocol();
@@ -139,8 +162,7 @@ public class HousekeepFilesBlf {
     ConnectionToRemoteServer conn = connectionMap.get(connectionKey);
 
     // Expand ${VAR} references and wildcards in PATH.
-    HousekeepFilesExpandedPathsInfo pathInfo =
-        bl.expandAllPath(task, taskInfo, conn);
+    HousekeepFilesExpandedPathsInfo pathInfo = bl.expandAllPath(task, taskInfo, conn);
 
     // Checks passed, so populate toPath in pathInfoMap.
     // For task patterns with no destination (delete, zip), pathInfo.tmpToFileList will be

@@ -1,0 +1,54 @@
+/*
+ * Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package jp.ecuacion.util.commandapi;
+
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
+
+/**
+ * Provides SpringApplication function.
+ */
+@SpringBootApplication
+public class WebApplication extends SpringBootServletInitializer {
+
+  /**
+   * Additional config file name (besides the default {@code application}) that {@code
+   * CommandApiService} relies on to resolve {@code scriptId} definitions from a dedicated {@link
+   * org.springframework.core.env.PropertySource}. Must be applied on every startup path
+   * ({@link #main} and {@link #configure}) so script registration also works when the WAR is
+   * deployed to an existing Tomcat instance, not just when launched standalone.
+   */
+  private static final String SPRING_CONFIG_NAME =
+      "spring.config.name=application,ecuacion-tool-command-api-scripts";
+
+  /**
+   * Provides main method.
+   *
+   * @param args args
+   */
+  public static void main(String[] args) {
+    new SpringApplicationBuilder(WebApplication.class)
+        .properties(SPRING_CONFIG_NAME)
+        .run(args);
+  }
+
+  /** Required for deploying as a WAR to an existing Tomcat instance. */
+  @Override
+  protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+    return application.sources(WebApplication.class).properties(SPRING_CONFIG_NAME);
+  }
+}
