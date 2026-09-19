@@ -15,10 +15,14 @@
  */
 package jp.ecuacion.tool.housekeepfiles.constant;
 
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepPropKeys;
+
 /**
  * Stores constants.
  */
 public class Constants {
+  public static final String TOOL_NAME = "housekeep-files";
+
   public static final String PACKAGE_HK_TASK = "jp.ecuacion.tool.housekeepfiles.bl.task";
   public static final String HOUSEKEEP_FILES_PATH_LIST_XML = "housekeepFile-pathList.xml";
 
@@ -43,7 +47,7 @@ public class Constants {
    * omitted.
    */
   public static final String PROP_TARGET_SYSTEM_NAME =
-      "jp.ecuacion.tool.housekeep-files.target-system-name";
+      HousekeepPropKeys.PREFIX + TOOL_NAME + HousekeepPropKeys.SUFFIX_TARGET_SYSTEM_NAME;
 
   /**
    * SFTP session/channel connect timeout in milliseconds (in {@code application.properties} /
