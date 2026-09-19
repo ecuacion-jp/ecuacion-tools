@@ -29,6 +29,7 @@ import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.splib.core.util.SplibLogUtil;
+import jp.ecuacion.splib.core.util.SplibLogUtil.LogKeyValue;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueStringBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
@@ -78,10 +79,11 @@ public class HousekeepMainTableDeleter {
   public void execute(Map<String, DbConnectionInfoBean> dbConnectionInfoMap, HousekeepInfoBean info)
       throws ClassNotFoundException, SQLException {
 
-    String logMsg = "- DB Connection ID: " + info.getDbConnectionInfoId();
-    SplibLogUtil.debug(detailLogger, logMsg, IDT_2);
-    logMsg = "- Delete Kind: " + (info.isSoftDelete() ? "Soft Delete" : "Hard Delete");
-    SplibLogUtil.debug(detailLogger, logMsg, IDT_2);
+    String logMsg;
+    SplibLogUtil.logKeyValueList(detailLogger, Level.DEBUG, IDT_2,
+        List.of(new LogKeyValue("DB Connection ID", String.valueOf(info.getDbConnectionInfoId())),
+            new LogKeyValue("Delete Kind",
+                info.isSoftDelete() ? "Soft Delete" : "Hard Delete")));
 
     Map<String, Integer> tableRecordDeleted = new LinkedHashMap<>();
 

@@ -15,8 +15,13 @@
  */
 package jp.ecuacion.tool.housekeepcommon.util;
 
+import java.util.ArrayList;
+import java.util.List;
 import jp.ecuacion.lib.core.logging.DetailLogger;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
+import jp.ecuacion.splib.core.util.SplibLogUtil.LogKeyValue;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.event.Level;
 
 /**
  * Logs the startup / finish messages shared by housekeep-db's and housekeep-files' tasklets.
@@ -34,10 +39,14 @@ public final class HousekeepLogUtil {
   public static void logStarted(DetailLogger detailLogger, String toolName, String excelPath,
       @Nullable String targetSystemName) {
     detailLogger.info(toolName + " started.");
-    detailLogger.info("- Excel File Path     : " + excelPath);
+
+    List<LogKeyValue> list = new ArrayList<>();
+    list.add(new LogKeyValue("Excel File Path", excelPath));
     if (targetSystemName != null) {
-      detailLogger.info("- Target System Name  : " + targetSystemName);
+      list.add(new LogKeyValue("Target System Name", targetSystemName));
     }
+
+    SplibLogUtil.logKeyValueList(detailLogger, Level.INFO, 0, list);
   }
 
   /**
@@ -45,8 +54,11 @@ public final class HousekeepLogUtil {
    */
   public static void logExcelFormatInfo(DetailLogger detailLogger,
       @Nullable String formatVersion, @Nullable String locale) {
-    detailLogger.info("- Format Excel Version: " + formatVersion);
-    detailLogger.info("- Locale              : " + locale);
+    List<LogKeyValue> list = List.of(
+        new LogKeyValue("Format Excel Version", String.valueOf(formatVersion)),
+        new LogKeyValue("Locale", String.valueOf(locale)));
+
+    SplibLogUtil.logKeyValueList(detailLogger, Level.INFO, 0, list);
   }
 
   /**
