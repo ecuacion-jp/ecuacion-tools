@@ -193,7 +193,7 @@ class HousekeepFilesTaskletTest {
             appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
         assertThat(messages).anyMatch(msg -> msg.equals("housekeep-files started."));
         assertThat(messages)
-            .anyMatch(msg -> msg.equals("- Target System Name  : my-system"));
+            .anyMatch(msg -> msg.equals("- Target System Name : my-system"));
         assertThat(messages)
             .anyMatch(msg -> msg.equals("housekeep-files finished successfully."));
       } finally {
@@ -223,6 +223,78 @@ class HousekeepFilesTaskletTest {
             .anyMatch(msg -> msg.equals("housekeep-files finished successfully."));
       } finally {
         detachLogCapture(appender);
+      }
+    }
+  }
+
+  @Nested
+  @DisplayName("execute(): bridging Environment properties to JVM system properties")
+  class BridgeEnvPropertyToSystemProperty {
+
+    @SuppressWarnings("null")
+    private Path buildCreateDirExcel(Path tempDir) throws IOException {
+      Path destDir = tempDir.resolve("created-dir");
+      String @Nullable [] taskRow = new String[] {"01", "task01", "Create Directory",
+          "CREATE_DIR", null, null, null, null, null, destDir.toString(), "TRUE", "FALSE",
+          "IGNORE"};
+      return buildExcelFile(java.util.Collections.singletonList(taskRow));
+    }
+
+    @Test
+    @DisplayName("a property set on env is copied to the same-named system property")
+    void copiesEnvPropertyToSystemProperty(@TempDir Path tempDir) throws Exception {
+      Path excelFile = buildCreateDirExcel(tempDir);
+
+      MockEnvironment env = new MockEnvironment();
+      env.setProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING, "false");
+      HousekeepFilesTasklet tasklet = new HousekeepFilesTasklet(excelFile.toString());
+      tasklet.env = env;
+
+      System.clearProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING);
+      try {
+        tasklet.execute(mock(StepContribution.class), mock(ChunkContext.class));
+
+        assertThat(System.getProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING))
+            .isEqualTo("false");
+      } finally {
+        System.clearProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING);
+      }
+    }
+
+    @Test
+    @DisplayName("a property absent from env leaves any existing system property untouched")
+    void leavesSystemPropertyUntouchedWhenAbsentFromEnv(@TempDir Path tempDir) throws Exception {
+      Path excelFile = buildCreateDirExcel(tempDir);
+
+      MockEnvironment env = new MockEnvironment();
+      HousekeepFilesTasklet tasklet = new HousekeepFilesTasklet(excelFile.toString());
+      tasklet.env = env;
+
+      System.setProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS, "12345");
+      try {
+        tasklet.execute(mock(StepContribution.class), mock(ChunkContext.class));
+
+        assertThat(System.getProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS))
+            .isEqualTo("12345");
+      } finally {
+        System.clearProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS);
+      }
+    }
+
+    @Test
+    @DisplayName("when env is null (tasklet instantiated outside Spring), no system property "
+        + "is touched")
+    void doesNothingWhenEnvIsNull(@TempDir Path tempDir) throws Exception {
+      Path excelFile = buildCreateDirExcel(tempDir);
+
+      System.clearProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES);
+      try {
+        new HousekeepFilesTasklet(excelFile.toString())
+            .execute(mock(StepContribution.class), mock(ChunkContext.class));
+
+        assertThat(System.getProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES)).isNull();
+      } finally {
+        System.clearProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES);
       }
     }
   }

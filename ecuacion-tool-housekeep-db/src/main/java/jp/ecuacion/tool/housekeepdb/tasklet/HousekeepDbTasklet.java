@@ -25,6 +25,7 @@ import jp.ecuacion.lib.validation.constraints.FileExtension;
 import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.tool.housekeepcommon.util.ExcelPathValidator;
 import jp.ecuacion.tool.housekeepcommon.util.HousekeepLogUtil;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepPropKeys;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader;
@@ -49,7 +50,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class HousekeepDbTasklet implements Tasklet {
 
-  public static final String PROP_EXCEL_PATH = "jp.ecuacion.tool.housekeep-db.excel-path";
+  private static final String TOOL_NAME = "housekeep-db";
+
+  public static final String PROP_EXCEL_PATH =
+      HousekeepPropKeys.PREFIX + TOOL_NAME + HousekeepPropKeys.SUFFIX_EXCEL_PATH;
   public static final String PROP_MAX_SELECT_LINES =
       "jp.ecuacion.tool.housekeep-db.max-select-lines";
 
@@ -58,7 +62,7 @@ public class HousekeepDbTasklet implements Tasklet {
    * the startup log. When unset, that part of the log is simply omitted.
    */
   public static final String PROP_TARGET_SYSTEM_NAME =
-      "jp.ecuacion.tool.housekeep-db.target-system-name";
+      HousekeepPropKeys.PREFIX + TOOL_NAME + HousekeepPropKeys.SUFFIX_TARGET_SYSTEM_NAME;
 
   private DetailLogger detailLogger = new DetailLogger(this);
   @NotEmpty
@@ -96,7 +100,7 @@ public class HousekeepDbTasklet implements Tasklet {
 
     @Nullable String targetSystemName = env.getProperty(PROP_TARGET_SYSTEM_NAME);
 
-    HousekeepLogUtil.logStarted(detailLogger, "housekeep-db", excelPath, targetSystemName);
+    HousekeepLogUtil.logStarted(detailLogger, TOOL_NAME, excelPath, targetSystemName);
 
     HousekeepConfigLoader configLoader = new HousekeepConfigLoader();
     configLoader.load(excelPath);
@@ -133,7 +137,7 @@ public class HousekeepDbTasklet implements Tasklet {
       SplibLogUtil.info(detailLogger, "Task finished : " + info.getTaskId(), 1);
     }
 
-    HousekeepLogUtil.logFinishedSuccessfully(detailLogger, "housekeep-db");
+    HousekeepLogUtil.logFinishedSuccessfully(detailLogger, TOOL_NAME);
 
     return RepeatStatus.FINISHED;
   }
