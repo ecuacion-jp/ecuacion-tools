@@ -111,7 +111,8 @@ public class WildcardPathUtil {
   /*
    * Converts a single path segment containing "*"/"?" wildcards into an equivalent regex: "*"
    * becomes ".*", "?" becomes ".", and every other character is quoted so it matches only itself
-   * - notably including regex metacharacters ("( ) [ ] + { } | ^ $ \" etc.), which a directory or
+   * - notably including regex metacharacters {@code ("( ) [ ] + { } | ^ $ \"} etc.), 
+   * which a directory or
    * file name placed by an untrusted party could otherwise use to break Pattern.compile() (e.g.
    * an unbalanced "(") or to unintentionally match more than intended.
    */
@@ -168,8 +169,8 @@ public class WildcardPathUtil {
     if (parentPath.isEmpty()) {
       String myPathWithWildcard = fullPath.substring(0, getFirstPathSeparatorIndex(fullPath) + 1);
       if (myPathWithWildcard.contains("*") || myPathWithWildcard.contains("?")) {
-        throw new ViolationException(new Violations().add(
-            new BusinessViolation("MSG_ERR_1ST_LEVEL_CANNOT_HAVE_WILDCARD", fullPath)));
+        throw new ViolationException(new Violations()
+            .add(new BusinessViolation("MSG_ERR_1ST_LEVEL_CANNOT_HAVE_WILDCARD", fullPath)));
       }
 
       getPathListFromPathWithWildcardRecursively(fullPath, myPathWithWildcard, rtnFullPathList);
@@ -192,7 +193,7 @@ public class WildcardPathUtil {
         // a directory literally named "logs(2024)") - quote it as a literal rather than
         // interpolating it into the pattern source. Likewise, only "*"/"?" in the wildcard segment
         // itself are wildcards; every other character (including regex metacharacters like
-        // "( ) [ ] + { } | ^ $") must match itself literally.
+        // {@code "( ) [ ] + { } | ^ $"}) must match itself literally.
         String myFileOrDirnameWithRegEx = globToRegex(myFileOrDirnameWithWildcard);
         Pattern pattern1 = Pattern.compile(Pattern.quote(parentPath) + myFileOrDirnameWithRegEx);
 
