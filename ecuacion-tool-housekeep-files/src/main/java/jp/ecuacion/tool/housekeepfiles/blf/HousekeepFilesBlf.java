@@ -139,7 +139,7 @@ public class HousekeepFilesBlf {
       bl.sendWarnMail(warnList, targetSystemName);
     }
 
-    HousekeepLogUtil.logFinishedSuccessfully(dlog, "housekeep-files");
+    HousekeepLogUtil.logFinishedSuccessfully(dlog, Constants.TOOL_NAME);
   }
 
   /**

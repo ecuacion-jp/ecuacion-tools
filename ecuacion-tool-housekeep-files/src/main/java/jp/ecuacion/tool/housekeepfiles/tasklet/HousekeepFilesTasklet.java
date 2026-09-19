@@ -22,6 +22,7 @@ import jp.ecuacion.lib.validation.constraints.FileExists;
 import jp.ecuacion.lib.validation.constraints.FileExtension;
 import jp.ecuacion.tool.housekeepcommon.util.ExcelPathValidator;
 import jp.ecuacion.tool.housekeepcommon.util.HousekeepLogUtil;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepPropKeys;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
@@ -41,7 +42,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class HousekeepFilesTasklet implements Tasklet {
 
-  public static final String PROP_EXCEL_PATH = "jp.ecuacion.tool.housekeep-files.excel-path";
+  public static final String PROP_EXCEL_PATH = HousekeepPropKeys.PREFIX + Constants.TOOL_NAME
+      + HousekeepPropKeys.SUFFIX_EXCEL_PATH;
 
   private DetailLogger detailLogger = new DetailLogger(this);
 
@@ -79,7 +81,7 @@ public class HousekeepFilesTasklet implements Tasklet {
     @Nullable String targetSystemName = env == null ? null
         : Objects.requireNonNull(env).getProperty(Constants.PROP_TARGET_SYSTEM_NAME);
 
-    HousekeepLogUtil.logStarted(detailLogger, "housekeep-files", excelPath, targetSystemName);
+    HousekeepLogUtil.logStarted(detailLogger, Constants.TOOL_NAME, excelPath, targetSystemName);
 
     // AbstractTaskSftp and CompressUtil are instantiated outside of Spring's DI (by reflection /
     // plain "new"), so they cannot read these properties from the Environment directly. Bridge
