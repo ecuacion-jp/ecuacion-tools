@@ -56,7 +56,7 @@ public abstract class AbstractTaskCopyOrMove extends AbstractTaskLocal {
   protected void doTaskInternal(ConnectionToRemoteServer connection,
       HousekeepFilesTaskRecord taskRec, String srcPath, String destPath,
       List<BusinessViolation> warnList) {
-    TaskPtnEnum taskPtn = taskRec.getTaskPtn();
+    final TaskPtnEnum taskPtn = taskRec.getTaskPtn();
     boolean doesOverwrittenFileOrDirExist = true;
 
     // First check whether a file to overwrite exists on the destination side. Any exception would
