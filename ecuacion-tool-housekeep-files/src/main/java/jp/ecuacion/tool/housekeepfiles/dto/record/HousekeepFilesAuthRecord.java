@@ -27,7 +27,6 @@ import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.validation.constraints.EnumElement;
 import jp.ecuacion.lib.validation.constraints.IntegerString;
 import jp.ecuacion.lib.validation.constraints.NotEmptyWhen;
-import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
 import jp.ecuacion.tool.housekeepfiles.enums.AuthTypeEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.FileManipulateProtocolEnum;
 import jp.ecuacion.tool.housekeepfiles.util.LangExcelUtil;
@@ -40,11 +39,11 @@ import org.jspecify.annotations.Nullable;
 // keyPath is required only when authType is KEY, since AbstractTaskSftp#getConnection()
 // unconditionally calls ssh.addIdentity(auth.getKeyPath()) in that case.
 @NotEmptyWhen(propertyPath = "keyPath", conditionPropertyPath = "authType",
-    conditionValue = ConditionValue.STRING, conditionValueString = "KEY")
+    conditionValueString = "KEY")
 // password is required only when authType is PASSWORD; for KEY it is an optional passphrase,
 // and for KERBEROS it is unused.
 @NotEmptyWhen(propertyPath = "password", conditionPropertyPath = "authType",
-    conditionValue = ConditionValue.STRING, conditionValueString = "PASSWORD")
+    conditionValueString = "PASSWORD")
 @SuppressWarnings("NullAway.Init")
 public class HousekeepFilesAuthRecord extends StringExcelTableBean {
 
