@@ -651,7 +651,7 @@ abstract class AbstractHousekeepDbTaskletTest {
             appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
         assertThat(messages).anyMatch(msg -> msg.equals("housekeep-db started."));
         assertThat(messages)
-            .anyMatch(msg -> msg.equals("- Target System Name  : my-system"));
+            .anyMatch(msg -> msg.equals("- Target System Name : my-system"));
         assertThat(messages).anyMatch(msg -> msg.equals("housekeep-db finished successfully."));
       } finally {
         detachLogCapture(appender);
