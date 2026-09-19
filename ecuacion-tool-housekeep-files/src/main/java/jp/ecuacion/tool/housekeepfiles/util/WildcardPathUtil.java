@@ -111,10 +111,10 @@ public class WildcardPathUtil {
   /*
    * Converts a single path segment containing "*"/"?" wildcards into an equivalent regex: "*"
    * becomes ".*", "?" becomes ".", and every other character is quoted so it matches only itself
-   * - notably including regex metacharacters {@code "( ) [ ] + { } | ^ $"} etc.),
-   * which a directory or
-   * file name placed by an untrusted party could otherwise use to break Pattern.compile() (e.g.
-   * an unbalanced "(") or to unintentionally match more than intended.
+   * - notably including regex metacharacters like {@code "(", ")", "[", "]", "+", "{", "}", "|",
+   * "^", "$"} - which a directory or file name placed by an untrusted party could otherwise use
+   * to break Pattern.compile() (e.g. an unbalanced "(") or to unintentionally match more than
+   * intended.
    */
   private static String globToRegex(String glob) {
     StringBuilder regex = new StringBuilder();
@@ -193,7 +193,7 @@ public class WildcardPathUtil {
         // a directory literally named "logs(2024)") - quote it as a literal rather than
         // interpolating it into the pattern source. Likewise, only "*"/"?" in the wildcard segment
         // itself are wildcards; every other character (including regex metacharacters like
-        // {@code "( ) [ ] + { } | ^ $"}) must match itself literally.
+        // {@code "(", ")", "[", "]", "+", "{", "}", "|", "^", "$"}) must match itself literally.
         String myFileOrDirnameWithRegEx = globToRegex(myFileOrDirnameWithWildcard);
         Pattern pattern1 = Pattern.compile(Pattern.quote(parentPath) + myFileOrDirnameWithRegEx);
 

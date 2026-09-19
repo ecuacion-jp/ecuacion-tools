@@ -36,6 +36,7 @@ import jp.ecuacion.lib.core.util.StringUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.splib.core.util.SplibLogUtil;
+import jp.ecuacion.splib.core.util.SplibLogUtil.LogKeyValue;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum;
@@ -53,6 +54,7 @@ import jp.ecuacion.tool.housekeepfiles.util.HkFileManipulateUtil;
 import jp.ecuacion.tool.housekeepfiles.util.WildcardPathUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.event.Level;
 import org.springframework.core.env.Environment;
 
 /**
@@ -72,7 +74,7 @@ public class HousekeepFilesBl {
   public void consistencyCheckBetweenMultipleData(HousekeepFilesForm form) {
     // Error if task count is zero.
     if (form.getTaskInfoHdRec().recList == null || form.getTaskInfoHdRec().recList.size() == 0) {
-      new Violations().add(new BusinessViolation("MSG_ERR_AT_LEAST_ONE_TASK_NEEDED")).throwIfAny();
+      new Violations().add("MSG_ERR_AT_LEAST_ONE_TASK_NEEDED").throwIfAny();
     }
 
     // Verify that taskId and taskName are not duplicated.
@@ -81,8 +83,7 @@ public class HousekeepFilesBl {
     for (HousekeepFilesTaskRecord rec : form.getTaskInfoHdRec().recList) {
       // taskId
       if (taskIdSet.contains(rec.getTaskId())) {
-        new Violations().add(new BusinessViolation("MSG_ERR_TASK_ID_DUPLICATED",
-            rec.getTaskId())).throwIfAny();
+        new Violations().add("MSG_ERR_TASK_ID_DUPLICATED", rec.getTaskId()).throwIfAny();
 
       } else {
         taskIdSet.add(rec.getTaskId());
@@ -90,8 +91,7 @@ public class HousekeepFilesBl {
 
       // taskName
       if (taskNameSet.contains(rec.getTaskName())) {
-        new Violations().add(new BusinessViolation("MSG_ERR_TASK_NAME_DUPLICATED",
-            rec.getTaskName())).throwIfAny();
+        new Violations().add("MSG_ERR_TASK_NAME_DUPLICATED", rec.getTaskName()).throwIfAny();
 
       } else {
         taskNameSet.add(rec.getTaskName());
@@ -162,8 +162,8 @@ public class HousekeepFilesBl {
   }
 
   /** Creates task instances for all task records and runs task-specific input validation. */
-  public void createTaskAndTaskDependentCheck(HousekeepFilesForm form,
-      Violations violations) throws Exception {
+  public void createTaskAndTaskDependentCheck(HousekeepFilesForm form, Violations violations)
+      throws Exception {
     for (HousekeepFilesTaskRecord dtRec : form.getTaskInfoHdRec().recList) {
       createTaskInstance(dtRec, dtRec.getTaskPtn());
       // Per-task required/prohibited field validation.
@@ -188,8 +188,8 @@ public class HousekeepFilesBl {
 
   /** Expands all path patterns for the given task and returns source and destination path lists. */
   public HousekeepFilesExpandedPathsInfo expandAllPath(AbstractTask task,
-      HousekeepFilesTaskRecord taskRec,
-      @Nullable ConnectionToRemoteServer connection) throws Exception {
+      HousekeepFilesTaskRecord taskRec, @Nullable ConnectionToRemoteServer connection)
+      throws Exception {
 
     List<String> fromPathList = new ArrayList<String>();
     List<String> toPathList = new ArrayList<String>();
@@ -231,8 +231,8 @@ public class HousekeepFilesBl {
       // If the file is locked, skip adding it to the list and only output a warning log.
       // This applies only to supported protocols (currently only the local filesystem).
       if (fi.isLocked()) {
-        logWithTaskId(taskRec.getTaskId(), "Skipping because the file is locked: "
-            + fi.getFilePath());
+        logWithTaskId(taskRec.getTaskId(),
+            "Skipping because the file is locked: " + fi.getFilePath());
         continue;
       }
 
@@ -308,22 +308,23 @@ public class HousekeepFilesBl {
     // When the destination is a file, there must be exactly one source.
     if (rec.getIsDestPathDir() != null && rec.getIsDestPathDir() == false
         && pathInfo.fromFileList.size() > 1) {
-      new Violations().add(new BusinessViolation(
-          "MSG_ERR_FROM_PATH_MUST_BE_ONLY_ONE_WHEN_TO_PATH_IS_FILE",
-          rec.getTaskId(), rec.getTaskName())).throwIfAny();
+      new Violations()
+          .add(new BusinessViolation("MSG_ERR_FROM_PATH_MUST_BE_ONLY_ONE_WHEN_TO_PATH_IS_FILE",
+              rec.getTaskId(), rec.getTaskName()))
+          .throwIfAny();
     }
 
     // Check that the source path exists.
     if (rec.getSrcPath() != null && task.isSrcPathLocal() != null && task.isSrcPathLocal()
         && pathInfo.fromFileList.size() == 0) {
       if (rec.getActionForNoSrcPath() == IncidentTreatedAsEnum.ERROR) {
-        new Violations().add(new BusinessViolation("MSG_ERR_FROM_PATH_NOT_EXIST",
-            rec.getTaskId(), rec.getTaskName(), rec.getSrcPath())).throwIfAny();
+        new Violations().add(new BusinessViolation("MSG_ERR_FROM_PATH_NOT_EXIST", rec.getTaskId(),
+            rec.getTaskName(), rec.getSrcPath())).throwIfAny();
       }
 
       if (rec.getActionForNoSrcPath() == IncidentTreatedAsEnum.WARN) {
-        warnList.add(new BusinessViolation("MSG_ERR_FROM_PATH_NOT_EXIST",
-            rec.getTaskId(), rec.getTaskName(), rec.getSrcPath()));
+        warnList.add(new BusinessViolation("MSG_ERR_FROM_PATH_NOT_EXIST", rec.getTaskId(),
+            rec.getTaskName(), rec.getSrcPath()));
       }
     }
 
@@ -338,8 +339,9 @@ public class HousekeepFilesBl {
               rec.getTaskId(), rec.getTaskName())).throwIfAny();
 
         } else if (pathInfo.tmpToFileList.size() > 1) {
-          new Violations().add(new BusinessViolation("MSG_ERR_TO_PATH_NOT_ONE",
-              rec.getTaskId(), rec.getTaskName())).throwIfAny();
+          new Violations().add(
+              new BusinessViolation("MSG_ERR_TO_PATH_NOT_ONE", rec.getTaskId(), rec.getTaskName()))
+              .throwIfAny();
         }
       }
 
@@ -355,9 +357,10 @@ public class HousekeepFilesBl {
           // Note: if the source is a directory with compression specified, it is treated as a file,
           // so that case is excluded.
           if (rec.getIsSrcPathDir() == true && rec.getIsDestPathDir() == true) {
-            new Violations().add(new BusinessViolation(
-                "MSG_ERR_TO_DIR_EXISTS_AND_COPY_SETTING_VAGUE",
-                rec.getTaskId(), rec.getTaskName())).throwIfAny();
+            new Violations()
+                .add(new BusinessViolation("MSG_ERR_TO_DIR_EXISTS_AND_COPY_SETTING_VAGUE",
+                    rec.getTaskId(), rec.getTaskName()))
+                .throwIfAny();
           } else {
             BusinessViolation blV = new BusinessViolation("MSG_ERR_DEST_PATH_EXISTSS",
                 rec.getTaskId(), rec.getTaskName(), toPath);
@@ -397,17 +400,18 @@ public class HousekeepFilesBl {
   }
 
   private void logTaskStartMsg(HousekeepFilesTaskRecord rec) {
-    SplibLogUtil.debug(dlog, "- taskName              : " + rec.getTaskName(), 1);
-    SplibLogUtil.debug(dlog, "- taskPtn               : " + rec.getTaskPtn(), 1);
-    SplibLogUtil.debug(dlog, "- remoteServer          : " + rec.getRemoteServer(), 1);
-    SplibLogUtil.debug(dlog, "- pathFrom              : " + rec.getSrcPath(), 1);
-    SplibLogUtil.debug(dlog, "- isSrcPathDir          : " + rec.getIsSrcPathDir(), 1);
-    SplibLogUtil.debug(dlog, "- value                 : " + rec.getValue(), 1);
-    SplibLogUtil.debug(dlog, "- getActionForNoSrcPath : " + rec.getActionForNoSrcPath(), 1);
-    SplibLogUtil.debug(dlog, "- pathTo                : " + rec.getDestPath(), 1);
-    SplibLogUtil.debug(dlog, "- isDestPathDir         : " + rec.getIsDestPathDir(), 1);
-    SplibLogUtil.debug(dlog, "- doesOverwriteDestPath : " + rec.getDoesOverwriteDestPath(), 1);
-    SplibLogUtil.debug(dlog, "- actionForToFileExists : " + rec.getActionForDestFileExists(), 1);
+    List<LogKeyValue> list = List.of(new LogKeyValue("taskName", rec.getTaskName()),
+        new LogKeyValue("taskPtn", rec.getTaskPtn().toString()),
+        new LogKeyValue("remoteServer", rec.getRemoteServer()),
+        new LogKeyValue("pathFrom", rec.getSrcPath()),
+        new LogKeyValue("isSrcPathDir", String.valueOf(rec.getIsSrcPathDir())),
+        new LogKeyValue("value", String.valueOf(rec.getValue())),
+        new LogKeyValue("getActionForNoSrcPath", String.valueOf(rec.getActionForNoSrcPath())),
+        new LogKeyValue("pathTo", rec.getDestPath()),
+        new LogKeyValue("isDestPathDir", String.valueOf(rec.getIsDestPathDir())),
+        new LogKeyValue("doesOverwriteDestPath", String.valueOf(rec.getDoesOverwriteDestPath())),
+        new LogKeyValue("actionForToFileExists", String.valueOf(rec.getActionForDestFileExists())));
+    SplibLogUtil.logKeyValueList(dlog, Level.DEBUG, 1, list);
   }
 
   private void logWithTaskId(String taskId, String msg) {
@@ -449,8 +453,7 @@ public class HousekeepFilesBl {
 
     // Build the message.
     final String title = PropertiesFileUtil.getApplication("jp.ecuacion.lib.core.mail.title-prefix")
-        + "[WARN] HousekeepFiles"
-        + (targetSystemName == null ? "" : ":" + targetSystemName);
+        + "[WARN] HousekeepFiles" + (targetSystemName == null ? "" : ":" + targetSystemName);
     String hostname = InetAddress.getLocalHost().getHostName();
     StringBuilder msg = new StringBuilder();
     msg.append("hostname: " + hostname + "\n\n" + "You've got warnings: \n\n");
