@@ -16,9 +16,20 @@
 package jp.ecuacion.tool.housekeepdb.bean;
 
 import jakarta.validation.constraints.NotEmpty;
+import org.jspecify.annotations.Nullable;
 
 /**
- * Stores database column and its value information to create condition clause.
+ * Stores database column and its value information to create a literal (not parameter-bound)
+ * condition clause.
+ *
+ * <p>Only used for values typed into the excel config (e.g. {@code WhereConditionInfoBean}'s
+ *     search-condition value, or a soft-delete-update "updated by" user id), since the excel
+ *     config never records the actual DB column type - only whether to quote it - so those values
+ *     cannot be handed to a type-aware JDBC bind. Such values are also author-controlled, not
+ *     read back from the DB, so unlike an id or foreign-key value they were never at risk of
+ *     carrying attacker-influenced content. Anything read back from the DB (an id, a foreign-key
+ *     value) or computed by this tool itself (a soft-delete flag, "now") should use
+ *     {@link BoundCondition} instead, which sidesteps escaping entirely.</p>
  */
 public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditionInterface {
 
@@ -27,7 +38,7 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditi
 
   /**
    * Construct a new instance.
-   * 
+   *
    * @param column column
    * @param needsQuationMark needsQuationMark
    * @param value value
@@ -39,7 +50,7 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditi
 
   /**
    * Construct a new instance.
-   * 
+   *
    * @param column column
    * @param needsQuationMark needsQuationMark
    * @param value value
@@ -68,9 +79,9 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditi
    *
    * <p>When quoted, a single quote in the value is escaped by doubling it (the standard SQL
    *     string-literal escape, valid for PostgreSQL under the default
-   *     {@code standard_conforming_strings=on}), so that values round-tripped from the database
-   *     (e.g. an id read back via {@code ResultSet} and re-embedded in a follow-up query) cannot
-   *     break out of the literal and inject SQL.</p>
+   *     {@code standard_conforming_strings=on}). This class is only ever used for excel-authored
+   *     values (see the class Javadoc), which are trusted input, so this is defense-in-depth
+   *     rather than a guard against attacker-controlled content.</p>
    *
    * @return String
    */
@@ -83,7 +94,12 @@ public class ColumnAndValueInfoBean extends ColumnInfoBean implements SqlConditi
   }
 
   @Override
-  public String getCondition() {
+  public String getSqlFragment() {
     return getColumn() + " = " + surroundWithQuotationMarks();
+  }
+
+  @Override
+  public @Nullable Object getBindValue() {
+    return null;
   }
 }

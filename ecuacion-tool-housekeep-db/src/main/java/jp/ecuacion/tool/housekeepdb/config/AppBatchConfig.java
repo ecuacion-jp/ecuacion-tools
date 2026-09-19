@@ -17,7 +17,7 @@ package jp.ecuacion.tool.housekeepdb.config;
 
 import java.util.Objects;
 import jp.ecuacion.splib.batch.config.SplibAppParentBatchConfig;
-import jp.ecuacion.splib.batch.exceptionhandler.SplibExceptionHandler;
+import jp.ecuacion.splib.batch.exceptionhandler.SplibBatchExceptionHandler;
 import jp.ecuacion.splib.batch.listener.SplibJobExecutionListener;
 import jp.ecuacion.splib.batch.listener.SplibStepExecutionListener;
 import jp.ecuacion.tool.housekeepdb.tasklet.HousekeepDbTasklet;
@@ -34,7 +34,8 @@ import org.springframework.transaction.PlatformTransactionManager;
  * Provides batch config.
  */
 @Configuration
-@ComponentScan(basePackages = "jp.ecuacion.splib.batch.config")
+@ComponentScan(
+    basePackages = {"jp.ecuacion.splib.batch.config", "jp.ecuacion.tool.housekeepcommon"})
 @SuppressWarnings("NullAway.Init")
 public class AppBatchConfig extends SplibAppParentBatchConfig {
 
@@ -50,7 +51,7 @@ public class AppBatchConfig extends SplibAppParentBatchConfig {
    */
   public AppBatchConfig(SplibJobExecutionListener jobExecutionListener,
       SplibStepExecutionListener stepExecutionListener,
-      SplibExceptionHandler exceptionHandler) {
+      SplibBatchExceptionHandler exceptionHandler) {
     super(jobExecutionListener, stepExecutionListener, exceptionHandler);
   }
 

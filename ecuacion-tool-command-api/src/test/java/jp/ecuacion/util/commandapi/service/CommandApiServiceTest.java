@@ -1,0 +1,380 @@
+/*
+ * Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package jp.ecuacion.util.commandapi.service;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+import org.springframework.core.env.MapPropertySource;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.env.MockEnvironment;
+import org.springframework.web.server.ResponseStatusException;
+
+/**
+ * Plain (no Spring context) unit tests for {@link CommandApiService}'s script-resolution and
+ * execution error branches. {@link CommandApiControllerTest} already covers the access-control
+ * behavior end-to-end via MockMvc; this class targets branches only reachable through a specific,
+ * deliberately-broken script definition (invalid path characters, missing file, non-executable
+ * file, environment variable resolution) that would be awkward to wire up as a full Spring Boot
+ * test context per case. {@link CommandApiService}'s constructor needs only a
+ * {@code ConfigurableEnvironment}, so {@link MockEnvironment} is enough.
+ */
+class CommandApiServiceTest {
+
+  private static final String SCRIPT_ID = "script.under-test";
+
+  /**
+   * Matches {@code CommandApiService.SCRIPT_PROPERTIES_SOURCE_NAME_MARKER}, so the registered
+   * script definition resolves the same way a real {@code ecuacion-tool-command-api-scripts.properties}
+   * entry would.
+   */
+  private static final String SCRIPT_PROPERTIES_SOURCE_NAME =
+      "Config resource 'class path resource [ecuacion-tool-command-api-scripts.properties]' "
+          + "via location 'test'";
+
+  private static CommandApiService newService(String scriptDefinitionValue) {
+    return newService(new MockEnvironment(), scriptDefinitionValue);
+  }
+
+  private static CommandApiService newService(MockEnvironment env, String scriptDefinitionValue) {
+    env.getPropertySources().addFirst(
+        new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME, Map.of(SCRIPT_ID, scriptDefinitionValue)));
+    // Only script resolution/execution is under test here (via executeScriptByKey, which never
+    // consults this flag), so api-key-required is turned off purely to satisfy the constructor's
+    // fail-fast check that api-key-file-path be set whenever it's left true.
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+    return new CommandApiService(env);
+  }
+
+  @Test
+  void constructorThrowsWhenScriptPropertiesFileIsAbsent() {
+    // No PropertySource matching SCRIPT_PROPERTIES_SOURCE_NAME_MARKER is registered at all,
+    // simulating ecuacion-tool-command-api-scripts.properties missing entirely.
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+
+    IllegalStateException ex =
+        assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
+
+    assertTrue(
+        Objects.requireNonNull(ex.getMessage()).contains("ecuacion-tool-command-api-scripts.properties"));
+  }
+
+  @Test
+  void constructorThrowsWhenApiKeyRequiredButNoApiKeyFilePathConfigured() {
+    // api-key-required is left unset (defaults to true), and api-key-file-path is unset too,
+    // so no scriptId could ever be executed through either endpoint. Relies on no
+    // CommandApiKeyFileLocator.DEFAULT_FILE_NAME file existing under the test JVM's working
+    // directory or its "config" subdirectory; see CommandApiKeyFileLocatorTest for the
+    // default-location fallback behavior itself.
+    MockEnvironment env = new MockEnvironment();
+    env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
+        Map.of(SCRIPT_ID, "ALL:/tmp/unused.sh")));
+
+    IllegalStateException ex =
+        assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
+
+    assertTrue(Objects.requireNonNull(ex.getMessage()).contains("api-key-file-path"));
+  }
+
+  @SuppressWarnings("null")
+  private static boolean isWindows() {
+    return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+  }
+
+  /**
+   * Creates a temporary executable script, choosing the body appropriate for the OS the test is
+   * actually running on: Windows has no shebang mechanism (see
+   * {@code CommandApiService.isWindows()}) and cmd.exe cannot run a {@code .sh} file at all, so
+   * {@code batchBody} is written to a {@code .bat} file there while {@code bashBody} is written
+   * to a {@code .sh} file everywhere else.
+   */
+  private static Path createExecutableScript(String bashBody, String batchBody) {
+    try {
+      Path dir = Files.createTempDirectory("command-api-service-test-script");
+      Path script = dir.resolve(isWindows() ? "script.bat" : "script.sh");
+      Files.writeString(script, isWindows() ? batchBody : bashBody);
+      script.toFile().setExecutable(true);
+      return script;
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  @Test
+  void scriptFilePathWithInvalidCharacterIsRejected() {
+    // '&' is a cmd.exe metacharacter (see the denylist in CommandApiService), unlike e.g. '#'
+    // or non-ASCII characters, which a script path may legitimately contain.
+    CommandApiService service = newService("ALL:/tmp/some&script.sh");
+
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains(SCRIPT_ID));
+    // The registered (invalid) path is server-side config detail; only scriptId is safe to
+    // hand back.
+    assertFalse(Objects.requireNonNull(ex.getReason()).contains("some&script.sh"));
+  }
+
+  @Test
+  void scriptFileNotFoundIsRejected() throws IOException {
+    Path missing = Files.createTempDirectory("command-api-service-test-missing")
+        .resolve("does-not-exist.sh");
+    CommandApiService service = newService("ALL:" + missing);
+
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+    // The client-facing message tells the caller *why* it failed (a missing file, as opposed to
+    // e.g. a permission problem) and *which* scriptId is affected, but must not leak the actual
+    // resolved server-side path — a caller may only hold a valid X-Api-Key (or, when
+    // api-key-required=false, may be unauthenticated), so the path itself is logged server-side
+    // only (see CommandApiService.serverConfigError).
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains("not found"));
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains(SCRIPT_ID));
+    assertFalse(Objects.requireNonNull(ex.getReason()).contains(missing.toString()));
+  }
+
+  @Test
+  @DisabledOnOs(OS.WINDOWS)
+  // Windows has no POSIX-style execute permission bit: File.setExecutable(false) / canExecute()
+  // don't reliably reflect a "not runnable" file there (NTFS determines runnability by
+  // extension/ACL, not a bit toggleable this way), so this scenario isn't reproducible on
+  // Windows the way it is on Linux/macOS.
+  void scriptFileNotExecutableIsRejected() throws IOException {
+    Path dir = Files.createTempDirectory("command-api-service-test-noexec");
+    Path script = dir.resolve("script.sh");
+    Files.writeString(script, "#!/bin/bash\necho hello\n");
+    script.toFile().setExecutable(false);
+    CommandApiService service = newService("ALL:" + script);
+
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+  }
+
+  @Test
+  void environmentVariableInScriptFilePathIsResolved() {
+    // The resolved script file certainly does not exist, so this only verifies the
+    // "${MOCK_SCRIPT_DIR}" placeholder itself was substituted away (a literal, unresolved
+    // "${MOCK_SCRIPT_DIR}" would also fail with "not found", so a passing "not found" assertion
+    // alone wouldn't prove substitution happened). The value is set directly on the
+    // Environment (as application.properties would be, not as an OS environment variable),
+    // demonstrating resolution goes through the full Environment, not just System.getenv.
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("MOCK_SCRIPT_DIR", "/definitely/not/a/real/dir/xyz123");
+    CommandApiService service =
+        newService(env, "ALL:${MOCK_SCRIPT_DIR}/definitely-not-a-real-script-xyz123.sh");
+
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+    assertFalse(Objects.requireNonNull(ex.getReason()).contains("${MOCK_SCRIPT_DIR}"));
+  }
+
+  @Test
+  void unresolvableEnvironmentVariableInScriptFilePathThrows() {
+    CommandApiService service =
+        newService("ALL:${THIS_ENV_VAR_SHOULD_NOT_EXIST_XYZ123}/script.sh");
+
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+    // The unresolved variable name (and the raw configured path it was embedded in) is
+    // server-side config detail, not something to hand back to the caller — only scriptId is.
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains(SCRIPT_ID));
+    assertFalse(Objects.requireNonNull(ex.getReason())
+        .contains("THIS_ENV_VAR_SHOULD_NOT_EXIST_XYZ123"));
+  }
+
+  @Test
+  void malformedEnvironmentVariablePlaceholderInScriptFilePathThrows() {
+    // "${" with no closing "}" is a malformed placeholder, distinct from a well-formed
+    // placeholder naming a variable that just isn't set (the case above).
+    CommandApiService service = newService("ALL:${UNCLOSED/script.sh");
+
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+  }
+
+  @Test
+  void scriptPathPointingToADirectoryFailsToStart() throws IOException {
+    // A directory passes both exists() and canExecute() (its executable bit means
+    // "traversable", not "runnable"), so CommandApiService checks isDirectory() explicitly
+    // rather than relying on Runtime.exec() to reject it — that failure mode isn't portable
+    // (on Windows the script runs via "cmd.exe /c <path>", and cmd.exe itself starts fine
+    // regardless, so it would never surface as an exec-time IOException there).
+    Path dir = Files.createTempDirectory("command-api-service-test-dir-as-script");
+    CommandApiService service = newService("ALL:" + dir);
+
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains("Failed to start"));
+    // The resolved absolute path is server-side detail; only scriptId is safe to hand back.
+    assertFalse(Objects.requireNonNull(ex.getReason()).contains(dir.toString()));
+  }
+
+  @Test
+  void constructorThrowsWhenScriptTimeoutSecondsIsNotPositive() {
+    MockEnvironment env = new MockEnvironment();
+    env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
+        Map.of(SCRIPT_ID, "ALL:/tmp/unused.sh")));
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+    env.setProperty("jp.ecuacion.tool.command-api.script-timeout-seconds", "0");
+
+    IllegalStateException ex =
+        assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
+
+    assertTrue(Objects.requireNonNull(ex.getMessage()).contains("script-timeout-seconds"));
+  }
+
+  @Test
+  void hangingScriptIsKilledAfterTimeout() throws Exception {
+    // A script that never exits on its own (no output either, exercising the case the read
+    // threads must be unblocked from too) is killed once script-timeout-seconds elapses.
+    // ping is used to sleep on Windows rather than "timeout": the latter reads from stdin and
+    // fails immediately with "Input redirection is not supported" when launched the way
+    // CommandApiService launches it (no inherited console).
+    Path script =
+        createExecutableScript("#!/bin/bash\nsleep 60\n", "@echo off\r\nping -n 61 127.0.0.1 > nul\r\n");
+
+    MockEnvironment env = new MockEnvironment();
+    env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
+        Map.of(SCRIPT_ID, "ALL:" + script)));
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+    env.setProperty("jp.ecuacion.tool.command-api.script-timeout-seconds", "1");
+    CommandApiService service = new CommandApiService(env);
+
+    long start = System.nanoTime();
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null));
+    long elapsedSeconds = Duration.ofNanos(System.nanoTime() - start).toSeconds();
+
+    assertEquals(HttpStatus.GATEWAY_TIMEOUT, ex.getStatusCode());
+    assertTrue(Objects.requireNonNull(ex.getReason()).contains(SCRIPT_ID));
+    // Well under the script's own 60s sleep, proving it was killed rather than waited out.
+    assertTrue(elapsedSeconds < 10, "expected the timeout to fire quickly, took " + elapsedSeconds
+        + "s");
+  }
+
+  @Test
+  void constructorThrowsWhenScriptMaxOutputBytesIsNotPositive() {
+    MockEnvironment env = new MockEnvironment();
+    env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
+        Map.of(SCRIPT_ID, "ALL:/tmp/unused.sh")));
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+    env.setProperty("jp.ecuacion.tool.command-api.script-max-output-bytes", "0");
+
+    IllegalStateException ex =
+        assertThrows(IllegalStateException.class, () -> new CommandApiService(env));
+
+    assertTrue(Objects.requireNonNull(ex.getMessage()).contains("script-max-output-bytes"));
+  }
+
+  @Test
+  void outputWithinCapIsNotTruncated() throws Exception {
+    Path script = createExecutableScript("#!/bin/bash\necho hello\n", "@echo off\r\necho hello\r\n");
+    CommandApiService service = newService("ALL:" + script);
+
+    Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
+
+    assertEquals("hello", result.get("stdout"));
+    // Omitted entirely (rather than present as "false") when nothing was truncated, so the
+    // common case isn't cluttered with a field that never matters.
+    assertFalse(result.containsKey("stdoutTruncated"));
+    assertFalse(result.containsKey("stderrTruncated"));
+  }
+
+  @Test
+  void outputExceedingCapIsTruncated() throws Exception {
+    // Each echoed line is exactly 10 bytes; with a 10-byte cap the first line just fits and the
+    // second is dropped (but the script itself still runs to completion either way).
+    Path script = createExecutableScript("#!/bin/bash\necho AAAAAAAAAA\necho BBBBBBBBBB\n",
+        "@echo off\r\necho AAAAAAAAAA\r\necho BBBBBBBBBB\r\n");
+
+    MockEnvironment env = new MockEnvironment();
+    env.getPropertySources().addFirst(new MapPropertySource(SCRIPT_PROPERTIES_SOURCE_NAME,
+        Map.of(SCRIPT_ID, "ALL:" + script)));
+    env.setProperty("jp.ecuacion.tool.command-api.api-key-required", "false");
+    env.setProperty("jp.ecuacion.tool.command-api.script-max-output-bytes", "10");
+    CommandApiService service = new CommandApiService(env);
+
+    Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
+
+    assertEquals("AAAAAAAAAA", result.get("stdout"));
+    assertEquals("true", result.get("stdoutTruncated"));
+    assertFalse(result.containsKey("stderrTruncated"));
+  }
+
+  @Test
+  void commaSeparatedParametersAreSplitIntoSeparateArguments() throws Exception {
+    Path script = createExecutableScript(
+        "#!/bin/bash\necho \"count:$#\"\necho \"1:$1\"\necho \"2:$2\"\n",
+        """
+        @echo off\r
+        set count=0\r
+        for %%A in (%*) do set /a count+=1\r
+        echo count:%count%\r
+        echo 1:%1\r
+        echo 2:%2\r
+        """);
+    CommandApiService service = newService("ALL:" + script);
+
+    Map<String, String> result =
+        service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, "param1,param2");
+
+    assertEquals("0", result.get("returnCode"));
+    String stdout = result.get("stdout");
+    assertEquals("count:2" + System.lineSeparator() + "1:param1" + System.lineSeparator()
+        + "2:param2", stdout);
+  }
+
+  @Test
+  void noParametersPassesNoArgumentsAtAll() throws Exception {
+    // Regression test: paramsString.split(" ") on an empty string used to return {""}, passing a
+    // spurious empty-string first argument ($# == 1) when no parameters were specified at all.
+    Path script = createExecutableScript("#!/bin/bash\necho \"count:$#\"\n",
+        "@echo off\r\nset count=0\r\nfor %%A in (%*) do set /a count+=1\r\necho count:%count%\r\n");
+    CommandApiService service = newService("ALL:" + script);
+
+    Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
+
+    assertEquals("count:0", result.get("stdout"));
+  }
+}

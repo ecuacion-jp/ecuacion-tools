@@ -57,8 +57,7 @@ public class Move extends AbstractTaskCopyOrMove {
       }
     } else {
       // Check whether the from file's elapsed time satisfies the condition.
-      if (dateUtil.hasDesignatedTermPassed(from.lastModified(), taskRec.getUnit(),
-          taskRec.getValue())) {
+      if (dateUtil.hasDesignatedTermPassed(from.lastModified(), taskRec.getValue())) {
         // Because lock state cannot always be determined reliably, ignore items that cannot be
         // deleted.
         try {

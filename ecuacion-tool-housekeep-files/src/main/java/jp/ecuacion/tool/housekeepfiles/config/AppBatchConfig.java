@@ -17,7 +17,7 @@ package jp.ecuacion.tool.housekeepfiles.config;
 
 import java.util.Objects;
 import jp.ecuacion.splib.batch.config.SplibAppParentBatchConfig;
-import jp.ecuacion.splib.batch.exceptionhandler.SplibExceptionHandler;
+import jp.ecuacion.splib.batch.exceptionhandler.SplibBatchExceptionHandler;
 import jp.ecuacion.splib.batch.listener.SplibJobExecutionListener;
 import jp.ecuacion.splib.batch.listener.SplibStepExecutionListener;
 import jp.ecuacion.tool.housekeepfiles.tasklet.HousekeepFilesTasklet;
@@ -28,15 +28,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 
 /**
  * Provides config.
  */
 @Configuration
-@ComponentScan(basePackages = "jp.ecuacion.splib.batch.config")
-@PropertySource(value = "classpath:application_profile.properties")
+@ComponentScan(
+    basePackages = {"jp.ecuacion.splib.batch.config", "jp.ecuacion.tool.housekeepcommon"})
 @SuppressWarnings("NullAway.Init")
 public class AppBatchConfig extends SplibAppParentBatchConfig {
 
@@ -52,7 +51,7 @@ public class AppBatchConfig extends SplibAppParentBatchConfig {
    */
   public AppBatchConfig(SplibJobExecutionListener jobExecutionListener,
       SplibStepExecutionListener stepExecutionListener,
-      SplibExceptionHandler exceptionHandler) {
+      SplibBatchExceptionHandler exceptionHandler) {
     super(jobExecutionListener, stepExecutionListener, exceptionHandler);
   }
 

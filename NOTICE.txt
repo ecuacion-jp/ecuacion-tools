@@ -90,3 +90,19 @@ released under the Apache License, Version 2.0.
 Copyright (c) 2002-2023 EPFL / Copyright (c) 2011-2023 Lightbend, Inc.
 Scala includes software developed at LAMP/EPFL (https://lamp.epfl.ch/) and
 Lightbend, Inc. (https://www.lightbend.com/).
+
+-------------------------------------------------------------------------------
+Third-Party Notices - Other Licenses
+-------------------------------------------------------------------------------
+
+The following bundled component is not licensed under the Apache License,
+Version 2.0, and is noted here separately.
+
+[MariaDB Connector/J (mariadb-java-client)]
+This product bundles MariaDB Connector/J, the JDBC driver used to connect to
+MySQL / MariaDB databases:
+Copyright (c) 2012-2014 Monty Program Ab
+Copyright (c) 2015-present MariaDB Corporation Ab
+Licensed under the GNU Lesser General Public License, version 2.1 or later
+(LGPL-2.1-or-later): https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+Source: https://github.com/mariadb-corporation/mariadb-connector-j

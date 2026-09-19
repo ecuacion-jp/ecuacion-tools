@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright © 2012 ecuacion.jp (info@ecuacion.jp)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<!--
+  Place environment-specific config files (application.properties,
+  ecuacion-tool-command-api-scripts.properties, logback-spring.xml, etc.) under:
+
+    ${catalina.base}/app-conf/ecuacion-tool-command-api/
+      (e.g. /usr/local/tomcat/app-conf/ecuacion-tool-command-api/)
+
+  This directory doesn't need to exist beforehand — SplibAppConfDirLifecycleListener
+  (see below) creates it at startup if missing, instead of Tomcat failing to deploy
+  with an IllegalArgumentException the way a plain <PreResources> would.
+
+  This directory's location can be overridden per deployment, without editing this
+  file, via the jp.ecuacion.tool.command-api.app-conf-dir system property (e.g. in
+  Tomcat's setenv.sh) — e.g. point it directly at ${catalina.base}/app-conf if you'd
+  rather skip the app-specific subdirectory. See SplibAppConfDirLifecycleListener in
+  ecuacion-splib-core for details.
+-->
+<Context>
+	<Listener className="jp.ecuacion.splib.core.tomcat.SplibAppConfDirLifecycleListener"
+			customPathPropertyName="jp.ecuacion.tool.command-api.app-conf-dir"
+			defaultPath="${catalina.base}/app-conf/ecuacion-tool-command-api"
+			createDefaultPathIfMissing="true"/>
+</Context>

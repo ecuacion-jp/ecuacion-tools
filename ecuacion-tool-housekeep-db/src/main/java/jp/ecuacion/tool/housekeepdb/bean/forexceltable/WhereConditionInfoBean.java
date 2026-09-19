@@ -15,11 +15,12 @@
  */
 package jp.ecuacion.tool.housekeepdb.bean.forexceltable;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
+import jp.ecuacion.lib.validation.constraints.PatternWithDescription;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
-import jp.ecuacion.tool.housekeepdb.lang.LangExcel;
+import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.jspecify.annotations.Nullable;
 
@@ -30,16 +31,22 @@ import org.jspecify.annotations.Nullable;
 public class WhereConditionInfoBean extends StringExcelTableBean {
   @NotEmpty
   private String taskId;
+  // conditionColumn is embedded as-is (unquoted, unescaped) into generated SQL by
+  // ColumnAndValueInfoBean.getSqlFragment(), so only unquoted SQL identifier characters are
+  // allowed.
   @NotEmpty
+  @PatternWithDescription(regexp = "^[A-Za-z_][A-Za-z0-9_]*$",
+      description = "letters, digits and underscores only, and must not start with a digit")
   private String conditionColumn;
   @NotEmpty
+  @Pattern(regexp = "^(\\(none\\)|quotes\\(\\'\\)$)")
   private String conditionColumnNeedsQuotationMark;
   @NotEmpty
   private String conditionColumnValue;
-  @Valid
   private ColumnAndValueInfoBean conditionColumnInfo;
 
-  public static final String[] HEADER_LABEL_KEYS = LangExcel.SearchConditionSettings.HEADER_LABELS;
+  public static final String[] HEADER_LABEL_KEYS =
+      LangExcelUtil.SearchConditionSettings.HEADER_LABELS;
 
   @Override
   protected @Nullable String[] getFieldNameArray() {
@@ -55,9 +62,6 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
   @SuppressWarnings("null")
   public WhereConditionInfoBean(List<String> colList) {
     super(colList);
-
-    conditionColumnInfo = new ColumnAndValueInfoBean(conditionColumn,
-        conditionColumnNeedsQuotationMark, conditionColumnValue);
   }
 
   public String getTaskId() {
@@ -82,6 +86,7 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
 
   @Override
   public void afterReading() {
-
+    conditionColumnInfo = new ColumnAndValueInfoBean(conditionColumn,
+        conditionColumnNeedsQuotationMark, conditionColumnValue);
   }
 }

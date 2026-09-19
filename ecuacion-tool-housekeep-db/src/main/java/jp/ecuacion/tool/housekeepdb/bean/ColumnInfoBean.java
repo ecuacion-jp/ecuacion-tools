@@ -83,8 +83,13 @@ public class ColumnInfoBean {
   }
 
   /**
-   * Receives value as argument and returns {@code ColumnAndValueInfoBean}.
-   * 
+   * Receives value as argument and returns a literal {@code ColumnAndValueInfoBean}.
+   *
+   * <p>Only appropriate for a value typed into the excel config (this bean's own
+   *     {@code needsQuotationMark} setting came from there too, and is meaningless for anything
+   *     else) - see {@link ColumnAndValueInfoBean}'s class Javadoc. A value read back from the DB
+   *     or computed by this tool should use {@link #getBoundCondition(Object)} instead.</p>
+   *
    * @param value value
    * @return ColumnAndValueInfoBean
    */
@@ -92,11 +97,38 @@ public class ColumnInfoBean {
     return new ColumnAndValueInfoBean(column, isNeedsQuotationMark(), value);
   }
 
-  /** 
-   * Get {@code ColumnAndValueInfoBean} with current time is set as its value. 
+  /**
+   * Builds an equality condition ({@code column = ?}) binding {@code value} as a JDBC parameter,
+   * for a value read back from the DB (e.g. an id from a {@code ResultSet}) or otherwise not
+   * typed into the excel config - see {@link BoundCondition}'s class Javadoc.
+   *
+   * @param value the value to bind
+   * @return BoundCondition
    */
-  public ColumnAndValueInfoBean getTimestampColumnNowInfo(String protocol) {
-    String now = SqlUtil.getTimestampNow(protocol);
-    return new ColumnAndValueInfoBean(column, true, now);
+  public BoundCondition getBoundCondition(Object value) {
+    return new BoundCondition(column, value);
+  }
+
+  /**
+   * Builds a greater-than condition ({@code column > ?}) binding {@code value} as a JDBC
+   * parameter - see {@link #getBoundCondition(Object)}.
+   *
+   * @param value the value to bind
+   * @return BoundCondition
+   */
+  public BoundCondition getBoundGreaterThanCondition(Object value) {
+    return new BoundCondition(column, ">", value);
+  }
+
+  /**
+   * Builds an equality condition ({@code column = ?}) binding the current time as a JDBC
+   * parameter, typed to suit {@code protocol} the same way {@link SqlUtil#getTimestampNow}
+   * formats it for literal embedding - see {@link SqlUtil#getTimestampNowValue}.
+   *
+   * @param protocol database kind like 'postgresql'
+   * @return BoundCondition
+   */
+  public BoundCondition getBoundTimestampNowCondition(String protocol) {
+    return new BoundCondition(column, SqlUtil.getTimestampNowValue(protocol));
   }
 }

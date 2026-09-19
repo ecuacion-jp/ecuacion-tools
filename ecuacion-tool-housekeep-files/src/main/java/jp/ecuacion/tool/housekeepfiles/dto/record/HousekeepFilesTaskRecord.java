@@ -21,11 +21,9 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.function.Function;
 import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
@@ -36,6 +34,7 @@ import jp.ecuacion.lib.validation.constraints.IntegerString;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.enums.IncidentTreatedAsEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
+import jp.ecuacion.tool.housekeepfiles.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -45,6 +44,8 @@ import org.jspecify.annotations.Nullable;
  */
 @SuppressWarnings("NullAway.Init")
 public class HousekeepFilesTaskRecord extends StringExcelTableBean {
+
+  public static final String[] HEADER_LABEL_KEYS = LangExcelUtil.TaskSettings.HEADER_LABELS;
 
   @NotEmpty
   @Size(min = 1, max = 10)
@@ -69,10 +70,8 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   public String isSrcPathDirEnumName;
 
   @Size(min = 1, max = 300)
+  @Pattern(regexp = "^[^\\x00-\\x1F\"<>|]*$")
   private String srcPath;
-
-  @Pattern(regexp = "DAY")
-  public String unitName;
 
   @IntegerString
   @DecimalMin(value = "0")
@@ -83,7 +82,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   public String actionForNoSrcPathEnumName;
 
   @Size(min = 1, max = 300)
-  @Pattern(regexp = "^[^*?]*$")
+  @Pattern(regexp = "^[^\\x00-\\x1F\"*<>?|]*$")
   private String destPath;
 
   @BooleanString
@@ -95,15 +94,13 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @EnumElement(enumClass = IncidentTreatedAsEnum.class)
   public String actionForDestFileExistsEnumName;
 
-  public String options;
-
   // Fields not in the Excel sheet.
 
   private @Nullable String envVarExpandedSrcPath;
 
   private @Nullable String envVarExpandedDestPath;
 
-  private Map<String, String> envVarInfoMap;
+  private Function<String, String> envVarValueGetter;
 
   // Holds the task object.
   public AbstractTask task;
@@ -111,9 +108,9 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @Override
   protected @Nullable String[] getFieldNameArray() {
     return new String[] {"taskId", "taskName", null, "taskPtnEnumName", "remoteServer", "srcPath",
-        "isSrcPathDirEnumName", "unitName", "value", "actionForNoSrcPathEnumName", "destPath",
-        "isDestPathDirEnumName", "doesOverwriteDestPathEnumName", "actionForDestFileExistsEnumName",
-        "options"};
+        "isSrcPathDirEnumName", "value", "actionForNoSrcPathEnumName", "destPath",
+        "isDestPathDirEnumName", "doesOverwriteDestPathEnumName",
+        "actionForDestFileExistsEnumName"};
   }
 
   /**
@@ -122,14 +119,14 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @SuppressWarnings("null")
   public HousekeepFilesTaskRecord(@Nullable String taskId, @Nullable String taskName,
       @Nullable String taskPtnEnumName, @Nullable String remoteServer, @Nullable String pathFrom,
-      @Nullable String isSrcPathDirEnumName, @Nullable String unitName, @Nullable String value,
+      @Nullable String isSrcPathDirEnumName, @Nullable String value,
       @Nullable String actionForNoSrcPathEnumName, @Nullable String pathTo,
       @Nullable String isDestPathDirEnumName, @Nullable String doesOverwriteDestPathEnumName,
-      @Nullable String actionForDestFileExistsEnumName, @Nullable String options) {
+      @Nullable String actionForDestFileExistsEnumName) {
     super(Arrays.asList(new String[] {taskId, taskName, null, taskPtnEnumName, remoteServer,
-        pathFrom, isSrcPathDirEnumName, unitName, value, actionForNoSrcPathEnumName, pathTo,
-        isDestPathDirEnumName, doesOverwriteDestPathEnumName, actionForDestFileExistsEnumName,
-        options}));
+        pathFrom, isSrcPathDirEnumName, value, actionForNoSrcPathEnumName, pathTo,
+        isDestPathDirEnumName, doesOverwriteDestPathEnumName,
+        actionForDestFileExistsEnumName}));
   }
 
   /**
@@ -140,46 +137,6 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
   @SuppressWarnings("null")
   public HousekeepFilesTaskRecord(List<String> colList) {
     super(colList);
-  }
-
-  /**
-   * Gets unit.
-   */
-  @SuppressWarnings("unused")
-  public @Nullable Integer getUnit() {
-    int rtn = -1;
-    if (unitName == null || unitName.equals("")) {
-      return null;
-
-    } else if (unitName.equals("YEAR")) {
-      rtn = Calendar.YEAR;
-
-    } else if (unitName.equals("MONTH")) {
-      rtn = Calendar.MONTH;
-
-    } else if (unitName.equals("DAY")) {
-      rtn = Calendar.DAY_OF_MONTH;
-
-    } else if (unitName.equals("HOUR")) {
-      rtn = Calendar.HOUR;
-
-    } else if (unitName.equals("MINUTE")) {
-      rtn = Calendar.MINUTE;
-    } else if (unitName.equals("SECOND")) {
-      rtn = Calendar.SECOND;
-
-    } else {
-      throw new RuntimeException("Not exist unit value: " + unitName);
-    }
-
-    return rtn;
-  }
-
-  /**
-   * Sets unit.
-   */
-  public void setUnit(String unit) {
-    throw new RuntimeException("Unit cannot be set. set 'unitName'.");
   }
 
   public String getTaskId() {
@@ -243,8 +200,8 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
    */
   @SuppressWarnings("unused")
   public @Nullable String getEnvVarExpandedSrcPath() {
-    if (envVarInfoMap == null) {
-      throw new RuntimeException("envVarInfoMap must be set before call the method.");
+    if (envVarValueGetter == null) {
+      throw new RuntimeException("envVarValueGetter must be set before call the method.");
     }
 
     return envVarExpandedSrcPath;
@@ -255,23 +212,19 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
    */
   @SuppressWarnings("unused")
   public @Nullable String getEnvVarExpandedDestPath() {
-    if (envVarInfoMap == null) {
-      throw new RuntimeException("envVarInfoMap must be set before call the method.");
+    if (envVarValueGetter == null) {
+      throw new RuntimeException("envVarValueGetter must be set before call the method.");
     }
 
     return envVarExpandedDestPath;
   }
 
   /**
-   * Sets EnvVarInfoMap.
+   * Sets the ${VAR} value resolver, and eagerly expands srcPath/destPath using it.
    */
   @SuppressWarnings("unused")
-  public void setEnvVarInfoMap(Map<String, String> envVarInfoMap) {
-    if (envVarInfoMap == null) {
-      envVarInfoMap = new HashMap<>();
-    }
-
-    this.envVarInfoMap = envVarInfoMap;
+  public void setEnvVarValueGetter(Function<String, String> envVarValueGetter) {
+    this.envVarValueGetter = envVarValueGetter == null ? key -> null : envVarValueGetter;
 
     // Retrieve pathInfoMap. Also expand environment variables in srcPath and destPath
     // during retrieval.
@@ -283,7 +236,7 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
     String envVarExpandedPath;
     try {
       envVarExpandedPath =
-          EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", envVarInfoMap);
+          EmbeddedVariableUtil.getVariableReplacedString(path, "${", "}", envVarValueGetter);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -301,12 +254,11 @@ public class HousekeepFilesTaskRecord extends StringExcelTableBean {
 
     // Source path related fields must all be filled or all empty.
     boolean isAllEmpty = StringUtils.isEmpty(srcPath) && StringUtils.isEmpty(isSrcPathDirEnumName)
-        && StringUtils.isEmpty(unitName) && StringUtils.isEmpty(value)
-        && StringUtils.isEmpty(actionForNoSrcPathEnumName);
+        && StringUtils.isEmpty(value) && StringUtils.isEmpty(actionForNoSrcPathEnumName);
     boolean isAllNotEmpty = !StringUtils.isEmpty(srcPath)
-        && !StringUtils.isEmpty(isSrcPathDirEnumName) && !StringUtils.isEmpty(unitName)
-        && !StringUtils.isEmpty(value) && !StringUtils.isEmpty(actionForNoSrcPathEnumName);
-    String[] lbls = new String[] {"srcPath", "isSrcPathDir", "unit", "value", "actionForNoSrcPath"};
+        && !StringUtils.isEmpty(isSrcPathDirEnumName) && !StringUtils.isEmpty(value)
+        && !StringUtils.isEmpty(actionForNoSrcPathEnumName);
+    String[] lbls = new String[] {"srcPath", "isSrcPathDir", "value", "actionForNoSrcPath"};
 
     if (!isAllEmpty && !isAllNotEmpty) {
       new Violations().add(new BusinessViolation(

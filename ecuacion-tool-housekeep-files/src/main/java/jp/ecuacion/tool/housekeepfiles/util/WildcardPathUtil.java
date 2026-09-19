@@ -24,7 +24,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.util.FileUtil;
-import jp.ecuacion.lib.core.util.ObjectsUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import org.apache.commons.lang3.StringUtils;
@@ -110,12 +109,36 @@ public class WildcardPathUtil {
   }
 
   /*
+   * Converts a single path segment containing "*"/"?" wildcards into an equivalent regex: "*"
+   * becomes ".*", "?" becomes ".", and every other character is quoted so it matches only itself
+   * - notably including regex metacharacters like {@code "(", ")", "[", "]", "+", "{", "}", "|",
+   * "^", "$"} - which a directory or file name placed by an untrusted party could otherwise use
+   * to break Pattern.compile() (e.g. an unbalanced "(") or to unintentionally match more than
+   * intended.
+   */
+  private static String globToRegex(String glob) {
+    StringBuilder regex = new StringBuilder();
+    for (int i = 0; i < glob.length(); i++) {
+      char c = glob.charAt(i);
+      if (c == '*') {
+        regex.append(".*");
+      } else if (c == '?') {
+        regex.append('.');
+      } else {
+        regex.append(Pattern.quote(String.valueOf(c)));
+      }
+    }
+
+    return regex.toString();
+  }
+
+  /*
    * Returns the leftmost separator position of the path in the path string.
    * Supports both slash (/) and backslash (\).
    * Returns -1 if there is no separator position.
    */
   private static int getFirstPathSeparatorIndex(String path) {
-    ObjectsUtil.requireNonNull(path);
+    Objects.requireNonNull(path);
 
     int firstSlashIndex = path.indexOf("/");
     int firstBackSlashIndex = path.indexOf("\\");
@@ -136,7 +159,9 @@ public class WildcardPathUtil {
 
   private static void getPathListFromPathWithWildcardRecursively(String fullPath, String parentPath,
       List<@NonNull String> rtnFullPathList) {
-    ObjectsUtil.requireNonNull(fullPath, parentPath, rtnFullPathList);
+    Objects.requireNonNull(fullPath);
+    Objects.requireNonNull(parentPath);
+    Objects.requireNonNull(rtnFullPathList);
 
     String myFileOrDirnameWithWildcard = null;
     boolean hasReachedFullPathDirDepth = false;
@@ -144,8 +169,8 @@ public class WildcardPathUtil {
     if (parentPath.isEmpty()) {
       String myPathWithWildcard = fullPath.substring(0, getFirstPathSeparatorIndex(fullPath) + 1);
       if (myPathWithWildcard.contains("*") || myPathWithWildcard.contains("?")) {
-        throw new ViolationException(new Violations().add(
-            new BusinessViolation("MSG_ERR_1ST_LEVEL_CANNOT_HAVE_WILDCARD", fullPath)));
+        throw new ViolationException(new Violations()
+            .add(new BusinessViolation("MSG_ERR_1ST_LEVEL_CANNOT_HAVE_WILDCARD", fullPath)));
       }
 
       getPathListFromPathWithWildcardRecursively(fullPath, myPathWithWildcard, rtnFullPathList);
@@ -163,10 +188,14 @@ public class WildcardPathUtil {
       }
 
       if (myFileOrDirnameWithWildcard.contains("?") || myFileOrDirnameWithWildcard.contains("*")) {
-        String myFileOrDirnameWithRegEx = myFileOrDirnameWithWildcard.replaceAll("\\.", "\\\\.");
-        myFileOrDirnameWithRegEx =
-            myFileOrDirnameWithRegEx.replaceAll("\\?", ".").replaceAll("\\*", ".*");
-        Pattern pattern1 = Pattern.compile(parentPath + myFileOrDirnameWithRegEx);
+        // parentPath comes from actual directory entries found on disk during recursion (not from
+        // the wildcard pattern itself), so it can legitimately contain regex metacharacters (e.g.
+        // a directory literally named "logs(2024)") - quote it as a literal rather than
+        // interpolating it into the pattern source. Likewise, only "*"/"?" in the wildcard segment
+        // itself are wildcards; every other character (including regex metacharacters like
+        // {@code "(", ")", "[", "]", "+", "{", "}", "|", "^", "$"}) must match itself literally.
+        String myFileOrDirnameWithRegEx = globToRegex(myFileOrDirnameWithWildcard);
+        Pattern pattern1 = Pattern.compile(Pattern.quote(parentPath) + myFileOrDirnameWithRegEx);
 
         String[] arr = new File(parentPath).list();
         if (arr == null) {

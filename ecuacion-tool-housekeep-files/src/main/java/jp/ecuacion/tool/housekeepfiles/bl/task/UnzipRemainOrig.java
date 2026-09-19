@@ -15,19 +15,13 @@
  */
 package jp.ecuacion.tool.housekeepfiles.bl.task;
 
-import java.util.List;
-import jp.ecuacion.lib.core.violation.BusinessViolation;
-import jp.ecuacion.lib.core.violation.Violations;
-import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
-import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 
 /**
  * Provides unzip remaining original file task.
  */
-@SuppressWarnings("NullAway")
-public class UnzipRemainOrig extends AbstractTaskLocal {
+public class UnzipRemainOrig extends AbstractTaskUnzip {
 
   /**
    * Constructs a new instance.
@@ -40,17 +34,4 @@ public class UnzipRemainOrig extends AbstractTaskLocal {
   public TaskActionKindEnum getTaskActionKind() {
     return TaskActionKindEnum.createFromOriginal;
   }
-
-  @Override
-  public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {
-
-  }
-
-  @SuppressWarnings("null")
-  @Override
-  protected void doTaskInternal(ConnectionToRemoteServer conn, HousekeepFilesTaskRecord taskRec,
-      String fromPath, String toPath, List<BusinessViolation> warnList) {
-    new Violations().add(new BusinessViolation("MSG_ERR_NOT_IMPLEMENTED")).throwIfAny();
-  }
-
 }

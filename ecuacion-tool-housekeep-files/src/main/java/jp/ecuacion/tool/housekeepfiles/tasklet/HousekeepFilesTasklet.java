@@ -15,10 +15,14 @@
  */
 package jp.ecuacion.tool.housekeepfiles.tasklet;
 
-import java.util.Map;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
-import jp.ecuacion.lib.core.violation.BusinessViolation;
-import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.lib.core.logging.DetailLogger;
+import jp.ecuacion.lib.validation.constraints.FileExists;
+import jp.ecuacion.lib.validation.constraints.FileExtension;
+import jp.ecuacion.tool.housekeepcommon.util.ExcelPathValidator;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepLogUtil;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepPropKeys;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
@@ -28,6 +32,7 @@ import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
@@ -36,9 +41,18 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class HousekeepFilesTasklet implements Tasklet {
+
+  public static final String PROP_EXCEL_PATH = HousekeepPropKeys.PREFIX + Constants.TOOL_NAME
+      + HousekeepPropKeys.SUFFIX_EXCEL_PATH;
+
+  private DetailLogger detailLogger = new DetailLogger(this);
+
   HousekeepFilesBlf blf = new HousekeepFilesBlf();
-  @Nullable
-  HousekeepFilesForm form;
+
+  @NotEmpty
+  @FileExists
+  @FileExtension(".xlsx")
+  private final @Nullable String excelPath;
 
   // Not set when this tasklet is instantiated directly (e.g. in tests) instead of through Spring.
   @Autowired(required = false)
@@ -46,63 +60,61 @@ public class HousekeepFilesTasklet implements Tasklet {
   Environment env;
 
   /**
+   * Creates the tasklet, reading the excel file path from the {@link #PROP_EXCEL_PATH} property.
+   *
+   * @param excelPath the excel file path, or {@code null} if unset
+   */
+  public HousekeepFilesTasklet(
+      @Value("${" + PROP_EXCEL_PATH + ":#{null}}") @Nullable String excelPath) {
+    this.excelPath = excelPath;
+  }
+
+  /**
    * Executes housekeeping files.
    */
   @Override
   public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
       throws Exception {
-    Map<String, Object> paramMap = chunkContext.getStepContext().getJobParameters();
 
-    String excelPath = (String) paramMap.get("excelPath");
+    String excelPath = validateExcelPath();
 
-    execute(Objects.requireNonNull(excelPath));
+    @Nullable String targetSystemName = env == null ? null
+        : Objects.requireNonNull(env).getProperty(Constants.PROP_TARGET_SYSTEM_NAME);
+
+    HousekeepLogUtil.logStarted(detailLogger, Constants.TOOL_NAME, excelPath, targetSystemName);
+
+    // AbstractTaskSftp and CompressUtil are instantiated outside of Spring's DI (by reflection /
+    // plain "new"), so they cannot read these properties from the Environment directly. Bridge
+    // them through JVM system properties here, which also makes values set in
+    // application.properties / application_profile.properties effective, not only "-D"
+    // arguments. Left untouched when this tasklet is instantiated directly without Spring (e.g.
+    // in tests), in which case only "-D" is honored.
+    bridgeEnvPropertyToSystemProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING);
+    bridgeEnvPropertyToSystemProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS);
+    bridgeEnvPropertyToSystemProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES);
+
+    HousekeepFilesForm nonnullForm = getFormFromExcel(excelPath);
+
+    HousekeepLogUtil.logExcelFormatInfo(detailLogger, nonnullForm.getFormatVersion(),
+        nonnullForm.getLocale());
+
+    blf.execute(nonnullForm, env);
 
     return RepeatStatus.FINISHED;
   }
 
+  private String validateExcelPath() {
+    return ExcelPathValidator.validate(this, excelPath);
+  }
+
   /**
-   * Housekeeps files.
+   * Copies a property from the Spring {@code Environment} to a JVM system property of the same
+   * key, if present. See the call site in {@link #execute} for why this bridging is needed.
    */
-  @SuppressWarnings("unused")
-  public void execute(String excelFilePath) throws Exception {
-
-    // AbstractTaskSftp is instantiated by reflection outside of Spring's DI, so it cannot read
-    // this property from the Environment directly. Bridge it through a JVM system property here,
-    // which also makes values set in application.properties / application_profile.properties
-    // effective, not only "-D" arguments. Left untouched when this tasklet is instantiated
-    // directly without Spring (e.g. in tests), in which case only "-D" is honored.
-    if (env != null && Objects.requireNonNull(env)
-        .containsProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING)) {
-      System.setProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING, Objects.requireNonNull(
-          Objects.requireNonNull(env).getProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING)));
+  private void bridgeEnvPropertyToSystemProperty(String key) {
+    if (env != null && Objects.requireNonNull(env).containsProperty(key)) {
+      System.setProperty(key, Objects.requireNonNull(Objects.requireNonNull(env).getProperty(key)));
     }
-
-    // Check the first argument.
-    if (excelFilePath == null || excelFilePath.equals("")) {
-      new Violations()
-          .add(new BusinessViolation("MSG_ERR_PARAM_NULL_OR_EMPTY", "1st argument(excelFilePath)"))
-          .throwIfAny();
-
-    } else if (!excelFilePath.contains(".")) {
-      // No file extension found.
-      new Violations().add(new BusinessViolation("MSG_ERR_1ST_ARG_HAS_NO_EXTENSION", excelFilePath))
-          .throwIfAny();
-    }
-
-    Objects.requireNonNull(excelFilePath);
-
-    // Determine the number of parameters based on the file extension in the first argument path.
-    String extension = excelFilePath.substring(excelFilePath.lastIndexOf("."));
-
-    if (extension.equals(".xlsx")) {
-      form = getFormFromExcel(excelFilePath);
-
-    } else {
-      new Violations().add(new BusinessViolation("MSG_ERR_EXTENSION_NOT_EXPECTED", extension))
-          .throwIfAny();
-    }
-
-    blf.execute(Objects.requireNonNull(form));
   }
 
   /**
