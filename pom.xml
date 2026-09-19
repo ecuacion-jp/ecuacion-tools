@@ -29,9 +29,6 @@
 		<version>0.0.2-SNAPSHOT</version>
 		<relativePath>../ecuacion-splib/ecuacion-splib-dependencies</relativePath>
 	</parent>
-	<properties>
-		<app.version>0.0.1-SNAPSHOT</app.version>
-	</properties>
 
 	<modules>
 		<module>ecuacion-tool-command-api</module>
