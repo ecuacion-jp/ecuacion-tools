@@ -169,6 +169,9 @@ public class DbConnectionInfoBean extends StringExcelTableBean {
     return password;
   }
 
+  /**
+   * Sets password.
+   */
   public void setPassword(String password) {
     this.password = password;
     // Clear any previously-computed expansion: it was computed from the old value and no longer

@@ -21,7 +21,7 @@ import java.util.List;
 import jp.ecuacion.lib.validation.constraints.EmptyWhen;
 import jp.ecuacion.lib.validation.constraints.NotEmptyWhen;
 import jp.ecuacion.lib.validation.constraints.PatternWithDescription;
-import jp.ecuacion.lib.validation.constraints.enums.ConditionValue;
+import jp.ecuacion.lib.validation.constraints.enums.ConditionValueState;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader;
@@ -47,28 +47,28 @@ import org.jspecify.annotations.Nullable;
  */
 // softDeleteColumn required for soft delete
 @NotEmptyWhen(propertyPath = "softDeleteColumn",
-    conditionPropertyPath = "isSoftDeleteInternalValue", conditionValue = ConditionValue.STRING,
+    conditionPropertyPath = "isSoftDeleteInternalValue",
     conditionValueString = HousekeepInfoBean.DELETE_KIND_SOFT, groups = AfterMergeValidation.class)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty.
 @EmptyWhen(
     propertyPath = {"softDeleteUpdateUserIdColumnNeedsQuotationMark",
         "softDeleteUpdateUserIdColumnValue"},
-    conditionPropertyPath = "softDeleteUpdateUserIdColumn", conditionValue = ConditionValue.EMPTY,
-    notEmptyWhenConditionNotSatisfied = true)
+    conditionPropertyPath = "softDeleteUpdateUserIdColumn",
+    conditionValueState = ConditionValueState.EMPTY, notEmptyWhenConditionNotSatisfied = true)
 // fields related to soft delete must be null when isSoftDelete is hard
 // ("softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue" are
 // covered with the next @ConditionalEmpty)
 @EmptyWhen(propertyPath = {"softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn"},
-    conditionPropertyPath = "isSoftDeleteInternalValue", conditionValue = ConditionValue.STRING,
+    conditionPropertyPath = "isSoftDeleteInternalValue",
     conditionValueString = HousekeepInfoBean.DELETE_KIND_HARD, groups = AfterMergeValidation.class)
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty
 @EmptyWhen(
     propertyPath = {"softDeleteUpdateUserIdColumnNeedsQuotationMark",
         "softDeleteUpdateUserIdColumnValue"},
-    conditionPropertyPath = "softDeleteUpdateUserIdColumn", conditionValue = ConditionValue.EMPTY,
-    notEmptyWhenConditionNotSatisfied = true)
+    conditionPropertyPath = "softDeleteUpdateUserIdColumn",
+    conditionValueState = ConditionValueState.EMPTY, notEmptyWhenConditionNotSatisfied = true)
 @SuppressWarnings("NullAway.Init")
 public class RelatedTableInfoBean extends StringExcelTableBean implements DeleteTargetInfo {
 
