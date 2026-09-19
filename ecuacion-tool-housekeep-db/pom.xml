@@ -67,7 +67,7 @@
 		<dependency>
 			<groupId>jp.ecuacion.tool</groupId>
 			<artifactId>ecuacion-tool-housekeep-common</artifactId>
-			<version>${app.version}</version>
+			<version>${project.version}</version>
 		</dependency>
 
 		<!-- ecuacion-splib -->
