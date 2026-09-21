@@ -148,8 +148,8 @@ public class HousekeepDbTasklet implements Tasklet {
    * command-line arguments - anything Spring Boot's Environment can resolve). An empty-string
    * property value resolves to {@code null} (i.e. "not found") rather than silently expanding to
    * an empty password.
-   * 
-   * Package-private for unit testing.
+   *
+   * <p>Package-private for unit testing.
    */
   Function<String, String> createEnvVarValueGetter() {
     return key -> {
