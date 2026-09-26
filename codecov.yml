@@ -15,7 +15,8 @@
 #
 
 coverage:
+  range: 50...80
   status:
     project:
       default:
-        target: auto
+        target: 70%
