@@ -231,8 +231,7 @@ public class HousekeepFilesBl {
       // If the file is locked, skip adding it to the list and only output a warning log.
       // This applies only to supported protocols (currently only the local filesystem).
       if (fi.isLocked()) {
-        logWithTaskId(taskRec.getTaskId(),
-            "Skipping because the file is locked: " + fi.getFilePath());
+        SplibLogUtil.debug(dlog, "Skipping because the file is locked: " + fi.getFilePath(), 2);
         continue;
       }
 
@@ -411,11 +410,7 @@ public class HousekeepFilesBl {
         new LogKeyValue("isDestPathDir", String.valueOf(rec.getIsDestPathDir())),
         new LogKeyValue("doesOverwriteDestPath", String.valueOf(rec.getDoesOverwriteDestPath())),
         new LogKeyValue("actionForToFileExists", String.valueOf(rec.getActionForDestFileExists())));
-    SplibLogUtil.logKeyValueList(dlog, Level.DEBUG, 1, list);
-  }
-
-  private void logWithTaskId(String taskId, String msg) {
-    dlog.debug("[" + taskId + "] " + msg);
+    SplibLogUtil.logKeyValueList(dlog, Level.DEBUG, 2, list);
   }
 
   /** Creates and returns a task instance by reflection based on the task pattern in the record. */

@@ -38,7 +38,7 @@ public final class HousekeepLogUtil {
    */
   public static void logStarted(DetailLogger detailLogger, String toolName, String excelPath,
       @Nullable String targetSystemName) {
-    detailLogger.info(toolName + " started.");
+    SplibLogUtil.logStarted(detailLogger, toolName);
 
     List<LogKeyValue> list = new ArrayList<>();
     list.add(new LogKeyValue("Excel File Path", excelPath));
@@ -67,6 +67,6 @@ public final class HousekeepLogUtil {
    * @param toolName e.g. {@code "housekeep-db"} / {@code "housekeep-files"}
    */
   public static void logFinishedSuccessfully(DetailLogger detailLogger, String toolName) {
-    detailLogger.info(toolName + " finished successfully.");
+    SplibLogUtil.logFinished(detailLogger, toolName);
   }
 }
