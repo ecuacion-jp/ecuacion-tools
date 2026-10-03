@@ -836,8 +836,8 @@ abstract class AbstractHousekeepDbTaskletTest {
       // apart. HousekeepRelatedTableDeleter.needsSkipFromRelatedTableDataCheck() also logs
       // "Record not found." (unconditionally, once per processed row, when its skip-pattern
       // related-table list is empty - which it is here, since this task configures none) - but at
-      // a different indent depth (IDT_5 = 5) than HousekeepMainTableDeleter's own empty-batch
-      // message (IDT_3 = 3), so match on the exact indented text (SplibLogUtil indents with 2
+      // a different indent depth (5) than HousekeepMainTableDeleter's own empty-batch
+      // message (3), so match on the exact indented text (SplibLogUtil indents with 2
       // spaces per level) to isolate the message under test.
       List<String> rawMessages =
           appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
