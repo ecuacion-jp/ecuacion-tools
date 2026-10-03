@@ -79,8 +79,7 @@ public class HousekeepMainTableDeleter {
     String logMsg;
     SplibLogUtil.logKeyValueList(detailLogger, Level.DEBUG, 2,
         List.of(new LogKeyValue("DB Connection ID", String.valueOf(info.getDbConnectionInfoId())),
-            new LogKeyValue("Delete Kind",
-                info.isSoftDelete() ? "Soft Delete" : "Hard Delete")));
+            new LogKeyValue("Delete Kind", info.isSoftDelete() ? "Soft Delete" : "Hard Delete")));
 
     Map<String, Integer> tableRecordDeleted = new LinkedHashMap<>();
 
