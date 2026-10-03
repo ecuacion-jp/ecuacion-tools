@@ -48,9 +48,6 @@ import org.slf4j.event.Level;
  */
 public class HousekeepMainTableDeleter {
 
-  private static final int IDT_2 = 2;
-  private static final int IDT_3 = 3;
-
   private final DetailLogger detailLogger;
   private final int maxSelectLines;
   private final RecordDeleter recordDeleter;
@@ -80,10 +77,9 @@ public class HousekeepMainTableDeleter {
       throws ClassNotFoundException, SQLException {
 
     String logMsg;
-    SplibLogUtil.logKeyValueList(detailLogger, Level.DEBUG, IDT_2,
+    SplibLogUtil.logKeyValueList(detailLogger, Level.DEBUG, 2,
         List.of(new LogKeyValue("DB Connection ID", String.valueOf(info.getDbConnectionInfoId())),
-            new LogKeyValue("Delete Kind",
-                info.isSoftDelete() ? "Soft Delete" : "Hard Delete")));
+            new LogKeyValue("Delete Kind", info.isSoftDelete() ? "Soft Delete" : "Hard Delete")));
 
     Map<String, Integer> tableRecordDeleted = new LinkedHashMap<>();
 
@@ -101,13 +97,13 @@ public class HousekeepMainTableDeleter {
       // Process in batches of maxSelectLines even when there are many records.
       while (true) {
         logMsg = "Find records from target table: " + info.getTable();
-        AppLogUtil.log(detailLogger, Level.DEBUG, logMsg, IDT_2);
+        AppLogUtil.log(detailLogger, Level.DEBUG, logMsg, 2);
 
         // Retrieve IDs up to maxSelectLines rows, continuing after the previous batch.
         SqlFragment selectSql = getMainSelectSql(info, lastProcessedId);
 
         try (PreparedStatement stmt = AppLogUtil.getStatement(detailLogger, conn, selectSql.sql(),
-            selectSql.bindValues(), "target table select", IDT_2)) {
+            selectSql.bindValues(), "target table select", 2)) {
           ResultSet rs = stmt.executeQuery();
 
           // Flag to determine whether the query found any records.
@@ -121,7 +117,7 @@ public class HousekeepMainTableDeleter {
             Object idValue = rs.getObject(info.getIdColumnInfo().getColumn());
             String idCol = info.getIdColumnInfo().getColumn();
             AppLogUtil.log(detailLogger, Level.DEBUG, "Record found. " + idCol + " = " + idValue,
-                IDT_3);
+                3);
 
             // Advance the cursor before the skip check below. Skipped records are not deleted,
             // so they would otherwise be re-selected by every following batch and the records
@@ -144,7 +140,7 @@ public class HousekeepMainTableDeleter {
 
           // Terminate when the end of the target table is reached.
           if (isQueryResultCountZero) {
-            AppLogUtil.log(detailLogger, Level.DEBUG, "Record not found.", IDT_3);
+            AppLogUtil.log(detailLogger, Level.DEBUG, "Record not found.", 3);
             break;
           }
 
@@ -154,12 +150,12 @@ public class HousekeepMainTableDeleter {
 
       if (recordFound && !recordDeleted) {
         logMsg = "Record(s) found, but no deletable one(s) only.";
-        AppLogUtil.log(detailLogger, Level.INFO, logMsg, IDT_2);
+        AppLogUtil.log(detailLogger, Level.INFO, logMsg, 2);
       }
     }
 
     tableRecordDeleted.keySet().stream().forEach(table -> AppLogUtil.log(detailLogger, Level.INFO,
-        "Delete records : " + tableRecordDeleted.get(table) + " record(s) from " + table, IDT_2));
+        "Delete records : " + tableRecordDeleted.get(table) + " record(s) from " + table, 2));
   }
 
   /**
