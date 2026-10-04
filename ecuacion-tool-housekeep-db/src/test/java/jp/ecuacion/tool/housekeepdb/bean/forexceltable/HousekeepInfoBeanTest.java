@@ -36,7 +36,7 @@ class HousekeepInfoBeanTest {
   private static final Validator validator =
       Validation.buildDefaultValidatorFactory().getValidator();
 
-  // Column order: taskId, dbConnectionInfoId, isSoftDelete, isSoftDeleteInternalValue, table,
+  // Column order: taskId, dbConnectionInfoId, processKind, processKindInternalValue, table,
   // idColumn, idColumnNeedsQuotationMark, timestampColumn, timestampColumnKind,
   // deleteTargetInDays, softDeleteColumn, softDeleteUpdateTimestampColumn,
   // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark,
@@ -45,6 +45,9 @@ class HousekeepInfoBeanTest {
       "tbl1", "id1", "(none)", null, null, null, null, null, null, null, null};
   private static final String[] SOFT_BASE = {"task1", "conn1", "Soft Delete", "SOFT_DELETE",
       "tbl1", "id1", "(none)", null, null, null, "del_flg", null, null, null, null};
+  private static final String[] CHECK_BASE = {"task1", "conn1", "Abnormal Data Check",
+      "ABNORMAL_DATA_CHECK", "tbl1", "id1", "(none)", null, null, null, null, null, null, null,
+      null};
 
   private static HousekeepInfoBean bean(String[] base, int index, @Nullable String value) {
     String[] copy = Arrays.copyOf(base, base.length);
@@ -78,8 +81,8 @@ class HousekeepInfoBeanTest {
           cv.getConstraintDescriptor().getAnnotation().annotationType().getCanonicalName())
               .isEqualTo("jakarta.validation.constraints.NotEmpty"));
       assertThat(result.stream().map(cv -> cv.getPropertyPath().toString()).toList())
-          .containsExactlyInAnyOrder("taskId", "dbConnectionInfoId", "isSoftDelete",
-              "isSoftDeleteInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark");
+          .containsExactlyInAnyOrder("taskId", "dbConnectionInfoId", "processKind",
+              "processKindInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark");
     }
   }
 
@@ -92,12 +95,13 @@ class HousekeepInfoBeanTest {
   class PatternFields {
 
     @Test
-    @DisplayName("isSoftDeleteInternalValue and idColumnNeedsQuotationMark both invalid -> 2 violations")
+    @DisplayName("processKindInternalValue and idColumnNeedsQuotationMark both invalid "
+        + "-> 2 violations")
     void bothInvalidPatterns() {
       // Fill every required column with a non-empty placeholder so only the two @Pattern
       // constraints under test can fail.
-      List<String> list = Arrays.asList("taskId", "dbConnectionInfoId", "isSoftDelete",
-          "isSoftDeleteInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark", null,
+      List<String> list = Arrays.asList("taskId", "dbConnectionInfoId", "processKind",
+          "processKindInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark", null,
           null, null, null, null, null, null, null);
 
       @SuppressWarnings("null")
@@ -312,6 +316,78 @@ class HousekeepInfoBeanTest {
       HousekeepInfoBean b = bean(HARD_BASE, 3, "UNEXPECTED");
 
       assertThatThrownBy(b::isSoftDelete).isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    @DisplayName("ABNORMAL_DATA_CHECK throws RuntimeException "
+        + "(an abnormal data check deletes nothing)")
+    void abnormalDataCheckThrows() {
+      HousekeepInfoBean b = bean(CHECK_BASE);
+
+      assertThatThrownBy(b::isSoftDelete).isInstanceOf(RuntimeException.class);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // abnormal data check
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("abnormal data check (ABNORMAL_DATA_CHECK)")
+  class AbnormalDataCheck {
+
+    @Test
+    @DisplayName("isAbnormalDataCheck() returns true only for ABNORMAL_DATA_CHECK")
+    void isAbnormalDataCheck() {
+      assertThat(bean(CHECK_BASE).isAbnormalDataCheck()).isTrue();
+      assertThat(bean(HARD_BASE).isAbnormalDataCheck()).isFalse();
+      assertThat(bean(SOFT_BASE).isAbnormalDataCheck()).isFalse();
+    }
+
+    @Test
+    @DisplayName("with no optional columns set passes")
+    void minimalPasses() {
+      assertThat(validator.validate(bean(CHECK_BASE))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("with the expiration-check columns and softDeleteColumn set passes")
+    void expirationAndSoftDeleteColumnPasses() {
+      List<String> list = Arrays.asList("task1", "conn1", "Abnormal Data Check",
+          "ABNORMAL_DATA_CHECK", "tbl1", "id1", "(none)", "last_updated", "OffsetDateTime", "30",
+          "del_flg", null, null, null, null);
+
+      assertThat(validator.validate(new HousekeepInfoBean(list))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("with the soft-delete update-timestamp column set fails with EmptyWhen")
+    void updateTimestampColumnFails() {
+      @SuppressWarnings("null")
+      Set<ConstraintViolation<HousekeepInfoBean>> result =
+          validator.validate(bean(CHECK_BASE, 11, "upd_at"));
+
+      assertThat(result).hasSize(1);
+      assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
+          .annotationType().getCanonicalName())
+              .isEqualTo("jp.ecuacion.lib.validation.constraints.EmptyWhen");
+    }
+
+    @Test
+    @DisplayName("with the whole soft-delete update-user-id trio set fails with EmptyWhen")
+    void updateUserIdTrioFails() {
+      List<String> list = Arrays.asList("task1", "conn1", "Abnormal Data Check",
+          "ABNORMAL_DATA_CHECK", "tbl1", "id1", "(none)", null, null, null, null, null, "upd_by",
+          "quotes(')", "SYSTEM");
+
+      @SuppressWarnings("null")
+      Set<ConstraintViolation<HousekeepInfoBean>> result =
+          validator.validate(new HousekeepInfoBean(list));
+
+      assertThat(result).hasSize(1);
+      assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
+          .annotationType().getCanonicalName())
+              .isEqualTo("jp.ecuacion.lib.validation.constraints.EmptyWhen");
     }
   }
 
