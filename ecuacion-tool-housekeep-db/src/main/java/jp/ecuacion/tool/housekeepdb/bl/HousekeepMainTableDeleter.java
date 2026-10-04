@@ -167,16 +167,7 @@ public class HousekeepMainTableDeleter {
    */
   private SqlFragment getMainSelectSql(HousekeepInfoBean info, @Nullable Object lastProcessedId) {
     // Build the WHERE clause.
-    List<SqlConditionInterface> whereList = new ArrayList<>();
-
-    whereList.addAll(
-        info.getWhereConditionInfoList().stream().map(e -> e.getConditionColumnInfo()).toList());
-
-    if (info.timestampColumnDefines()) {
-      whereList.add(new ColumnAndValueStringBean(
-          SqlUtil.getExpirationCondition(info.getDbConnectionInfo().getProtocol(),
-              info.getTimestampColumn(), info.getDeleteTargetInDays())));
-    }
+    List<SqlConditionInterface> whereList = getSearchAndExpirationConditions(info);
 
     if (info.isSoftDelete()) {
       // To avoid updating already-processed records, target only rows where the soft-delete
@@ -206,7 +197,40 @@ public class HousekeepMainTableDeleter {
     return new SqlFragment(sql, where.bindValues());
   }
 
-  private Connection connectionSettings(Map<String, DbConnectionInfoBean> dbConnectionInfoMap,
+  /**
+   * Builds the WHERE conditions every task applies to its target table regardless of its process
+   * kind: the "Search Condition Settings" rows and the expiration check (when configured).
+   *
+   * <p>Package-private, shared with {@link HousekeepAbnormalDataChecker}.</p>
+   *
+   * @param info the housekeep task settings
+   * @return a new, modifiable list of the conditions, so that callers can add their own
+   */
+  static List<SqlConditionInterface> getSearchAndExpirationConditions(HousekeepInfoBean info) {
+    List<SqlConditionInterface> whereList = new ArrayList<>();
+
+    whereList.addAll(
+        info.getWhereConditionInfoList().stream().map(e -> e.getConditionColumnInfo()).toList());
+
+    if (info.timestampColumnDefines()) {
+      whereList.add(new ColumnAndValueStringBean(
+          SqlUtil.getExpirationCondition(info.getDbConnectionInfo().getProtocol(),
+              info.getTimestampColumn(), info.getDeleteTargetInDays())));
+    }
+
+    return whereList;
+  }
+
+  /**
+   * Connects to the DB the given task specifies, with auto-commit off.
+   *
+   * <p>Package-private, shared with {@link HousekeepAbnormalDataChecker}.</p>
+   *
+   * @param dbConnectionInfoMap db connection settings by ID, keyed as read from the excel file
+   * @param info the housekeep task settings
+   * @return the connection
+   */
+  static Connection connectionSettings(Map<String, DbConnectionInfoBean> dbConnectionInfoMap,
       HousekeepInfoBean info) throws ClassNotFoundException, SQLException {
     DbConnectionInfoBean dbInfo = dbConnectionInfoMap.get(info.getDbConnectionInfoId());
     if (dbInfo == null) {
@@ -223,7 +247,7 @@ public class HousekeepMainTableDeleter {
     return conn;
   }
 
-  private String getDbConnectionUrl(DbConnectionInfoBean dbInfo) {
+  private static String getDbConnectionUrl(DbConnectionInfoBean dbInfo) {
     // "currentSchema" is a postgresql-specific JDBC URL parameter; MySQL / MariaDB have no
     // equivalent (there, "database" and "schema" are the same thing).
     String param =
