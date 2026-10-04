@@ -35,18 +35,19 @@ import org.jspecify.annotations.Nullable;
  */
 // softDeleteColumn required for soft delete
 @NotEmptyWhen(propertyPath = "softDeleteColumn",
-    conditionPropertyPath = "isSoftDeleteInternalValue",
+    conditionPropertyPath = "processKindInternalValue",
     conditionValueString = HousekeepInfoBean.DELETE_KIND_SOFT)
 // timestampColumn, timestampColumnKind and deleteTargetInDays must be all empty or all not empty
 @EmptyWhen(propertyPath = {"timestampColumnKind", "deleteTargetInDays"},
     conditionPropertyPath = "timestampColumn", conditionValueState = ConditionValueState.EMPTY,
     notEmptyWhenConditionNotSatisfied = true)
-// fields related to soft delete must be null when isSoftDelete is hard
+// fields related to soft delete must be null when processKind is hard delete or abnormal data check
 // ("softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue" are
 // covered with the next @ConditionalEmpty)
 @EmptyWhen(propertyPath = {"softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn"},
-    conditionPropertyPath = "isSoftDeleteInternalValue",
-    conditionValueString = HousekeepInfoBean.DELETE_KIND_HARD)
+    conditionPropertyPath = "processKindInternalValue",
+    conditionValueString = {HousekeepInfoBean.DELETE_KIND_HARD,
+        HousekeepInfoBean.PROCESS_KIND_ABNORMAL_DATA_CHECK})
 // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark and
 // softDeleteUpdateUserIdColumnAndValue must be all empty or all not empty
 @EmptyWhen(
@@ -59,6 +60,11 @@ public class HousekeepInfoBean extends StringExcelTableBean implements DeleteTar
 
   public static final String DELETE_KIND_SOFT = "SOFT_DELETE";
   public static final String DELETE_KIND_HARD = "HARD_DELETE";
+  /**
+   * Doesn't delete anything, but reports the records matching the task's conditions as a
+   * warning (log and email) since their existence means something has gone wrong.
+   */
+  public static final String PROCESS_KIND_ABNORMAL_DATA_CHECK = "ABNORMAL_DATA_CHECK";
 
   // Columns below are embedded as-is (unquoted, unescaped) into generated SQL by
   // HousekeepDbTasklet / ColumnInfoBean, so only unquoted SQL identifier characters are allowed.
@@ -71,10 +77,11 @@ public class HousekeepInfoBean extends StringExcelTableBean implements DeleteTar
   @NotEmpty
   private String dbConnectionInfoId;
   @NotEmpty
-  private String isSoftDelete;
+  private String processKind;
   @NotEmpty
-  @Pattern(regexp = "^" + DELETE_KIND_HARD + "|" + DELETE_KIND_SOFT + "$")
-  private String isSoftDeleteInternalValue;
+  @Pattern(regexp = "^(" + DELETE_KIND_HARD + "|" + DELETE_KIND_SOFT + "|"
+      + PROCESS_KIND_ABNORMAL_DATA_CHECK + ")$")
+  private String processKindInternalValue;
   @NotEmpty
   @PatternWithDescription(regexp = COLUMN_NAME_REGEXP, description = COLUMN_NAME_DESCRIPTION)
   private String table;
@@ -115,8 +122,8 @@ public class HousekeepInfoBean extends StringExcelTableBean implements DeleteTar
 
   @Override
   protected @Nullable String[] getFieldNameArray() {
-    return new String[] {"taskId", "dbConnectionInfoId", "isSoftDelete",
-        "isSoftDeleteInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark",
+    return new String[] {"taskId", "dbConnectionInfoId", "processKind",
+        "processKindInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark",
         "timestampColumn", "timestampColumnKind", "deleteTargetInDays", "softDeleteColumn",
         "softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn",
         "softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue"};
@@ -138,29 +145,44 @@ public class HousekeepInfoBean extends StringExcelTableBean implements DeleteTar
 
   /**
    * Returns if the housekeeping task is soft delete or hard delete.
+   *
+   * <p>Only meaningful for delete tasks - an abnormal data check task (see
+   *     {@link #isAbnormalDataCheck()}) deletes nothing, so it's an error to ask.</p>
    * 
    * @return boolean, true if soft delete.
    */
   public boolean isSoftDelete() {
-    if (isSoftDeleteInternalValue.equals(DELETE_KIND_HARD)) {
+    if (processKindInternalValue.equals(DELETE_KIND_HARD)) {
       return false;
 
-    } else if (isSoftDeleteInternalValue.equals(DELETE_KIND_SOFT)) {
+    } else if (processKindInternalValue.equals(DELETE_KIND_SOFT)) {
       return true;
 
     } else {
-      throw new RuntimeException("Not an assumed value: " + isSoftDelete);
+      throw new RuntimeException("Not an assumed value: " + processKind);
     }
   }
 
   /**
-   * Returns {@link #DELETE_KIND_SOFT} or {@link #DELETE_KIND_HARD}, for copying onto linked
-   * {@link RelatedTableInfoBean} rows after merging - see that class's Javadoc.
+   * Returns if the housekeeping task is an abnormal data check, which only reports the records
+   * matching its conditions instead of deleting them.
    *
-   * @return {@link #DELETE_KIND_SOFT} or {@link #DELETE_KIND_HARD}
+   * @return boolean, true if abnormal data check.
    */
-  public String getIsSoftDeleteInternalValue() {
-    return isSoftDeleteInternalValue;
+  public boolean isAbnormalDataCheck() {
+    return PROCESS_KIND_ABNORMAL_DATA_CHECK.equals(processKindInternalValue);
+  }
+
+  /**
+   * Returns {@link #DELETE_KIND_SOFT}, {@link #DELETE_KIND_HARD} or
+   * {@link #PROCESS_KIND_ABNORMAL_DATA_CHECK}, for copying onto linked {@link RelatedTableInfoBean}
+   * rows after merging - see that class's Javadoc.
+   *
+   * @return {@link #DELETE_KIND_SOFT}, {@link #DELETE_KIND_HARD} or
+   *     {@link #PROCESS_KIND_ABNORMAL_DATA_CHECK}
+   */
+  public String getProcessKindInternalValue() {
+    return processKindInternalValue;
   }
 
   public String getDbConnectionInfoId() {

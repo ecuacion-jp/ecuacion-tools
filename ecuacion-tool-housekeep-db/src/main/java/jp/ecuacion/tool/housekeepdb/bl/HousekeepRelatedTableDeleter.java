@@ -41,9 +41,6 @@ import org.slf4j.event.Level;
  */
 public class HousekeepRelatedTableDeleter {
 
-  private static final int IDT_4 = 4;
-  private static final int IDT_5 = 5;
-
   private final DetailLogger detailLogger;
   private final RecordDeleter recordDeleter;
 
@@ -93,23 +90,23 @@ public class HousekeepRelatedTableDeleter {
         whereList.add(relatedBean.getSoftDeleteColumnInfo().getBoundCondition(false));
       }
 
-      AppLogUtil.log(detailLogger, Level.DEBUG, "Find records from related table.", IDT_4);
+      AppLogUtil.log(detailLogger, Level.DEBUG, "Find records from related table.", 4);
       SqlFragment where = SqlUtil.getWhere(whereList);
       String selectSql =
           "select count(*) count from " + relatedBean.getRelatedTable() + where.sql();
       PreparedStatement stmt = AppLogUtil.getStatement(detailLogger, connection, selectSql,
-          where.bindValues(), "related table select", IDT_4);
+          where.bindValues(), "related table select", 4);
       ResultSet rs = stmt.executeQuery();
 
       rs.next();
       Integer integer = rs.getInt("count");
       if (integer > 0) {
-        AppLogUtil.log(detailLogger, Level.DEBUG, "Record(s) found.", IDT_5);
+        AppLogUtil.log(detailLogger, Level.DEBUG, "Record(s) found.", 5);
         return true;
       }
     }
 
-    AppLogUtil.log(detailLogger, Level.DEBUG, "Record not found.", IDT_5);
+    AppLogUtil.log(detailLogger, Level.DEBUG, "Record not found.", 5);
     return false;
   }
 
@@ -147,14 +144,14 @@ public class HousekeepRelatedTableDeleter {
       String sqlName = "related table select";
       try (
           PreparedStatement stmt = AppLogUtil.getStatement(detailLogger, conn, sqlTargetSelect,
-              linkWhere.bindValues(), sqlName, IDT_4);
+              linkWhere.bindValues(), sqlName, 4);
           ResultSet rs = stmt.executeQuery();) {
 
         boolean recordFound = rs.next();
 
         String logMsg = !recordFound ? "Record not found."
             : "Record(s) found. " + fkCol.getColumn() + " = " + linkValue;
-        AppLogUtil.log(detailLogger, Level.DEBUG, logMsg, IDT_5);
+        AppLogUtil.log(detailLogger, Level.DEBUG, logMsg, 5);
 
         if (!recordFound) {
           // Nothing to delete - already gone, e.g. via an earlier related-table delete cascading

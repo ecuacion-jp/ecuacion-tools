@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.List;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskActionKindEnum;
@@ -56,7 +57,7 @@ public class Delete extends AbstractTaskLocal {
       try {
         FileUtils.deleteDirectory(new File(fromPath));
       } catch (Exception e) {
-        dlog.debug("Skipping because the file is locked: " + fromPath);
+        SplibLogUtil.debug(dlog, "Skipping because the file is locked: " + fromPath, 2);
       }
     } else {
       new File(fromPath).delete();

@@ -155,12 +155,20 @@ public class HousekeepConfigLoader {
       hpBean.setRelatedRecordTableInfoList(relatedTableList.stream()
           .filter(bean -> bean.getTaskId().equals(hpBean.getTaskId())).toList());
 
+      // An abnormal data check task deletes nothing, so there's nothing for related-table rows to
+      // cascade to or skip.
+      if (hpBean.isAbnormalDataCheck() && !hpBean.getRelatedRecordTableInfoList().isEmpty()) {
+        RelatedTableInfoBean relBean = hpBean.getRelatedRecordTableInfoList().get(0);
+        new Violations().add(new BusinessViolation("MSG_ERR_REL_FOR_ABNORMAL_DATA_CHECK",
+            relBean.getTaskId(), relBean.getRelatedTable())).throwIfAny();
+      }
+
       // isSoftDeleteInternalValue on each related-table row is populated here, only now
       // available since it's copied from the linked HousekeepInfoBean rather than read from an
       // Excel column - see RelatedTableInfoBean's class Javadoc. The constraints depending on it
       // are deferred to the AfterMergeValidation group for the same reason.
       for (RelatedTableInfoBean relBean : hpBean.getRelatedRecordTableInfoList()) {
-        relBean.setIsSoftDeleteInternalValue(hpBean.getIsSoftDeleteInternalValue());
+        relBean.setIsSoftDeleteInternalValue(hpBean.getProcessKindInternalValue());
         new Violations().validate(relBean, AfterMergeValidation.class).throwIfAny();
       }
     }

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.splib.core.util.SplibMailUtil;
 import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
 import jp.ecuacion.tool.housekeepfiles.blf.HousekeepFilesBlf;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.core.env.Environment;
 
 /**
  * Tests for {@link ZipRemainOrig}, executed through {@link HousekeepFilesBlf}.
@@ -65,8 +67,8 @@ class ZipRemainOrigTest {
   private HousekeepFilesBl warnMailDetectingBl(AtomicBoolean warnMailSent) {
     return new HousekeepFilesBl() {
       @Override
-      public void sendWarnMail(List<BusinessViolation> warnList, @Nullable String systemName)
-          throws Exception {
+      public void sendWarnMail(List<BusinessViolation> warnList, @Nullable String systemName,
+          @Nullable Environment env, @Nullable SplibMailUtil splibMailUtil) throws Exception {
         warnMailSent.set(true);
       }
     };
