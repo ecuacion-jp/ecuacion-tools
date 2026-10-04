@@ -16,8 +16,10 @@
 package jp.ecuacion.tool.housekeepdb.tasklet;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.function.Function;
+import jp.ecuacion.splib.core.util.SplibMailUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -41,7 +43,8 @@ class HousekeepDbTaskletTest {
     void resolvesViaEnv() {
       MockEnvironment env = new MockEnvironment();
       env.setProperty("DB_PASSWORD", "secret-value");
-      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(null, 1000, env);
+      HousekeepDbTasklet tasklet =
+          new HousekeepDbTasklet(null, 1000, env, mock(SplibMailUtil.class));
 
       Function<String, String> getter = tasklet.createEnvVarValueGetter();
 
@@ -54,7 +57,8 @@ class HousekeepDbTaskletTest {
     void emptyStringPropertyResolvesToNull() {
       MockEnvironment env = new MockEnvironment();
       env.setProperty("DB_PASSWORD", "");
-      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(null, 1000, env);
+      HousekeepDbTasklet tasklet =
+          new HousekeepDbTasklet(null, 1000, env, mock(SplibMailUtil.class));
 
       Function<String, String> getter = tasklet.createEnvVarValueGetter();
 
@@ -64,7 +68,8 @@ class HousekeepDbTaskletTest {
     @Test
     @DisplayName("an unset key resolves to null")
     void unsetKeyResolvesToNull() {
-      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(null, 1000, new MockEnvironment());
+      HousekeepDbTasklet tasklet =
+          new HousekeepDbTasklet(null, 1000, new MockEnvironment(), mock(SplibMailUtil.class));
 
       Function<String, String> getter = tasklet.createEnvVarValueGetter();
 

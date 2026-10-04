@@ -30,13 +30,13 @@ import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.ExceptionUtil;
 import jp.ecuacion.lib.core.util.FileUtil;
-import jp.ecuacion.lib.core.util.MailUtil;
-import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.lib.core.util.StringUtil;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.splib.core.util.SplibLogUtil.LogKeyValue;
+import jp.ecuacion.splib.core.util.SplibMailUtil;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepWarnMailUtil;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.task.AbstractTask;
 import jp.ecuacion.tool.housekeepfiles.bl.task.TaskAttrCheckPtnEnum;
@@ -231,8 +231,7 @@ public class HousekeepFilesBl {
       // If the file is locked, skip adding it to the list and only output a warning log.
       // This applies only to supported protocols (currently only the local filesystem).
       if (fi.isLocked()) {
-        logWithTaskId(taskRec.getTaskId(),
-            "Skipping because the file is locked: " + fi.getFilePath());
+        SplibLogUtil.debug(dlog, "Skipping because the file is locked: " + fi.getFilePath(), 2);
         continue;
       }
 
@@ -411,11 +410,7 @@ public class HousekeepFilesBl {
         new LogKeyValue("isDestPathDir", String.valueOf(rec.getIsDestPathDir())),
         new LogKeyValue("doesOverwriteDestPath", String.valueOf(rec.getDoesOverwriteDestPath())),
         new LogKeyValue("actionForToFileExists", String.valueOf(rec.getActionForDestFileExists())));
-    SplibLogUtil.logKeyValueList(dlog, Level.DEBUG, 1, list);
-  }
-
-  private void logWithTaskId(String taskId, String msg) {
-    dlog.debug("[" + taskId + "] " + msg);
+    SplibLogUtil.logKeyValueList(dlog, Level.DEBUG, 2, list);
   }
 
   /** Creates and returns a task instance by reflection based on the task pattern in the record. */
@@ -435,12 +430,18 @@ public class HousekeepFilesBl {
   /**
    * Sends a warning email listing all accumulated violations to the configured recipients.
    *
+   * <p>Sending itself (recipients, subject, and what happens when the mail settings aren't
+   *     configured) is delegated to {@link HousekeepWarnMailUtil}.</p>
+   *
    * @param targetSystemName optional name of the system whose files are being housekept (from
    *     {@link Constants#PROP_TARGET_SYSTEM_NAME}) appended to the email subject; may be
    *     {@code null}, in which case it's simply omitted.
+   * @param env the Spring Environment used to resolve the recipients and subject prefix; may be
+   *     {@code null}, in which case no email is sent
+   * @param splibMailUtil the mail sender; may be {@code null}, in which case no email is sent
    */
-  public void sendWarnMail(List<BusinessViolation> warnList, @Nullable String targetSystemName)
-      throws Exception {
+  public void sendWarnMail(List<BusinessViolation> warnList, @Nullable String targetSystemName,
+      @Nullable Environment env, @Nullable SplibMailUtil splibMailUtil) throws Exception {
     // Retrieve the list of error messages.
     List<String> msgList = new ArrayList<>();
     Violations warnViolations = new Violations();
@@ -452,24 +453,13 @@ public class HousekeepFilesBl {
     }
 
     // Build the message.
-    final String title = PropertiesFileUtil.getApplication("jp.ecuacion.lib.core.mail.title-prefix")
-        + "[WARN] HousekeepFiles" + (targetSystemName == null ? "" : ":" + targetSystemName);
-    String hostname = InetAddress.getLocalHost().getHostName();
     StringBuilder msg = new StringBuilder();
-    msg.append("hostname: " + hostname + "\n\n" + "You've got warnings: \n\n");
+    msg.append("You've got warnings: \n\n");
     for (String additionalMsg : msgList) {
       msg.append("- " + additionalMsg + "\n");
     }
 
-    // Log output.
-    dlog.debug(msg.toString());
-    // Send email.
-    List<String> mailTo = new ArrayList<String>();
-    for (String to : PropertiesFileUtil
-        .getApplication("jp.ecuacion.lib.core.mail.address-csv-on-system-error").split(",", -1)) {
-      mailTo.add(to);
-    }
-
-    MailUtil.sendTextMail(mailTo, null, title, msg.toString());
+    HousekeepWarnMailUtil.send(dlog, splibMailUtil, env, "HousekeepFiles", targetSystemName,
+        msg.toString());
   }
 }

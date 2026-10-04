@@ -16,6 +16,7 @@
 package jp.ecuacion.tool.housekeepdb.tasklet;
 
 import jakarta.validation.constraints.NotEmpty;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -23,11 +24,14 @@ import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.validation.constraints.FileExists;
 import jp.ecuacion.lib.validation.constraints.FileExtension;
 import jp.ecuacion.splib.core.util.SplibLogUtil;
+import jp.ecuacion.splib.core.util.SplibMailUtil;
 import jp.ecuacion.tool.housekeepcommon.util.ExcelPathValidator;
 import jp.ecuacion.tool.housekeepcommon.util.HousekeepLogUtil;
 import jp.ecuacion.tool.housekeepcommon.util.HousekeepPropKeys;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
+import jp.ecuacion.tool.housekeepdb.bl.AbnormalDataWarnMailSender;
+import jp.ecuacion.tool.housekeepdb.bl.HousekeepAbnormalDataChecker;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepConfigLoader;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepMainTableDeleter;
 import org.apache.commons.lang3.StringUtils;
@@ -44,8 +48,11 @@ import org.springframework.stereotype.Component;
  * Executes housekeeping DB.
  *
  * <p>Owns the excel path / property validation and the per-task loop; reading and linking the
- *     excel settings is delegated to {@link HousekeepConfigLoader}, and deleting the records of
- *     one task is delegated to {@link HousekeepMainTableDeleter}.</p>
+ *     excel settings is delegated to {@link HousekeepConfigLoader}, deleting the records of
+ *     one task is delegated to {@link HousekeepMainTableDeleter}, and finding the records of one
+ *     abnormal data check task to {@link HousekeepAbnormalDataChecker} - whose findings are all
+ *     sent in one warning email by {@link AbnormalDataWarnMailSender} once every task is done.
+ *     Finding such records doesn't change the exit status (still a normal end).</p>
  */
 @Component
 public class HousekeepDbTasklet implements Tasklet {
@@ -59,7 +66,8 @@ public class HousekeepDbTasklet implements Tasklet {
 
   /**
    * Optional name of the system whose DB records this housekeeping instance manages, shown in
-   * the startup log. When unset, that part of the log is simply omitted.
+   * the startup log and the abnormal data check warning email subject. When unset, that part of the
+   * log / email is simply omitted.
    */
   public static final String PROP_TARGET_SYSTEM_NAME =
       HousekeepPropKeys.PREFIX + TOOL_NAME + HousekeepPropKeys.SUFFIX_TARGET_SYSTEM_NAME;
@@ -72,6 +80,7 @@ public class HousekeepDbTasklet implements Tasklet {
   private final int maxSelectLines;
 
   private final Environment env;
+  private final SplibMailUtil splibMailUtil;
 
   /**
    * Creates the tasklet, reading the excel file path and the per-commit row limit from the
@@ -79,14 +88,17 @@ public class HousekeepDbTasklet implements Tasklet {
    *
    * @param excelPath the excel file path, or {@code null} if unset
    * @param maxSelectLines the number of rows selected and committed per loop iteration
-   * @param env the Spring {@link Environment}, used to resolve the optional target system name
-   *     and any {@code ${VAR}} references in DB connection passwords
+   * @param env the Spring {@link Environment}, used to resolve the optional target system name,
+   *     any {@code ${VAR}} references in DB connection passwords and the warning email settings
+   * @param splibMailUtil the mail sender of the abnormal data check warning email
    */
   public HousekeepDbTasklet(@Value("${" + PROP_EXCEL_PATH + ":#{null}}") @Nullable String excelPath,
-      @Value("${" + PROP_MAX_SELECT_LINES + ":1000}") int maxSelectLines, Environment env) {
+      @Value("${" + PROP_MAX_SELECT_LINES + ":1000}") int maxSelectLines, Environment env,
+      SplibMailUtil splibMailUtil) {
     this.excelPath = excelPath;
     this.maxSelectLines = maxSelectLines;
     this.env = env;
+    this.splibMailUtil = splibMailUtil;
   }
 
   /**
@@ -126,15 +138,33 @@ public class HousekeepDbTasklet implements Tasklet {
 
     HousekeepMainTableDeleter mainTableDeleter =
         new HousekeepMainTableDeleter(detailLogger, maxSelectLines);
+    HousekeepAbnormalDataChecker abnormalDataChecker =
+        new HousekeepAbnormalDataChecker(detailLogger);
+    List<HousekeepAbnormalDataChecker.Result> abnormalDataCheckResultList = new ArrayList<>();
 
     detailLogger.info("Per-task procedure started.");
 
     for (HousekeepInfoBean info : housekeepInfoList) {
       SplibLogUtil.info(detailLogger, "Task started  : " + info.getTaskId(), 1);
 
-      mainTableDeleter.execute(dbConnectionInfoMap, info);
+      if (info.isAbnormalDataCheck()) {
+        HousekeepAbnormalDataChecker.Result result =
+            abnormalDataChecker.execute(dbConnectionInfoMap, info);
+        if (result != null) {
+          abnormalDataCheckResultList.add(result);
+        }
+
+      } else {
+        mainTableDeleter.execute(dbConnectionInfoMap, info);
+      }
 
       SplibLogUtil.info(detailLogger, "Task finished : " + info.getTaskId(), 1);
+    }
+
+    // Send all abnormal data check findings in one email.
+    if (!abnormalDataCheckResultList.isEmpty()) {
+      new AbnormalDataWarnMailSender(detailLogger, splibMailUtil, env)
+          .send(abnormalDataCheckResultList, targetSystemName);
     }
 
     HousekeepLogUtil.logFinishedSuccessfully(detailLogger, TOOL_NAME);
@@ -148,8 +178,8 @@ public class HousekeepDbTasklet implements Tasklet {
    * command-line arguments - anything Spring Boot's Environment can resolve). An empty-string
    * property value resolves to {@code null} (i.e. "not found") rather than silently expanding to
    * an empty password.
-   * 
-   * Package-private for unit testing.
+   *
+   * <p>Package-private for unit testing.
    */
   Function<String, String> createEnvVarValueGetter() {
     return key -> {

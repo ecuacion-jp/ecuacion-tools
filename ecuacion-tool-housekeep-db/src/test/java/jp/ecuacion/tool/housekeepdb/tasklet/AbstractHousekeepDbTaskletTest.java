@@ -18,7 +18,12 @@ package jp.ecuacion.tool.housekeepdb.tasklet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.io.ByteArrayOutputStream;
@@ -34,6 +39,8 @@ import java.util.List;
 import java.util.Locale;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.splib.core.util.SplibMailUtil;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepWarnMailUtil;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
@@ -51,6 +58,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
@@ -108,7 +116,8 @@ abstract class AbstractHousekeepDbTaskletTest {
   @SuppressWarnings("null")
   protected static void runTasklet(Path excelFile, int maxSelectLines) throws Exception {
     RepeatStatus status =
-        new HousekeepDbTasklet(excelFile.toString(), maxSelectLines, new MockEnvironment())
+        new HousekeepDbTasklet(excelFile.toString(), maxSelectLines, new MockEnvironment(),
+            mock(SplibMailUtil.class))
             .execute(mock(StepContribution.class), mock(ChunkContext.class));
 
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
@@ -641,7 +650,8 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       MockEnvironment env = new MockEnvironment();
       env.setProperty(HousekeepDbTasklet.PROP_TARGET_SYSTEM_NAME, "my-system");
-      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(excel.toString(), 1000, env);
+      HousekeepDbTasklet tasklet =
+          new HousekeepDbTasklet(excel.toString(), 1000, env, mock(SplibMailUtil.class));
 
       ListAppender<ILoggingEvent> appender = attachLogCapture();
       try {
@@ -836,8 +846,8 @@ abstract class AbstractHousekeepDbTaskletTest {
       // apart. HousekeepRelatedTableDeleter.needsSkipFromRelatedTableDataCheck() also logs
       // "Record not found." (unconditionally, once per processed row, when its skip-pattern
       // related-table list is empty - which it is here, since this task configures none) - but at
-      // a different indent depth (IDT_5 = 5) than HousekeepMainTableDeleter's own empty-batch
-      // message (IDT_3 = 3), so match on the exact indented text (SplibLogUtil indents with 2
+      // a different indent depth (5) than HousekeepMainTableDeleter's own empty-batch
+      // message (3), so match on the exact indented text (SplibLogUtil indents with 2
       // spaces per level) to isolate the message under test.
       List<String> rawMessages =
           appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
@@ -972,6 +982,215 @@ abstract class AbstractHousekeepDbTaskletTest {
   }
 
   // -------------------------------------------------------------------------
+  // abnormal data check
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("abnormal data check")
+  class AbnormalDataCheck {
+
+    private static final String MAIL_TO = "admin@example.com";
+
+    /** An environment with the warning email recipients, subject prefix and system name set. */
+    private MockEnvironment mailEnv() {
+      MockEnvironment env = new MockEnvironment();
+      env.setProperty(HousekeepWarnMailUtil.PROP_ADDRESS_CSV_ON_SYSTEM_ERROR, MAIL_TO);
+      env.setProperty(HousekeepWarnMailUtil.PROP_TITLE_PREFIX, "[test]");
+      env.setProperty(HousekeepDbTasklet.PROP_TARGET_SYSTEM_NAME, "my-system");
+      return env;
+    }
+
+    @SuppressWarnings("null")
+    private void run(Path excel, MockEnvironment env, SplibMailUtil mailUtil) throws Exception {
+      RepeatStatus status = new HousekeepDbTasklet(excel.toString(), 1000, env, mailUtil)
+          .execute(mock(StepContribution.class), mock(ChunkContext.class));
+
+      assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+    }
+
+    /** Runs the tasklet and returns the body of the one warning email it's expected to send. */
+    @SuppressWarnings("null")
+    private String runAndGetMailContent(Path excel) throws Exception {
+      SplibMailUtil mailUtil = mock(SplibMailUtil.class);
+      run(excel, mailEnv(), mailUtil);
+
+      ArgumentCaptor<String> content = ArgumentCaptor.forClass(String.class);
+      verify(mailUtil).sendTextMail(eq(List.of(MAIL_TO)), isNull(),
+          eq("[test][WARN] HousekeepDb:my-system"), content.capture());
+      return content.getValue();
+    }
+
+    private String[] checkRow(String taskId, String table, @Nullable String timestampColumn,
+        @Nullable String days, @Nullable String softDeleteColumn) {
+      return new String[] {taskId, "conn1", "Abnormal Data Check", "ABNORMAL_DATA_CHECK", table,
+          "num1", "(none)", timestampColumn, timestampColumn == null ? null : "OffsetDateTime",
+          days, softDeleteColumn, null, null, null, null};
+    }
+
+    @Test
+    @DisplayName("records matching the search conditions are left untouched, logged at WARN and "
+        + "sent in a warning email; the run still finishes normally")
+    void foundRecordsAreReportedNotDeleted() throws Exception {
+      execute("create table ec_found (num1 integer primary key, status varchar(20))");
+      execute("insert into ec_found values (1, 'DONE'), (2, 'PENDING'), (3, 'PENDING')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(checkRow("task-1", "ec_found", null, null, null)), List.of(),
+          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "PENDING"}));
+
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      String content;
+      try {
+        content = runAndGetMailContent(excel);
+
+        assertThat(appender.list).anyMatch(e -> e.getLevel() == ch.qos.logback.classic.Level.WARN
+            && e.getFormattedMessage().contains("2 record(s) in ec_found (num1: 2, 3)"));
+      } finally {
+        detachLogCapture(appender);
+      }
+
+      assertThat(countRows("select count(*) from ec_found")).isEqualTo(3);
+      assertThat(content).contains("- Task ID: task-1\n", "  Table  : ec_found\n",
+          "  Count  : 2\n", "  num1: 2, 3\n");
+      assertThat(content).doesNotContain("and more");
+    }
+
+    @Test
+    @DisplayName("no matching record sends no email")
+    void noRecordSendsNoMail() throws Exception {
+      execute("create table ec_none (num1 integer primary key, status varchar(20))");
+      execute("insert into ec_none values (1, 'DONE')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(checkRow("task-1", "ec_none", null, null, null)), List.of(),
+          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "PENDING"}));
+
+      SplibMailUtil mailUtil = mock(SplibMailUtil.class);
+      run(excel, mailEnv(), mailUtil);
+
+      verify(mailUtil, never()).sendTextMail(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("more than 10 records found lists the first 10 IDs followed by \"(and more)\"")
+    void moreThanTenRecordsListsTenIds() throws Exception {
+      execute("create table ec_many (num1 integer primary key)");
+      for (int i = 1; i <= 12; i++) {
+        execute("insert into ec_many values (" + i + ")");
+      }
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(checkRow("task-1", "ec_many", null, null, null)), List.of(),
+          List.of());
+
+      String content = runAndGetMailContent(excel);
+
+      assertThat(content).contains("  Count  : 12\n",
+          "  num1: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ... (and more)\n");
+    }
+
+    @Test
+    @DisplayName("with a soft-delete column configured, already soft-deleted records are not "
+        + "reported")
+    void softDeletedRecordsAreExcluded() throws Exception {
+      execute("create table ec_soft (num1 integer primary key, rem_flg boolean default false)");
+      execute("insert into ec_soft values (1, true), (2, false)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(checkRow("task-1", "ec_soft", null, null, "rem_flg")), List.of(),
+          List.of());
+
+      String content = runAndGetMailContent(excel);
+
+      assertThat(content).contains("  Count  : 1\n", "  num1: 2\n");
+    }
+
+    @Test
+    @DisplayName("with the expiration-check columns configured, only records older than the "
+        + "configured days are reported")
+    void onlyExpiredRecordsAreReported() throws Exception {
+      execute("create table ec_exp (num1 integer primary key, last_updated "
+          + timestampColumnType() + ")");
+      execute("insert into ec_exp values (1, " + timestampDaysAgoExpr(100) + ")");
+      execute("insert into ec_exp values (2, " + timestampDaysAgoExpr(1) + ")");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(checkRow("task-1", "ec_exp", "last_updated", "30", null)), List.of(),
+          List.of());
+
+      String content = runAndGetMailContent(excel);
+
+      assertThat(content).contains("  Count  : 1\n", "  num1: 1\n");
+    }
+
+    @Test
+    @DisplayName("the findings of multiple tasks are sent in one email, and delete tasks in the "
+        + "same run work as usual")
+    void multipleTasksSendOneMail() throws Exception {
+      execute("create table ec_multi1 (num1 integer primary key)");
+      execute("create table ec_multi2 (num1 integer primary key)");
+      execute("create table ec_multi_del (num1 integer primary key)");
+      execute("insert into ec_multi1 values (1)");
+      execute("insert into ec_multi2 values (2)");
+      execute("insert into ec_multi_del values (3)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(checkRow("task-1", "ec_multi1", null, null, null),
+              new String[] {"task-2", "conn1", "Hard Delete", "HARD_DELETE", "ec_multi_del",
+                  "num1", "(none)", null, null, null, null, null, null, null, null},
+              checkRow("task-3", "ec_multi2", null, null, null)),
+          List.of(), List.of());
+
+      String content = runAndGetMailContent(excel);
+
+      assertThat(content).contains("- Task ID: task-1\n", "- Task ID: task-3\n");
+      assertThat(content).doesNotContain("task-2");
+      assertThat(countRows("select count(*) from ec_multi_del")).isZero();
+    }
+
+    @Test
+    @DisplayName("without the recipients configured, records found are only logged and the run "
+        + "still finishes normally")
+    void noRecipientsSendsNoMail() throws Exception {
+      execute("create table ec_no_to (num1 integer primary key)");
+      execute("insert into ec_no_to values (1)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(checkRow("task-1", "ec_no_to", null, null, null)), List.of(),
+          List.of());
+
+      SplibMailUtil mailUtil = mock(SplibMailUtil.class);
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      try {
+        run(excel, new MockEnvironment(), mailUtil);
+
+        assertThat(appender.list).anyMatch(e -> e.getLevel() == ch.qos.logback.classic.Level.WARN
+            && e.getFormattedMessage().contains("no mails sent"));
+      } finally {
+        detachLogCapture(appender);
+      }
+
+      verify(mailUtil, never()).sendTextMail(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("a Related Table Settings row linked to an abnormal data check task raises "
+        + "MSG_ERR_REL_FOR_ABNORMAL_DATA_CHECK")
+    void relatedTableRowFails() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(checkRow("task-1", "ec_rel", null, null, null)),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE", "num1", "ec_rel_child",
+              "parent_id", "(none)", null, null, null, null, null}),
+          List.of());
+
+      assertThatExceptionOfType(ViolationException.class).isThrownBy(() -> runTasklet(excel))
+          .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
+              .extracting(BusinessViolation::getMessageId)
+              .containsExactly("MSG_ERR_REL_FOR_ABNORMAL_DATA_CHECK"));
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // excel path validation
   // -------------------------------------------------------------------------
 
@@ -983,8 +1202,9 @@ abstract class AbstractHousekeepDbTaskletTest {
     @Test
     @DisplayName("a null excelPath fails @NotEmpty validation")
     void nullExcelPathFails() {
-      assertThatThrownBy(() -> new HousekeepDbTasklet(null, 1000, new MockEnvironment()).execute(
-          mock(StepContribution.class), mock(ChunkContext.class)))
+      assertThatThrownBy(() -> new HousekeepDbTasklet(null, 1000, new MockEnvironment(),
+          mock(SplibMailUtil.class))
+              .execute(mock(StepContribution.class), mock(ChunkContext.class)))
               .isInstanceOf(ViolationException.class);
     }
 
@@ -993,7 +1213,7 @@ abstract class AbstractHousekeepDbTaskletTest {
     @DisplayName("a path pointing to a non-existent file fails @FileExists validation")
     void nonExistentFileFails() {
       assertThatThrownBy(() -> new HousekeepDbTasklet("/no/such/file.xlsx", 1000,
-          new MockEnvironment())
+          new MockEnvironment(), mock(SplibMailUtil.class))
               .execute(mock(StepContribution.class), mock(ChunkContext.class)))
               .isInstanceOf(ViolationException.class);
     }
@@ -1005,7 +1225,8 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path file = tempDir.resolve("settings.txt");
       Files.writeString(file, "not an excel file");
 
-      assertThatThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000, new MockEnvironment())
+      assertThatThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000,
+          new MockEnvironment(), mock(SplibMailUtil.class))
           .execute(mock(StepContribution.class), mock(ChunkContext.class)))
               .isInstanceOf(ViolationException.class);
     }
@@ -1018,7 +1239,8 @@ abstract class AbstractHousekeepDbTaskletTest {
       Files.writeString(file, "not actually an xlsx file");
 
       assertThatExceptionOfType(ViolationException.class)
-          .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000, new MockEnvironment())
+          .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000,
+              new MockEnvironment(), mock(SplibMailUtil.class))
               .execute(mock(StepContribution.class), mock(ChunkContext.class)))
           .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
               .extracting(BusinessViolation::getMessageId)
@@ -1056,7 +1278,8 @@ abstract class AbstractHousekeepDbTaskletTest {
       }
 
       assertThatExceptionOfType(ViolationException.class)
-          .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000, new MockEnvironment())
+          .isThrownBy(() -> new HousekeepDbTasklet(file.toString(), 1000,
+              new MockEnvironment(), mock(SplibMailUtil.class))
               .execute(mock(StepContribution.class), mock(ChunkContext.class)))
           .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
               .extracting(BusinessViolation::getMessageId)
@@ -1447,7 +1670,8 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       MockEnvironment env = new MockEnvironment();
       env.setProperty("DB_PASSWORD", actualPassword);
-      HousekeepDbTasklet tasklet = new HousekeepDbTasklet(excel.toString(), 1000, env);
+      HousekeepDbTasklet tasklet =
+          new HousekeepDbTasklet(excel.toString(), 1000, env, mock(SplibMailUtil.class));
 
       RepeatStatus status =
           tasklet.execute(mock(StepContribution.class), mock(ChunkContext.class));

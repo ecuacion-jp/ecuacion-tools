@@ -17,6 +17,7 @@ package jp.ecuacion.tool.housekeepfiles.bl.task;
 
 import java.io.File;
 import jp.ecuacion.lib.core.util.FileUtil;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.enums.TaskPtnEnum;
 import jp.ecuacion.tool.housekeepfiles.util.DateTimeUtil;
@@ -52,7 +53,7 @@ public class Move extends AbstractTaskCopyOrMove {
       try {
         FileUtils.moveDirectory(from, new File(newToPath));
       } catch (Exception e) {
-        dlog.debug("Skipping because the file is locked: " + from);
+        SplibLogUtil.debug(dlog, "Skipping because the file is locked: " + from, 2);
         dlog.warn(e);
       }
     } else {
@@ -68,7 +69,7 @@ public class Move extends AbstractTaskCopyOrMove {
             FileUtils.moveFile(from, to);
           }
         } catch (Exception e) {
-          dlog.debug("Skipping because the file is locked: " + from);
+          SplibLogUtil.debug(dlog, "Skipping because the file is locked: " + from, 2);
           dlog.warn(e);
         }
       }

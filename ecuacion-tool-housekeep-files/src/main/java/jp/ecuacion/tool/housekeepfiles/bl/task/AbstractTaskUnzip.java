@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.List;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
+import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
 import jp.ecuacion.tool.housekeepfiles.util.CompressUtil;
@@ -63,7 +64,8 @@ public abstract class AbstractTaskUnzip extends AbstractTaskLocal {
     try {
       cu.unzip(fromPath, toDirPath);
     } catch (Exception e) {
-      dlog.debug("Skipping because the file is locked or not a valid zip file: " + fromPath);
+      SplibLogUtil.debug(dlog,
+          "Skipping because the file is locked or not a valid zip file: " + fromPath, 2);
       dlog.warn(e);
       // Deleting the original while skipping the unzip would be problematic, so stop here.
       return;
@@ -75,7 +77,8 @@ public abstract class AbstractTaskUnzip extends AbstractTaskLocal {
         new File(fromPath).delete();
 
       } catch (Exception ignored) {
-        dlog.debug("Skipping unzip source file deletion because it is locked: " + fromPath);
+        SplibLogUtil.debug(dlog,
+            "Skipping unzip source file deletion because it is locked: " + fromPath, 2);
       }
     }
   }
