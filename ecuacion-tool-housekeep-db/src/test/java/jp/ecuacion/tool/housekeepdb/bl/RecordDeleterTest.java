@@ -56,7 +56,7 @@ import org.mockito.quality.Strictness;
 class RecordDeleterTest {
 
   // Column order matches HousekeepInfoBeanTest's HARD_BASE / SOFT_BASE: taskId,
-  // dbConnectionInfoId, isSoftDelete, isSoftDeleteInternalValue, table, idColumn,
+  // dbConnectionInfoId, processKind, processKindInternalValue, table, idColumn,
   // idColumnNeedsQuotationMark, timestampColumn, timestampColumnKind, deleteTargetInDays,
   // softDeleteColumn, softDeleteUpdateTimestampColumn, softDeleteUpdateUserIdColumn,
   // softDeleteUpdateUserIdColumnNeedsQuotationMark, softDeleteUpdateUserIdColumnValue
