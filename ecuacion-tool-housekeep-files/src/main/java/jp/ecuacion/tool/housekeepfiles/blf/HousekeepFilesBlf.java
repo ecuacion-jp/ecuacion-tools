@@ -26,6 +26,7 @@ import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.splib.core.util.SplibLogUtil;
+import jp.ecuacion.splib.core.util.SplibMailUtil;
 import jp.ecuacion.tool.housekeepcommon.util.HousekeepLogUtil;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
 import jp.ecuacion.tool.housekeepfiles.bl.HousekeepFilesBl;
@@ -67,7 +68,7 @@ public class HousekeepFilesBlf {
    * logs/emails.</p>
    */
   public void execute(HousekeepFilesForm form) throws Exception {
-    execute(form, null);
+    execute(form, null, null);
   }
 
   /**
@@ -79,8 +80,11 @@ public class HousekeepFilesBlf {
    *     the optional target system name (see {@link Constants#PROP_TARGET_SYSTEM_NAME}) shown in
    *     the startup log and the warning email subject; may be {@code null}, in which case only
    *     built-in variables resolve and the target system name is omitted.
+   * @param splibMailUtil the mail sender of the warning email; may be {@code null}, in which case
+   *     no warning email is sent (warnings are only logged)
    */
-  public void execute(HousekeepFilesForm form, @Nullable Environment env) throws Exception {
+  public void execute(HousekeepFilesForm form, @Nullable Environment env,
+      @Nullable SplibMailUtil splibMailUtil) throws Exception {
     final @Nullable String targetSystemName =
         env == null ? null : env.getProperty(Constants.PROP_TARGET_SYSTEM_NAME);
 
@@ -136,7 +140,7 @@ public class HousekeepFilesBlf {
 
     // Send email if there are warnings.
     if (!warnList.isEmpty()) {
-      bl.sendWarnMail(warnList, targetSystemName);
+      bl.sendWarnMail(warnList, targetSystemName, env, splibMailUtil);
     }
 
     HousekeepLogUtil.logFinishedSuccessfully(dlog, Constants.TOOL_NAME);

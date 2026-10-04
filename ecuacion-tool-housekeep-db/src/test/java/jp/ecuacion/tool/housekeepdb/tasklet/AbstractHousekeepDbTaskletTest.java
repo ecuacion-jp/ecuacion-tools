@@ -40,11 +40,11 @@ import java.util.Locale;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.splib.core.util.SplibMailUtil;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepWarnMailUtil;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
-import jp.ecuacion.tool.housekeepdb.bl.AbnormalDataWarnMailSender;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import org.apache.poi.poifs.crypt.EncryptionInfo;
 import org.apache.poi.poifs.crypt.EncryptionMode;
@@ -994,8 +994,8 @@ abstract class AbstractHousekeepDbTaskletTest {
     /** An environment with the warning email recipients, subject prefix and system name set. */
     private MockEnvironment mailEnv() {
       MockEnvironment env = new MockEnvironment();
-      env.setProperty(AbnormalDataWarnMailSender.PROP_ADDRESS_CSV_ON_SYSTEM_ERROR, MAIL_TO);
-      env.setProperty(AbnormalDataWarnMailSender.PROP_TITLE_PREFIX, "[test]");
+      env.setProperty(HousekeepWarnMailUtil.PROP_ADDRESS_CSV_ON_SYSTEM_ERROR, MAIL_TO);
+      env.setProperty(HousekeepWarnMailUtil.PROP_TITLE_PREFIX, "[test]");
       env.setProperty(HousekeepDbTasklet.PROP_TARGET_SYSTEM_NAME, "my-system");
       return env;
     }

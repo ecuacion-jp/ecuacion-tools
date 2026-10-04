@@ -20,6 +20,7 @@ import java.util.Objects;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.validation.constraints.FileExists;
 import jp.ecuacion.lib.validation.constraints.FileExtension;
+import jp.ecuacion.splib.core.util.SplibMailUtil;
 import jp.ecuacion.tool.housekeepcommon.util.ExcelPathValidator;
 import jp.ecuacion.tool.housekeepcommon.util.HousekeepLogUtil;
 import jp.ecuacion.tool.housekeepcommon.util.HousekeepPropKeys;
@@ -58,6 +59,11 @@ public class HousekeepFilesTasklet implements Tasklet {
   @Autowired(required = false)
   @Nullable
   Environment env;
+
+  // Not set when this tasklet is instantiated directly (e.g. in tests) instead of through Spring.
+  @Autowired(required = false)
+  @Nullable
+  SplibMailUtil splibMailUtil;
 
   /**
    * Creates the tasklet, reading the excel file path from the {@link #PROP_EXCEL_PATH} property.
@@ -98,7 +104,7 @@ public class HousekeepFilesTasklet implements Tasklet {
     HousekeepLogUtil.logExcelFormatInfo(detailLogger, nonnullForm.getFormatVersion(),
         nonnullForm.getLocale());
 
-    blf.execute(nonnullForm, env);
+    blf.execute(nonnullForm, env, splibMailUtil);
 
     return RepeatStatus.FINISHED;
   }
