@@ -15,35 +15,24 @@
  */
 package jp.ecuacion.tool.housekeepdb.bl;
 
-import java.net.InetAddress;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.splib.core.util.SplibMailUtil;
+import jp.ecuacion.tool.housekeepcommon.util.HousekeepWarnMailUtil;
 import jp.ecuacion.tool.housekeepdb.bl.HousekeepAbnormalDataChecker.Result;
-import org.apache.commons.lang3.StringUtils;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.env.Environment;
 
 /**
  * Sends one warning email listing the records every abnormal data check task of a run found.
  *
- * <p>The recipients are the same as the system error email's
- *     ({@value #PROP_ADDRESS_CSV_ON_SYSTEM_ERROR}), and the subject is prefixed with
- *     {@value #PROP_TITLE_PREFIX} the same way. When the recipients or the mail server settings
- *     aren't configured, only a warning is logged - the found records are already logged at
- *     {@code WARN} by {@link HousekeepAbnormalDataChecker} anyway.</p>
+ * <p>Sending itself (recipients, subject, and what happens when the mail settings aren't
+ *     configured) is delegated to {@link HousekeepWarnMailUtil} - the found records are already
+ *     logged at {@code WARN} by {@link HousekeepAbnormalDataChecker} regardless.</p>
  */
 public class AbnormalDataWarnMailSender {
 
-  /** The recipients of the system error email, reused for this warning email. */
-  public static final String PROP_ADDRESS_CSV_ON_SYSTEM_ERROR =
-      "jp.ecuacion.splib.mail.address-csv-on-system-error";
-
-  /** The prefix prepended to the email subject. */
-  public static final String PROP_TITLE_PREFIX = "jp.ecuacion.splib.mail.title-prefix";
+  private static final String TOOL_NAME_IN_TITLE = "HousekeepDb";
 
   private final DetailLogger detailLogger;
   private final SplibMailUtil splibMailUtil;
@@ -71,47 +60,18 @@ public class AbnormalDataWarnMailSender {
    *     appended to the email subject; may be {@code null}, in which case it's simply omitted
    */
   public void send(List<Result> resultList, @Nullable String targetSystemName) throws Exception {
-    String addressCsv = env.getProperty(PROP_ADDRESS_CSV_ON_SYSTEM_ERROR);
-    if (StringUtils.isEmpty(addressCsv)) {
-      detailLogger.warn("Record(s) that should not exist found but no mails sent since '"
-          + PROP_ADDRESS_CSV_ON_SYSTEM_ERROR + "' is not set.");
-      return;
-    }
-    
-    Objects.requireNonNull(addressCsv);
-
-    List<@NonNull String> mailToList = Arrays.asList(addressCsv.split(",", -1));
-    String title = env.getProperty(PROP_TITLE_PREFIX, "") + "[WARN] HousekeepDb"
-        + (targetSystemName == null ? "" : ":" + targetSystemName);
-    String content = createContent(resultList, InetAddress.getLocalHost().getHostName());
-
-    detailLogger.debug(content);
-
-    try {
-      splibMailUtil.sendTextMail(mailToList, null, title, content);
-
-    } catch (IllegalStateException ex) {
-      // Thrown when the mail server settings (spring.mail.*) aren't configured.
-      detailLogger.warn("Record(s) that should not exist found but no mails sent: "
-          + ex.getMessage());
-      return;
-    }
-
-    detailLogger.info("Sent a mail to notice the record(s) that should not exist.");
+    HousekeepWarnMailUtil.send(detailLogger, splibMailUtil, env, TOOL_NAME_IN_TITLE,
+        targetSystemName, createContent(resultList));
   }
 
   /**
-   * Creates the email body.
-   *
-   * <p>Package-private for unit testing.</p>
+   * Creates the email body (following the {@code hostname: ...} line).
    *
    * @param resultList the records each abnormal data check task found
-   * @param hostname the name of the host running this tool
    * @return the email body
    */
-  static String createContent(List<Result> resultList, String hostname) {
+  private static String createContent(List<Result> resultList) {
     StringBuilder sb = new StringBuilder();
-    sb.append("hostname: " + hostname + "\n\n");
     sb.append("Record(s) that should not exist were found by the abnormal data check task(s) "
         + "below:\n\n");
 
