@@ -16,7 +16,6 @@
 package jp.ecuacion.tool.housekeepcommon.exceptionhandler;
 
 import jp.ecuacion.splib.core.exceptionhandler.SplibExceptionHandlerAction;
-import jp.ecuacion.splib.core.exceptionhandler.SplibRestExceptionHandlerAction;
 import jp.ecuacion.splib.core.util.SplibMailUtil;
 import org.springframework.stereotype.Component;
 
@@ -24,10 +23,10 @@ import org.springframework.stereotype.Component;
  * Sends a mail on a system error, when mail settings exist.
  *
  * <p>Shared by housekeep-db and housekeep-files, both of which are batch-only (no web/REST
- *     frontend). Implements {@link SplibRestExceptionHandlerAction} — the extension point
- *     {@code SplibRestExceptionHandler} uses for command-api's REST frontend (e.g.
- *     {@code /api/**} endpoints). command-api has its own implementation instead, since it has
- *     no batch frontend and thus no {@code SplibExceptionHandlerAction} consumer.</p>
+ *     frontend). Implements {@link SplibExceptionHandlerAction} — the extension point
+ *     ecuacion-splib-batch's {@code SplibBatchExceptionHandler} calls when a step fails.
+ *     command-api has its own implementation instead (of
+ *     {@code SplibRestExceptionHandlerAction}), since it has no batch frontend.</p>
  */
 @Component
 public class AppExceptionHandlerAction implements SplibExceptionHandlerAction {

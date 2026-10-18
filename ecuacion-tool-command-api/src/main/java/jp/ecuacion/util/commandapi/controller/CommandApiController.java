@@ -15,7 +15,7 @@
  */
 package jp.ecuacion.util.commandapi.controller;
 
-import java.util.Map;
+import jp.ecuacion.util.commandapi.dto.CommandApiResponse;
 import jp.ecuacion.util.commandapi.service.CommandApiService;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Provides the function to exescute specified script file.
+ * Provides the function to execute specified script file.
  */
 @RestController
 public class CommandApiController {
@@ -63,8 +63,8 @@ public class CommandApiController {
    *     (parameters are splitted at "," and each csv element will be an parameter.)
    * @throws Exception Exception
    */
-  @GetMapping("api/public/execute")
-  public Map<String, String> executeCommandByGet(@RequestParam String scriptId,
+  @GetMapping("/api/public/execute")
+  public CommandApiResponse executeCommandByGet(@RequestParam String scriptId,
       @RequestParam(required = false) String parameters) throws Exception {
 
     return commandApiService.executeScriptWithoutApiKey(HttpMethod.GET, scriptId, parameters);
@@ -82,8 +82,8 @@ public class CommandApiController {
    * @param parameters see {@link #executeCommandByGet}
    * @throws Exception Exception
    */
-  @PostMapping("api/public/execute")
-  public Map<String, String> executeCommandByPost(@RequestParam String scriptId,
+  @PostMapping("/api/public/execute")
+  public CommandApiResponse executeCommandByPost(@RequestParam String scriptId,
       @RequestParam(required = false) String parameters) throws Exception {
 
     return commandApiService.executeScriptWithoutApiKey(HttpMethod.POST, scriptId, parameters);
@@ -106,8 +106,8 @@ public class CommandApiController {
    * @param parameters see {@link #executeCommandByGet}
    * @throws Exception Exception
    */
-  @GetMapping("api/key/execute")
-  public Map<String, String> executeCommandByKeyGet(@RequestParam String scriptId,
+  @GetMapping("/api/key/execute")
+  public CommandApiResponse executeCommandByKeyGet(@RequestParam String scriptId,
       @RequestParam(required = false) String parameters) throws Exception {
 
     return commandApiService.executeScriptByKey(HttpMethod.GET, scriptId, parameters);
@@ -136,8 +136,8 @@ public class CommandApiController {
    *     (parameters are splitted at "," and each csv element will be an parameter.)
    * @throws Exception Exception
    */
-  @PostMapping("api/key/execute")
-  public Map<String, String> executeCommandByKeyPost(@RequestParam String scriptId,
+  @PostMapping("/api/key/execute")
+  public CommandApiResponse executeCommandByKeyPost(@RequestParam String scriptId,
       @RequestParam(required = false) String parameters) throws Exception {
 
     return commandApiService.executeScriptByKey(HttpMethod.POST, scriptId, parameters);
