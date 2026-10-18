@@ -23,10 +23,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,6 +38,7 @@ import jp.ecuacion.lib.core.util.EmbeddedVariableUtil;
 import jp.ecuacion.lib.core.util.PropertiesFileUtil;
 import jp.ecuacion.splib.core.util.SplibLogUtil;
 import jp.ecuacion.util.commandapi.config.CommandApiKeyFileLocator;
+import jp.ecuacion.util.commandapi.dto.CommandApiResponse;
 import org.jspecify.annotations.Nullable;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -229,7 +228,7 @@ public class CommandApiService {
    *     (parameters are splitted at "," and each csv element will be an parameter.)
    * @throws Exception Exception
    */
-  public Map<String, String> executeScriptWithoutApiKey(HttpMethod requestMethod, String scriptId,
+  public CommandApiResponse executeScriptWithoutApiKey(HttpMethod requestMethod, String scriptId,
       @Nullable String parameters) throws Exception {
 
     if (apiKeyRequired) {
@@ -259,7 +258,7 @@ public class CommandApiService {
    * @param parameters see {@link #executeScriptWithoutApiKey}
    * @throws Exception Exception
    */
-  public Map<String, String> executeScriptByKey(HttpMethod requestMethod, String scriptId,
+  public CommandApiResponse executeScriptByKey(HttpMethod requestMethod, String scriptId,
       @Nullable String parameters) throws Exception {
 
     return executeScript(requestMethod, scriptId, parameters);
@@ -276,7 +275,7 @@ public class CommandApiService {
    * @param parameters see {@link #executeScriptByKey}
    * @throws Exception Exception
    */
-  private Map<String, String> executeScript(HttpMethod requestMethod, String scriptId,
+  private CommandApiResponse executeScript(HttpMethod requestMethod, String scriptId,
       @Nullable String parameters) throws Exception {
 
     dtlLogger.info("procedure started");
@@ -472,19 +471,11 @@ public class CommandApiService {
     // Return the return code plus the script's captured output in a json format. "*Truncated"
     // is included only when output actually was truncated, rather than always being present as
     // "false", so the common (untruncated) case isn't cluttered with a field that never matters.
-    Map<String, String> result = new LinkedHashMap<>();
-    result.put("returnCode", Integer.toString(rtn));
-    result.put("stdout", String.join(System.lineSeparator(), stdoutLines));
-    result.put("stderr", String.join(System.lineSeparator(), stderrLines));
-    if (stdoutTruncated.get()) {
-      result.put("stdoutTruncated", Boolean.toString(true));
-    }
-
-    if (stderrTruncated.get()) {
-      result.put("stderrTruncated", Boolean.toString(true));
-    }
-
-    return result;
+    return new CommandApiResponse(rtn,
+        String.join(System.lineSeparator(), stdoutLines),
+        String.join(System.lineSeparator(), stderrLines),
+        stdoutTruncated.get() ? Boolean.TRUE : null,
+        stderrTruncated.get() ? Boolean.TRUE : null);
   }
 
   @SuppressWarnings("null")

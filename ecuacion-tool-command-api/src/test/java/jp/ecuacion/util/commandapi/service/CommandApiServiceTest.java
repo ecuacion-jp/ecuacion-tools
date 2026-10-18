@@ -17,6 +17,7 @@ package jp.ecuacion.util.commandapi.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -28,6 +29,7 @@ import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import jp.ecuacion.util.commandapi.dto.CommandApiResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -312,13 +314,13 @@ class CommandApiServiceTest {
     Path script = createExecutableScript("#!/bin/bash\necho hello\n", "@echo off\r\necho hello\r\n");
     CommandApiService service = newService("ALL:" + script);
 
-    Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
+    CommandApiResponse result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
 
-    assertEquals("hello", result.get("stdout"));
+    assertEquals("hello", result.stdout());
     // Omitted entirely (rather than present as "false") when nothing was truncated, so the
     // common case isn't cluttered with a field that never matters.
-    assertFalse(result.containsKey("stdoutTruncated"));
-    assertFalse(result.containsKey("stderrTruncated"));
+    assertNull(result.stdoutTruncated());
+    assertNull(result.stderrTruncated());
   }
 
   @Test
@@ -335,11 +337,11 @@ class CommandApiServiceTest {
     env.setProperty("jp.ecuacion.tool.command-api.script-max-output-bytes", "10");
     CommandApiService service = new CommandApiService(env);
 
-    Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
+    CommandApiResponse result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
 
-    assertEquals("AAAAAAAAAA", result.get("stdout"));
-    assertEquals("true", result.get("stdoutTruncated"));
-    assertFalse(result.containsKey("stderrTruncated"));
+    assertEquals("AAAAAAAAAA", result.stdout());
+    assertEquals(Boolean.TRUE, result.stdoutTruncated());
+    assertNull(result.stderrTruncated());
   }
 
   @Test
@@ -356,11 +358,11 @@ class CommandApiServiceTest {
         """);
     CommandApiService service = newService("ALL:" + script);
 
-    Map<String, String> result =
+    CommandApiResponse result =
         service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, "param1,param2");
 
-    assertEquals("0", result.get("returnCode"));
-    String stdout = result.get("stdout");
+    assertEquals(0, result.returnCode());
+    String stdout = result.stdout();
     assertEquals("count:2" + System.lineSeparator() + "1:param1" + System.lineSeparator()
         + "2:param2", stdout);
   }
@@ -373,8 +375,8 @@ class CommandApiServiceTest {
         "@echo off\r\nset count=0\r\nfor %%A in (%*) do set /a count+=1\r\necho count:%count%\r\n");
     CommandApiService service = newService("ALL:" + script);
 
-    Map<String, String> result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
+    CommandApiResponse result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
 
-    assertEquals("count:0", result.get("stdout"));
+    assertEquals("count:0", result.stdout());
   }
 }
