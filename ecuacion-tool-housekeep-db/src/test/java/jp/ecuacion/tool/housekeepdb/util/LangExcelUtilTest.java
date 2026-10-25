@@ -66,7 +66,8 @@ class LangExcelUtilTest {
       String[] result = lang.getHeaderLabels(LangExcelUtil.SearchConditionSettings.HEADER_LABELS);
 
       assertThat(result).containsExactly("Task ID", "Search Condition Column Name",
-          "Search Condtion Column Literal Symbol", "Search Condition Column Value");
+          "Search Condition Operator", "Search Condtion Column Literal Symbol",
+          "Search Condition Column Value");
     }
 
     @Test
@@ -76,7 +77,8 @@ class LangExcelUtilTest {
 
       String[] result = lang.getHeaderLabels(LangExcelUtil.SearchConditionSettings.HEADER_LABELS);
 
-      assertThat(result).containsExactly("処理ID", "条件カラム名", "条件カラム型リテラル記号", "条件カラム値");
+      assertThat(result).containsExactly("処理ID", "条件カラム名", "条件演算子", "条件カラム型リテラル記号",
+          "条件カラム値");
     }
   }
 }

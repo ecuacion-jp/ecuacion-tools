@@ -165,12 +165,14 @@ public class LangExcelUtil {
    */
   public static class SearchConditionSettings {
     public static final String CONDITION_COLUMN_NAME = "EXCEL_TABLE_HEADER_CONDITION_COLUMN_NAME";
+    public static final String CONDITION_OPERATOR = "EXCEL_TABLE_HEADER_CONDITION_OPERATOR";
     public static final String CONDITION_COLUMN_LITERAL_SYMBOL =
         "EXCEL_TABLE_HEADER_CONDITION_COLUMN_LITERAL_SYMBOL";
     public static final String CONDITION_COLUMN_VALUE = "EXCEL_TABLE_HEADER_CONDITION_COLUMN_VALUE";
 
     @SuppressWarnings("MutablePublicArray")
     public static final String[] HEADER_LABELS = new String[] {HousekeepDbSettings.TASK_ID,
-        CONDITION_COLUMN_NAME, CONDITION_COLUMN_LITERAL_SYMBOL, CONDITION_COLUMN_VALUE};
+        CONDITION_COLUMN_NAME, CONDITION_OPERATOR, CONDITION_COLUMN_LITERAL_SYMBOL,
+        CONDITION_COLUMN_VALUE};
   }
 }
