@@ -66,7 +66,7 @@ class LangExcelUtilTest {
       String[] result = lang.getHeaderLabels(LangExcelUtil.SearchConditionSettings.HEADER_LABELS);
 
       assertThat(result).containsExactly("Task ID", "Search Condition Column Name",
-          "Search Condition Operator", "Search Condtion Column Literal Symbol",
+          "Search Condition Operator", "Search Condition Column Literal Symbol",
           "Search Condition Column Value");
     }
 
