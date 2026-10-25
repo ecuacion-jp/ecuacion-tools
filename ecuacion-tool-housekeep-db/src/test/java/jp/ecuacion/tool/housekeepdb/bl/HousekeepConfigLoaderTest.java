@@ -24,9 +24,11 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import jp.ecuacion.lib.core.exception.ViolationException;
+import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
+import jp.ecuacion.tool.housekeepdb.bean.forexceltable.UpdateColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import org.apache.poi.ss.usermodel.Row;
@@ -50,6 +52,12 @@ class HousekeepConfigLoaderTest {
 
   private Path buildExcelFile(List<String[]> dbConnectionRows, List<String[]> housekeepRows,
       List<String[]> relatedRows, List<String[]> searchRows) throws IOException {
+    return buildExcelFile(dbConnectionRows, housekeepRows, relatedRows, searchRows, List.of());
+  }
+
+  private Path buildExcelFile(List<String[]> dbConnectionRows, List<String[]> housekeepRows,
+      List<String[]> relatedRows, List<String[]> searchRows, List<String[]> updateColumnRows)
+      throws IOException {
     LangExcelUtil lang = new LangExcelUtil(Locale.of("en"));
 
     try (XSSFWorkbook wb = new XSSFWorkbook()) {
@@ -64,6 +72,8 @@ class HousekeepConfigLoaderTest {
           lang.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS), relatedRows);
       writeSheet(wb, lang.get(LangExcelUtil.SEARCH_CONDITION_SETTINGS),
           lang.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS), searchRows);
+      writeSheet(wb, lang.get(LangExcelUtil.UPDATE_COLUMN_SETTINGS),
+          lang.getHeaderLabels(UpdateColumnInfoBean.HEADER_LABEL_KEYS), updateColumnRows);
 
       Path path = Files.createTempFile("housekeep-config-loader-test-", ".xlsx");
       try (OutputStream os = Files.newOutputStream(path)) {
@@ -190,6 +200,92 @@ class HousekeepConfigLoaderTest {
       HousekeepConfigLoader loader = new HousekeepConfigLoader();
 
       assertThatExceptionOfType(ViolationException.class).isThrownBy(() -> loader.load(excel.toString()));
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // "Update Column Settings"
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("Update Column Settings")
+  class UpdateColumnSettings {
+
+    private static final String[] UPDATE_TASK = {"task-1", "conn1", "Update", "UPDATE", "tbl_a",
+        "id1", "(none)", null, null, null, null, null, null, null};
+    private static final String[] HARD_TASK = {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+        "tbl_a", "id1", "(none)", null, null, null, null, null, null, null};
+
+    private void assertLoadFailsWith(Path excel, String messageId) {
+      HousekeepConfigLoader loader = new HousekeepConfigLoader();
+      assertThatExceptionOfType(ViolationException.class)
+          .isThrownBy(() -> loader.load(excel.toString()))
+          .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
+              .extracting(BusinessViolation::getMessageId).containsExactly(messageId));
+    }
+
+    @Test
+    @DisplayName("an update task is linked to its own update-column rows")
+    void linksUpdateColumnRows() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(UPDATE_TASK), List.of(), List.of(),
+          List.of(new String[] {"task-1", "user_ref", "Fixed Value", "FIXED_VALUE", "quotes(')",
+              "SYS001"}, new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      HousekeepConfigLoader loader = new HousekeepConfigLoader();
+      loader.load(excel.toString());
+
+      assertThat(loader.getHousekeepInfoList().get(0).getUpdateColumnInfoList())
+          .extracting(UpdateColumnInfoBean::getUpdateColumn).containsExactly("user_ref", "phone");
+    }
+
+    @Test
+    @DisplayName("an update task without any update-column row raises MSG_ERR_UPD_COL_REQUIRED")
+    void updateTaskWithoutRowsFails() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(UPDATE_TASK), List.of(), List.of(), List.of());
+
+      assertLoadFailsWith(excel, "MSG_ERR_UPD_COL_REQUIRED");
+    }
+
+    @Test
+    @DisplayName("an update-column row linked to a non-update task raises "
+        + "MSG_ERR_UPD_COL_FOR_NON_UPDATE")
+    void rowForNonUpdateTaskFails() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(HARD_TASK), List.of(), List.of(),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      assertLoadFailsWith(excel, "MSG_ERR_UPD_COL_FOR_NON_UPDATE");
+    }
+
+    @Test
+    @DisplayName("an update-column row whose taskId matches no task raises "
+        + "MSG_ERR_DATA_NOT_USED_UPD_COL")
+    void orphanRowFails() throws Exception {
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(UPDATE_TASK), List.of(), List.of(),
+          List.of(new String[] {"task-1", "phone", "NULL", "NULL", null, null},
+              new String[] {"task-unknown", "phone", "NULL", "NULL", null, null}));
+
+      assertLoadFailsWith(excel, "MSG_ERR_DATA_NOT_USED_UPD_COL");
+    }
+
+    @Test
+    @DisplayName("an update task's related-table rows are processed as hard delete")
+    void relatedRowsOfUpdateTaskAreHardDelete() throws Exception {
+      // A soft-delete update column on the related-table row is only allowed for soft delete, so
+      // it fails validation here.
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(UPDATE_TASK),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE", "child_code", "rel_a",
+              "code", "quotes(')", "rem_flg", "upd_at", null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      HousekeepConfigLoader loader = new HousekeepConfigLoader();
+      assertThatExceptionOfType(ViolationException.class)
+          .isThrownBy(() -> loader.load(excel.toString()));
     }
   }
 }
