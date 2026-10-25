@@ -345,6 +345,26 @@ abstract class AbstractHousekeepDbTaskletTest {
           "select count(*) from sd_audit where rem_flg = true and upd_at is not null "
               + "and upd_by = 'SYSTEM'")).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("also updates a configured date (not timestamp) column")
+    void updatesDateColumn() throws Exception {
+      execute("create table sd_audit_date (num1 integer primary key, rem_flg boolean default "
+          + "false, upd_on date)");
+      execute("insert into sd_audit_date values (1, false, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
+              "sd_audit_date", "num1", "(none)", null, null, null, "rem_flg", "upd_on", null,
+              null, null}),
+          List.of(), List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows(
+          "select count(*) from sd_audit_date where rem_flg = true and upd_on is not null"))
+          .isEqualTo(1);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -394,6 +414,26 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       assertThat(countRows("select count(*) from exp_local where num1 = 1")).isZero();
       assertThat(countRows("select count(*) from exp_local where num1 = 2")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("works the same against a date column (on postgres, comparing an untyped "
+        + "current-time literal with a date column used to fail)")
+    void onlyDeletesExpiredRowsWithDateColumn() throws Exception {
+      execute("create table exp_date (num1 integer primary key, last_updated date)");
+      execute("insert into exp_date values (1, " + timestampDaysAgoExpr(100) + ")");
+      execute("insert into exp_date values (2, " + timestampDaysAgoExpr(1) + ")");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "exp_date", "num1", "(none)", "last_updated", "LocalDateTime", "30", null, null,
+              null, null, null}),
+          List.of(), List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from exp_date where num1 = 1")).isZero();
+      assertThat(countRows("select count(*) from exp_date where num1 = 2")).isEqualTo(1);
     }
   }
 
@@ -1418,6 +1458,31 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       assertThat(countRows("select count(*) from rts_child2 where rem_flg = true "
           + "and upd_at is not null and upd_by = 'SYSTEM'")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("also updates the related row's configured date (not timestamp) column")
+    void updatesDateColumnOnRelatedRow() throws Exception {
+      execute("create table rts_parent3 (num1 integer primary key, rem_flg boolean default "
+          + "false, child_code varchar(20))");
+      execute("create table rts_child3 (code varchar(20) primary key, rem_flg boolean default "
+          + "false, upd_on date)");
+      execute("insert into rts_parent3 values (1, false, 'c1')");
+      execute("insert into rts_child3 values ('c1', false, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
+              "rts_parent3", "num1", "(none)", null, null, null, "rem_flg", null, null, null,
+              null}),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE",
+              "child_code", "rts_child3", "code", "quotes(')", "rem_flg", "upd_on", null, null,
+              null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from rts_child3 where rem_flg = true "
+          + "and upd_on is not null")).isEqualTo(1);
     }
   }
 
