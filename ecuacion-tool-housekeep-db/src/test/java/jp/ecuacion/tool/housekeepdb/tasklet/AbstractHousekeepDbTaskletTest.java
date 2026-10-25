@@ -540,7 +540,7 @@ abstract class AbstractHousekeepDbTaskletTest {
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "sc_basic",
               "num1", "(none)", null, null, null, null, null, null, null, null}),
           List.of(),
-          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "COMPLETED"}));
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "COMPLETED"}));
 
       runTasklet(excel);
 
@@ -561,14 +561,88 @@ abstract class AbstractHousekeepDbTaskletTest {
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
               "sc_multi", "num1", "(none)", null, null, null, null, null, null, null, null}),
           List.of(),
-          List.of(new String[] {"task-1", "status", "quotes(')", "COMPLETED"},
-              new String[] {"task-1", "category", "quotes(')", "A"}));
+          List.of(new String[] {"task-1", "status", "equal", "quotes(')", "COMPLETED"},
+              new String[] {"task-1", "category", "equal", "quotes(')", "A"}));
 
       runTasklet(excel);
 
       assertThat(countRows("select count(*) from sc_multi where num1 = 1")).isZero();
       assertThat(countRows("select count(*) from sc_multi where num1 = 2")).isEqualTo(1);
       assertThat(countRows("select count(*) from sc_multi where num1 = 3")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("\"not equal\" also matches rows whose column is null")
+    void notEqualAlsoMatchesNull() throws Exception {
+      execute("create table sc_ne (num1 integer primary key, status varchar(20))");
+      execute("insert into sc_ne values (1, 'COMPLETED'), (2, 'RUNNING'), (3, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "sc_ne",
+              "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "status", "not equal", "quotes(')", "RUNNING"}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from sc_ne where num1 = 1")).isZero();
+      assertThat(countRows("select count(*) from sc_ne where num1 = 2")).isEqualTo(1);
+      assertThat(countRows("select count(*) from sc_ne where num1 = 3")).isZero();
+    }
+
+    @Test
+    @DisplayName("\"equal\" with (null) matches only rows whose column is null")
+    void equalNullMatchesNull() throws Exception {
+      execute("create table sc_eq_null (num1 integer primary key, status varchar(20))");
+      execute("insert into sc_eq_null values (1, 'COMPLETED'), (2, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "sc_eq_null", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "(none)", "(null)"}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from sc_eq_null where num1 = 1")).isEqualTo(1);
+      assertThat(countRows("select count(*) from sc_eq_null where num1 = 2")).isZero();
+    }
+
+    @Test
+    @DisplayName("\"not equal\" with (null) matches only rows whose column is not null")
+    void notEqualNullMatchesNotNull() throws Exception {
+      execute("create table sc_ne_null (num1 integer primary key, status varchar(20))");
+      execute("insert into sc_ne_null values (1, 'COMPLETED'), (2, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "sc_ne_null", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "status", "not equal", "(none)", "(null)"}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from sc_ne_null where num1 = 1")).isZero();
+      assertThat(countRows("select count(*) from sc_ne_null where num1 = 2")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("a boolean column can be compared with an unquoted true / false")
+    void comparesBooleanColumn() throws Exception {
+      execute("create table sc_bool (num1 integer primary key, done_flg boolean)");
+      execute("insert into sc_bool values (1, true), (2, false), (3, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "sc_bool", "num1", "(none)", null, null, null, null, null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "done_flg", "not equal", "(none)", "true"}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from sc_bool where num1 = 1")).isEqualTo(1);
+      assertThat(countRows("select count(*) from sc_bool where num1 = 2")).isZero();
+      assertThat(countRows("select count(*) from sc_bool where num1 = 3")).isZero();
     }
   }
 
@@ -960,7 +1034,8 @@ abstract class AbstractHousekeepDbTaskletTest {
               "cv_orphan_cond", "num1", "(none)", null, null, null, null, null, null, null,
               null}),
           List.of(),
-          List.<String[]>of(new String[] {"task-unknown", "status", "quotes(')", "COMPLETED"}));
+          List.<String[]>of(
+              new String[] {"task-unknown", "status", "equal", "quotes(')", "COMPLETED"}));
 
       assertThatExceptionOfType(ViolationException.class).isThrownBy(() -> runTasklet(excel))
           .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
@@ -1036,7 +1111,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(checkRow("task-1", "ec_found", null, null, null)), List.of(),
-          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "PENDING"}));
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "PENDING"}));
 
       ListAppender<ILoggingEvent> appender = attachLogCapture();
       String content;
@@ -1063,7 +1138,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(checkRow("task-1", "ec_none", null, null, null)), List.of(),
-          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "PENDING"}));
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "PENDING"}));
 
       SplibMailUtil mailUtil = mock(SplibMailUtil.class);
       run(excel, mailEnv(), mailUtil);
@@ -1631,7 +1706,7 @@ abstract class AbstractHousekeepDbTaskletTest {
               "num1", "(none)", null, null, null, "rem_flg", null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "論理廃止／削除", "DELETE", "child_code",
               "loc_child", "code", "quotes(')", "rem_flg", null, null, null, null}),
-          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "COMPLETED"}));
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "COMPLETED"}));
 
       runTasklet(excel);
 

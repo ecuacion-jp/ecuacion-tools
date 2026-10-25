@@ -34,12 +34,13 @@ class WhereConditionInfoBeanTest {
   private static final Validator validator =
       Validation.buildDefaultValidatorFactory().getValidator();
 
-  // Column order: taskId, conditionColumn, conditionColumnNeedsQuotationMark,
-  // conditionColumnValue
+  // Column order: taskId, conditionColumn, conditionOperator,
+  // conditionColumnNeedsQuotationMark, conditionColumnValue
   @SuppressWarnings("null")
-  private static WhereConditionInfoBean bean(String taskId, String column, String literalSymbol,
-      String value) {
-    return new WhereConditionInfoBean(Arrays.asList(taskId, column, literalSymbol, value));
+  private static WhereConditionInfoBean bean(String taskId, String column, String operator,
+      String literalSymbol, String value) {
+    return new WhereConditionInfoBean(
+        Arrays.asList(taskId, column, operator, literalSymbol, value));
   }
 
   // -------------------------------------------------------------------------
@@ -53,7 +54,7 @@ class WhereConditionInfoBeanTest {
     @Test
     @DisplayName("\"quotes(')\" produces a quoted condition")
     void quotesProducesQuotedCondition() {
-      WhereConditionInfoBean b = bean("task1", "col1", "quotes(')", "abc");
+      WhereConditionInfoBean b = bean("task1", "col1", "equal", "quotes(')", "abc");
       b.afterReading();
 
       assertThat(b.getConditionColumnInfo().getSqlFragment()).isEqualTo("col1 = 'abc'");
@@ -62,16 +63,34 @@ class WhereConditionInfoBeanTest {
     @Test
     @DisplayName("'(none)' produces an unquoted condition")
     void noneProducesUnquotedCondition() {
-      WhereConditionInfoBean b = bean("task1", "col1", "(none)", "123");
+      WhereConditionInfoBean b = bean("task1", "col1", "equal", "(none)", "123");
       b.afterReading();
 
       assertThat(b.getConditionColumnInfo().getSqlFragment()).isEqualTo("col1 = 123");
     }
 
     @Test
+    @DisplayName("\"not equal\" produces a condition that also matches null")
+    void notEqualProducesConditionMatchingNull() {
+      WhereConditionInfoBean b = bean("task1", "col1", "not equal", "quotes(')", "abc");
+      b.afterReading();
+
+      assertThat(b.getConditionColumnInfo().getSqlFragment())
+          .isEqualTo("(col1 <> 'abc' or col1 is null)");
+    }
+
+    @Test
+    @DisplayName("an unrecognized operator string throws RuntimeException in afterReading()")
+    void unrecognizedOperatorThrows() {
+      WhereConditionInfoBean b = bean("task1", "col1", "unexpected", "(none)", "123");
+
+      assertThatThrownBy(b::afterReading).isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
     @DisplayName("an unrecognized literal-symbol string throws RuntimeException in afterReading()")
     void unrecognizedLiteralSymbolThrows() {
-      WhereConditionInfoBean b = bean("task1", "col1", "unexpected", "abc");
+      WhereConditionInfoBean b = bean("task1", "col1", "equal", "unexpected", "abc");
 
       assertThatThrownBy(b::afterReading).isInstanceOf(RuntimeException.class);
     }
@@ -82,7 +101,7 @@ class WhereConditionInfoBeanTest {
         + "real read pipeline (StringHeaderExcelTableToBeanReader) guarantees that ordering, "
         + "so this only bites callers who invoke afterReading() directly on an unvalidated bean")
     void nullValueThrowsNpe() {
-      List<String> list = Arrays.asList("task1", "col1", "(none)", null);
+      List<String> list = Arrays.asList("task1", "col1", "equal", "(none)", null);
       WhereConditionInfoBean b = new WhereConditionInfoBean(list);
 
       assertThatThrownBy(b::afterReading).isInstanceOf(NullPointerException.class);
@@ -100,7 +119,7 @@ class WhereConditionInfoBeanTest {
     @Test
     @DisplayName("a fully-populated bean passes validation")
     void validBeanPasses() {
-      assertThat(validator.validate(bean("task1", "col1", "(none)", "123"))).isEmpty();
+      assertThat(validator.validate(bean("task1", "col1", "equal", "(none)", "123"))).isEmpty();
     }
 
     @Test
@@ -108,7 +127,7 @@ class WhereConditionInfoBeanTest {
     void emptyTaskIdFails() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<WhereConditionInfoBean>> result =
-          validator.validate(bean("", "col1", "(none)", "123"));
+          validator.validate(bean("", "col1", "equal", "(none)", "123"));
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getPropertyPath().toString()).isEqualTo("taskId");
@@ -120,7 +139,7 @@ class WhereConditionInfoBeanTest {
     void emptyConditionColumnFails() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<WhereConditionInfoBean>> result =
-          validator.validate(bean("task1", "", "(none)", "123"));
+          validator.validate(bean("task1", "", "equal", "(none)", "123"));
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getPropertyPath().toString())
@@ -133,11 +152,24 @@ class WhereConditionInfoBeanTest {
     void emptyConditionColumnValueFails() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<WhereConditionInfoBean>> result =
-          validator.validate(bean("task1", "col1", "(none)", ""));
+          validator.validate(bean("task1", "col1", "equal", "(none)", ""));
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getPropertyPath().toString())
           .isEqualTo("conditionColumnValue");
+    }
+
+    @Test
+    @DisplayName("an operator other than \"equal\" / \"not equal\" fails @Pattern on "
+        + "conditionOperator alone")
+    void unrecognizedOperatorFails() {
+      @SuppressWarnings("null")
+      Set<ConstraintViolation<WhereConditionInfoBean>> result =
+          validator.validate(bean("task1", "col1", "=", "(none)", "123"));
+
+      assertThat(result).hasSize(1);
+      assertThat(result.iterator().next().getPropertyPath().toString())
+          .isEqualTo("conditionOperator");
     }
   }
 }
