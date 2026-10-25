@@ -57,17 +57,17 @@ class RecordDeleterTest {
 
   // Column order matches HousekeepInfoBeanTest's HARD_BASE / SOFT_BASE: taskId,
   // dbConnectionInfoId, processKind, processKindInternalValue, table, idColumn,
-  // idColumnNeedsQuotationMark, timestampColumn, timestampColumnKind, deleteTargetInDays,
-  // softDeleteColumn, softDeleteUpdateTimestampColumn, softDeleteUpdateUserIdColumn,
+  // idColumnNeedsQuotationMark, timestampColumn, deleteTargetInDays, softDeleteColumn,
+  // softDeleteUpdateTimestampColumn, softDeleteUpdateUserIdColumn,
   // softDeleteUpdateUserIdColumnNeedsQuotationMark, softDeleteUpdateUserIdColumnValue
   private static final String[] HARD_BASE_NO_FLAG = {"task1", "conn1", "Hard Delete",
-      "HARD_DELETE", "tbl1", "id1", "(none)", null, null, null, null, null, null, null, null};
+      "HARD_DELETE", "tbl1", "id1", "(none)", null, null, null, null, null, null, null};
   private static final String[] HARD_BASE_WITH_FLAG = {"task1", "conn1", "Hard Delete",
-      "HARD_DELETE", "tbl1", "id1", "(none)", null, null, null, "del_flg", null, null, null, null};
+      "HARD_DELETE", "tbl1", "id1", "(none)", null, null, "del_flg", null, null, null, null};
   private static final String[] SOFT_BASE_FLAG_ONLY = {"task1", "conn1", "Soft Delete",
-      "SOFT_DELETE", "tbl1", "id1", "(none)", null, null, null, "del_flg", null, null, null, null};
+      "SOFT_DELETE", "tbl1", "id1", "(none)", null, null, "del_flg", null, null, null, null};
   private static final String[] SOFT_BASE_ALL_OPTIONAL = {"task1", "conn1", "Soft Delete",
-      "SOFT_DELETE", "tbl1", "id1", "(none)", null, null, null, "del_flg", "upd_at", "upd_by",
+      "SOFT_DELETE", "tbl1", "id1", "(none)", null, null, "del_flg", "upd_at", "upd_by",
       "quotes(')", "SYSTEM"};
 
   private static HousekeepInfoBean bean(String[] cols) {
