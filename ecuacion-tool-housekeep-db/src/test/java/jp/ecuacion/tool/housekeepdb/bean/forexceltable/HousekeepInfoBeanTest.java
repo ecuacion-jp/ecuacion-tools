@@ -23,7 +23,6 @@ import jakarta.validation.Validator;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import jp.ecuacion.tool.housekeepdb.enums.TimestampKindEnum;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,16 +36,15 @@ class HousekeepInfoBeanTest {
       Validation.buildDefaultValidatorFactory().getValidator();
 
   // Column order: taskId, dbConnectionInfoId, processKind, processKindInternalValue, table,
-  // idColumn, idColumnNeedsQuotationMark, timestampColumn, timestampColumnKind,
-  // deleteTargetInDays, softDeleteColumn, softDeleteUpdateTimestampColumn,
-  // softDeleteUpdateUserIdColumn, softDeleteUpdateUserIdColumnNeedsQuotationMark,
-  // softDeleteUpdateUserIdColumnValue
+  // idColumn, idColumnNeedsQuotationMark, timestampColumn, deleteTargetInDays, softDeleteColumn,
+  // softDeleteUpdateTimestampColumn, softDeleteUpdateUserIdColumn,
+  // softDeleteUpdateUserIdColumnNeedsQuotationMark, softDeleteUpdateUserIdColumnValue
   private static final String[] HARD_BASE = {"task1", "conn1", "Hard Delete", "HARD_DELETE",
-      "tbl1", "id1", "(none)", null, null, null, null, null, null, null, null};
+      "tbl1", "id1", "(none)", null, null, null, null, null, null, null};
   private static final String[] SOFT_BASE = {"task1", "conn1", "Soft Delete", "SOFT_DELETE",
-      "tbl1", "id1", "(none)", null, null, null, "del_flg", null, null, null, null};
+      "tbl1", "id1", "(none)", null, null, "del_flg", null, null, null, null};
   private static final String[] CHECK_BASE = {"task1", "conn1", "Abnormal Data Check",
-      "ABNORMAL_DATA_CHECK", "tbl1", "id1", "(none)", null, null, null, null, null, null, null,
+      "ABNORMAL_DATA_CHECK", "tbl1", "id1", "(none)", null, null, null, null, null, null,
       null};
 
   private static HousekeepInfoBean bean(String[] base, int index, @Nullable String value) {
@@ -70,7 +68,7 @@ class HousekeepInfoBeanTest {
     @Test
     @DisplayName("all-null input fails @NotEmpty on exactly the A-G columns")
     void allNullFailsOnRequiredColumnsOnly() {
-      List<String> allNull = Arrays.asList(new String[15]);
+      List<String> allNull = Arrays.asList(new String[14]);
 
       @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
@@ -102,7 +100,7 @@ class HousekeepInfoBeanTest {
       // constraints under test can fail.
       List<String> list = Arrays.asList("taskId", "dbConnectionInfoId", "processKind",
           "processKindInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark", null,
-          null, null, null, null, null, null, null);
+          null, null, null, null, null, null);
 
       @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
@@ -134,7 +132,7 @@ class HousekeepInfoBeanTest {
     void softDeleteWithoutColumnFails() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
-          validator.validate(bean(SOFT_BASE, 10, null));
+          validator.validate(bean(SOFT_BASE, 9, null));
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
@@ -156,30 +154,30 @@ class HousekeepInfoBeanTest {
   }
 
   // -------------------------------------------------------------------------
-  // @EmptyWhen: expiration-check columns are all-empty-or-all-set together
+  // @EmptyWhen: expiration-check columns are both-empty-or-both-set together
   // -------------------------------------------------------------------------
 
   @Nested
-  @DisplayName("@EmptyWhen: expiration-check columns must be all-empty-or-all-set")
+  @DisplayName("@EmptyWhen: expiration-check columns must be both-empty-or-both-set")
   class ExpirationColumnsAllOrNothing {
 
     @Test
-    @DisplayName("all three empty passes")
+    @DisplayName("both empty passes")
     void allEmptyPasses() {
       assertThat(validator.validate(bean(HARD_BASE))).isEmpty();
     }
 
     @Test
-    @DisplayName("all three set passes")
+    @DisplayName("both set passes")
     void allSetPasses() {
       List<String> list = Arrays.asList("task1", "conn1", "Hard Delete", "HARD_DELETE", "tbl1",
-          "id1", "(none)", "last_updated", "OffsetDateTime", "30", null, null, null, null, null);
+          "id1", "(none)", "last_updated", "30", null, null, null, null, null);
 
       assertThat(validator.validate(new HousekeepInfoBean(list))).isEmpty();
     }
 
     @Test
-    @DisplayName("only timestampColumn set (kind/days left empty) fails")
+    @DisplayName("only timestampColumn set (days left empty) fails")
     void onlyTimestampColumnSetFails() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
@@ -192,11 +190,11 @@ class HousekeepInfoBeanTest {
     }
 
     @Test
-    @DisplayName("timestampColumn empty but kind set fails")
-    void timestampColumnEmptyButKindSetFails() {
+    @DisplayName("timestampColumn empty but days set fails")
+    void timestampColumnEmptyButDaysSetFails() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
-          validator.validate(bean(HARD_BASE, 8, "OffsetDateTime"));
+          validator.validate(bean(HARD_BASE, 8, "30"));
 
       assertThat(result).hasSize(1);
     }
@@ -215,7 +213,7 @@ class HousekeepInfoBeanTest {
     void hardDeleteWithUpdateTimestampColumnFails() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
-          validator.validate(bean(HARD_BASE, 11, "upd_at"));
+          validator.validate(bean(HARD_BASE, 10, "upd_at"));
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
@@ -232,7 +230,7 @@ class HousekeepInfoBeanTest {
       // them to be non-empty), this scenario is expected to raise 2 violations.
       @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
-          validator.validate(bean(HARD_BASE, 12, "upd_by"));
+          validator.validate(bean(HARD_BASE, 11, "upd_by"));
 
       assertThat(result).hasSize(2);
     }
@@ -247,7 +245,7 @@ class HousekeepInfoBeanTest {
     @DisplayName("soft delete with update columns set passes (condition not satisfied)")
     void softDeleteWithColumnsSetPasses() {
       List<String> list = Arrays.asList("task1", "conn1", "Soft Delete", "SOFT_DELETE", "tbl1",
-          "id1", "(none)", null, null, null, "del_flg", "upd_at", null, null, null);
+          "id1", "(none)", null, null, "del_flg", "upd_at", null, null, null);
 
       assertThat(validator.validate(new HousekeepInfoBean(list))).isEmpty();
     }
@@ -271,7 +269,7 @@ class HousekeepInfoBeanTest {
     @DisplayName("all three set passes")
     void allSetPasses() {
       List<String> list = Arrays.asList("task1", "conn1", "Soft Delete", "SOFT_DELETE", "tbl1",
-          "id1", "(none)", null, null, null, "del_flg", null, "upd_by", "quotes(')", "SYSTEM");
+          "id1", "(none)", null, null, "del_flg", null, "upd_by", "quotes(')", "SYSTEM");
 
       assertThat(validator.validate(new HousekeepInfoBean(list))).isEmpty();
     }
@@ -281,7 +279,7 @@ class HousekeepInfoBeanTest {
     void onlyUserIdColumnSetFails() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
-          validator.validate(bean(SOFT_BASE, 12, "upd_by"));
+          validator.validate(bean(SOFT_BASE, 11, "upd_by"));
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
@@ -354,7 +352,7 @@ class HousekeepInfoBeanTest {
     @DisplayName("with the expiration-check columns and softDeleteColumn set passes")
     void expirationAndSoftDeleteColumnPasses() {
       List<String> list = Arrays.asList("task1", "conn1", "Abnormal Data Check",
-          "ABNORMAL_DATA_CHECK", "tbl1", "id1", "(none)", "last_updated", "OffsetDateTime", "30",
+          "ABNORMAL_DATA_CHECK", "tbl1", "id1", "(none)", "last_updated", "30",
           "del_flg", null, null, null, null);
 
       assertThat(validator.validate(new HousekeepInfoBean(list))).isEmpty();
@@ -365,7 +363,7 @@ class HousekeepInfoBeanTest {
     void updateTimestampColumnFails() {
       @SuppressWarnings("null")
       Set<ConstraintViolation<HousekeepInfoBean>> result =
-          validator.validate(bean(CHECK_BASE, 11, "upd_at"));
+          validator.validate(bean(CHECK_BASE, 10, "upd_at"));
 
       assertThat(result).hasSize(1);
       assertThat(result.iterator().next().getConstraintDescriptor().getAnnotation()
@@ -377,7 +375,7 @@ class HousekeepInfoBeanTest {
     @DisplayName("with the whole soft-delete update-user-id trio set fails with EmptyWhen")
     void updateUserIdTrioFails() {
       List<String> list = Arrays.asList("task1", "conn1", "Abnormal Data Check",
-          "ABNORMAL_DATA_CHECK", "tbl1", "id1", "(none)", null, null, null, null, null, "upd_by",
+          "ABNORMAL_DATA_CHECK", "tbl1", "id1", "(none)", null, null, null, null, "upd_by",
           "quotes(')", "SYSTEM");
 
       @SuppressWarnings("null")
@@ -392,39 +390,6 @@ class HousekeepInfoBeanTest {
   }
 
   // -------------------------------------------------------------------------
-  // getTimestampColumnKind()
-  // -------------------------------------------------------------------------
-
-  @Nested
-  @DisplayName("getTimestampColumnKind()")
-  class GetTimestampColumnKind {
-
-    @Test
-    @DisplayName("'LocalDateTime' (any case) resolves to TimestampKindEnum.localDateTime")
-    void localDateTime() {
-      HousekeepInfoBean b = bean(HARD_BASE, 8, "localdatetime");
-
-      assertThat(b.getTimestampColumnKind()).isEqualTo(TimestampKindEnum.localDateTime);
-    }
-
-    @Test
-    @DisplayName("'OffsetDateTime' (any case) resolves to TimestampKindEnum.offsetDateTime")
-    void offsetDateTime() {
-      HousekeepInfoBean b = bean(HARD_BASE, 8, "OFFSETDATETIME");
-
-      assertThat(b.getTimestampColumnKind()).isEqualTo(TimestampKindEnum.offsetDateTime);
-    }
-
-    @Test
-    @DisplayName("an unrecognized value throws RuntimeException")
-    void unrecognizedValueThrows() {
-      HousekeepInfoBean b = bean(HARD_BASE, 8, "unexpected");
-
-      assertThatThrownBy(b::getTimestampColumnKind).isInstanceOf(RuntimeException.class);
-    }
-  }
-
-  // -------------------------------------------------------------------------
   // getDeleteTargetInDays() / timestampColumnDefines()
   // -------------------------------------------------------------------------
 
@@ -435,7 +400,7 @@ class HousekeepInfoBeanTest {
     @Test
     @DisplayName("getDeleteTargetInDays parses the column as an int")
     void parsesInt() {
-      assertThat(bean(HARD_BASE, 9, "30").getDeleteTargetInDays()).isEqualTo(30);
+      assertThat(bean(HARD_BASE, 8, "30").getDeleteTargetInDays()).isEqualTo(30);
     }
 
     @Test
@@ -491,7 +456,7 @@ class HousekeepInfoBeanTest {
     @DisplayName("softDeleteUpdateUserIdColumnAndValueInfo is constructed when its column is set")
     void updateUserIdColumnAndValueInfoConstructedWhenSet() {
       List<String> list = Arrays.asList("task1", "conn1", "Soft Delete", "SOFT_DELETE", "tbl1",
-          "id1", "(none)", null, null, null, "del_flg", null, "upd_by", "quotes(')", "SYSTEM");
+          "id1", "(none)", null, null, "del_flg", null, "upd_by", "quotes(')", "SYSTEM");
       HousekeepInfoBean b = new HousekeepInfoBean(list);
       b.afterReading();
 
@@ -504,7 +469,7 @@ class HousekeepInfoBeanTest {
         + "softDeleteUpdateTimestampColumn is set")
     void softDeleteUpdateTimestampColumnInfoConstructedWhenSet() {
       List<String> list = Arrays.asList("task1", "conn1", "Soft Delete", "SOFT_DELETE", "tbl1",
-          "id1", "(none)", null, null, null, "del_flg", "upd_at", null, null, null);
+          "id1", "(none)", null, null, "del_flg", "upd_at", null, null, null);
       HousekeepInfoBean b = new HousekeepInfoBean(list);
       b.afterReading();
 
@@ -527,7 +492,7 @@ class HousekeepInfoBeanTest {
         + "softDeleteUpdateUserIdColumnAndValueInfo are all populated correctly")
     void allOptionalSoftDeleteColumnsSetTogether() {
       List<String> list = Arrays.asList("task1", "conn1", "Soft Delete", "SOFT_DELETE", "tbl1",
-          "id1", "(none)", null, null, null, "del_flg", "upd_at", "upd_by", "quotes(')", "SYSTEM");
+          "id1", "(none)", null, null, "del_flg", "upd_at", "upd_by", "quotes(')", "SYSTEM");
       HousekeepInfoBean b = new HousekeepInfoBean(list);
       b.afterReading();
 

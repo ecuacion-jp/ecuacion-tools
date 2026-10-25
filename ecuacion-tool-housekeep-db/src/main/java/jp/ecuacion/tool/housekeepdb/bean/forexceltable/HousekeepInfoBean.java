@@ -24,7 +24,6 @@ import jp.ecuacion.lib.validation.constraints.PatternWithDescription;
 import jp.ecuacion.lib.validation.constraints.enums.ConditionValueState;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
-import jp.ecuacion.tool.housekeepdb.enums.TimestampKindEnum;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.apache.commons.lang3.StringUtils;
@@ -37,8 +36,8 @@ import org.jspecify.annotations.Nullable;
 @NotEmptyWhen(propertyPath = "softDeleteColumn",
     conditionPropertyPath = "processKindInternalValue",
     conditionValueString = HousekeepInfoBean.DELETE_KIND_SOFT)
-// timestampColumn, timestampColumnKind and deleteTargetInDays must be all empty or all not empty
-@EmptyWhen(propertyPath = {"timestampColumnKind", "deleteTargetInDays"},
+// timestampColumn and deleteTargetInDays must be both empty or both not empty
+@EmptyWhen(propertyPath = "deleteTargetInDays",
     conditionPropertyPath = "timestampColumn", conditionValueState = ConditionValueState.EMPTY,
     notEmptyWhenConditionNotSatisfied = true)
 // fields related to soft delete must be null when processKind is hard delete or abnormal data check
@@ -93,9 +92,6 @@ public class HousekeepInfoBean extends StringExcelTableBean implements DeleteTar
   private String idColumnNeedsQuotationMark;
   @PatternWithDescription(regexp = COLUMN_NAME_REGEXP, description = COLUMN_NAME_DESCRIPTION)
   private String timestampColumn;
-  @PatternWithDescription(regexp = "(?i)^(localDateTime|offsetDateTime)$",
-      description = "\"localDateTime\" or \"offsetDateTime\" (case-insensitive)")
-  private String timestampColumnKind;
   @PatternWithDescription(regexp = "^[0-9]+$", description = "digits only")
   private String deleteTargetInDays;
   @PatternWithDescription(regexp = COLUMN_NAME_REGEXP, description = COLUMN_NAME_DESCRIPTION)
@@ -124,7 +120,7 @@ public class HousekeepInfoBean extends StringExcelTableBean implements DeleteTar
   protected @Nullable String[] getFieldNameArray() {
     return new String[] {"taskId", "dbConnectionInfoId", "processKind",
         "processKindInternalValue", "table", "idColumn", "idColumnNeedsQuotationMark",
-        "timestampColumn", "timestampColumnKind", "deleteTargetInDays", "softDeleteColumn",
+        "timestampColumn", "deleteTargetInDays", "softDeleteColumn",
         "softDeleteUpdateTimestampColumn", "softDeleteUpdateUserIdColumn",
         "softDeleteUpdateUserIdColumnNeedsQuotationMark", "softDeleteUpdateUserIdColumnValue"};
   }
@@ -219,24 +215,6 @@ public class HousekeepInfoBean extends StringExcelTableBean implements DeleteTar
 
   public String getSoftDeleteUpdateUserIdColumnValue() {
     return softDeleteUpdateUserIdColumnValue;
-  }
-
-  /**
-   * Returns the datatype of timestamp column.
-   * 
-   * @return TimestampKindEnum
-   */
-  public TimestampKindEnum getTimestampColumnKind() {
-    if (TimestampKindEnum.localDateTime.toString().equalsIgnoreCase(timestampColumnKind)) {
-      return TimestampKindEnum.localDateTime;
-
-    } else if (TimestampKindEnum.offsetDateTime.toString().equalsIgnoreCase(timestampColumnKind)) {
-      return TimestampKindEnum.offsetDateTime;
-
-    } else {
-      throw new RuntimeException(
-          "timestampColumnKindString is not an assumed value: " + timestampColumnKind);
-    }
   }
 
   public String getTimestampColumn() {
