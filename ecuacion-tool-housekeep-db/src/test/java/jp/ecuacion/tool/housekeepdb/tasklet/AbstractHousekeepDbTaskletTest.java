@@ -44,6 +44,7 @@ import jp.ecuacion.tool.housekeepcommon.util.HousekeepWarnMailUtil;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
+import jp.ecuacion.tool.housekeepdb.bean.forexceltable.UpdateColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import org.apache.poi.poifs.crypt.EncryptionInfo;
@@ -122,8 +123,21 @@ abstract class AbstractHousekeepDbTaskletTest {
 
   protected Path buildExcelFile(List<String[]> dbConnectionRows, List<String[]> housekeepRows,
       List<String[]> relatedRows, List<String[]> searchRows) throws IOException {
+    return buildExcelFile(dbConnectionRows, housekeepRows, relatedRows, searchRows, List.of());
+  }
+
+  protected Path buildExcelFile(List<String[]> dbConnectionRows, List<String[]> housekeepRows,
+      List<String[]> relatedRows, List<String[]> searchRows, List<String[]> updateColumnRows)
+      throws IOException {
     return buildExcelFile(Locale.of("en"), dbConnectionRows, housekeepRows, relatedRows,
-        searchRows);
+        searchRows, updateColumnRows);
+  }
+
+  protected Path buildExcelFile(Locale locale, List<String[]> dbConnectionRows,
+      List<String[]> housekeepRows, List<String[]> relatedRows, List<String[]> searchRows)
+      throws IOException {
+    return buildExcelFile(locale, dbConnectionRows, housekeepRows, relatedRows, searchRows,
+        List.of());
   }
 
   /**
@@ -132,8 +146,8 @@ abstract class AbstractHousekeepDbTaskletTest {
    * from the "locale" row of the "Info" sheet.
    */
   protected Path buildExcelFile(Locale locale, List<String[]> dbConnectionRows,
-      List<String[]> housekeepRows, List<String[]> relatedRows, List<String[]> searchRows)
-      throws IOException {
+      List<String[]> housekeepRows, List<String[]> relatedRows, List<String[]> searchRows,
+      List<String[]> updateColumnRows) throws IOException {
     LangExcelUtil lang = new LangExcelUtil(locale);
 
     try (XSSFWorkbook wb = new XSSFWorkbook()) {
@@ -149,6 +163,8 @@ abstract class AbstractHousekeepDbTaskletTest {
           lang.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS), relatedRows);
       writeSheet(wb, lang.get(LangExcelUtil.SEARCH_CONDITION_SETTINGS),
           lang.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS), searchRows);
+      writeSheet(wb, lang.get(LangExcelUtil.UPDATE_COLUMN_SETTINGS),
+          lang.getHeaderLabels(UpdateColumnInfoBean.HEADER_LABEL_KEYS), updateColumnRows);
 
       Path path = Files.createTempFile("housekeep-db-test-", ".xlsx");
       try (OutputStream os = Files.newOutputStream(path)) {
@@ -679,6 +695,196 @@ abstract class AbstractHousekeepDbTaskletTest {
       assertThat(countRows("select count(*) from sc_bool where num1 = 1")).isEqualTo(1);
       assertThat(countRows("select count(*) from sc_bool where num1 = 2")).isZero();
       assertThat(countRows("select count(*) from sc_bool where num1 = 3")).isZero();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // update
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("update")
+  class Update {
+
+    private String[] updateRow(String table, @Nullable String timestampColumn,
+        @Nullable String days) {
+      return new String[] {"task-1", "conn1", "Update", "UPDATE", table, "num1", "(none)",
+          timestampColumn, days, null, null, null, null, null};
+    }
+
+    @Test
+    @DisplayName("rewrites the configured columns of the matching rows with a fixed value, the "
+        + "current timestamp and null, leaving the other rows and columns untouched")
+    void rewritesConfiguredColumns() throws Exception {
+      execute("create table upd_basic (num1 integer primary key, status varchar(20), "
+          + "user_ref varchar(20), phone varchar(20), anonymized boolean, anonymized_at "
+          + timestampColumnType() + ", memo varchar(20))");
+      execute("insert into upd_basic values (1, 'CLOSED', 'U1', '090', false, null, 'm1'), "
+          + "(2, 'OPEN', 'U2', '080', false, null, 'm2')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_basic", null, null)), List.of(),
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "CLOSED"}),
+          List.of(
+              new String[] {"task-1", "user_ref", "Fixed Value", "FIXED_VALUE", "quotes(')",
+                  "SYS001"},
+              new String[] {"task-1", "phone", "NULL", "NULL", null, null},
+              new String[] {"task-1", "anonymized", "Fixed Value", "FIXED_VALUE", "(none)",
+                  "true"},
+              new String[] {"task-1", "anonymized_at", "Current Timestamp", "CURRENT_TIMESTAMP",
+                  null, null}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from upd_basic where num1 = 1 and user_ref = "
+          + "'SYS001' and phone is null and anonymized = true and anonymized_at is not null "
+          + "and memo = 'm1'")).isEqualTo(1);
+      assertThat(countRows("select count(*) from upd_basic where num1 = 2 and user_ref = 'U2' "
+          + "and phone = '080' and anonymized = false and anonymized_at is null"))
+          .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("rows already processed are left out by a search condition, so a re-run "
+        + "rewrites nothing")
+    void searchConditionLeavesProcessedRowsOut() throws Exception {
+      execute("create table upd_rerun (num1 integer primary key, anonymized boolean, "
+          + "upd_cnt integer)");
+      execute("insert into upd_rerun values (1, false, 0), (2, true, 0)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_rerun", null, null)), List.of(),
+          List.<String[]>of(new String[] {"task-1", "anonymized", "not equal", "(none)", "true"}),
+          List.of(
+              new String[] {"task-1", "anonymized", "Fixed Value", "FIXED_VALUE", "(none)",
+                  "true"},
+              new String[] {"task-1", "upd_cnt", "Fixed Value", "FIXED_VALUE", "(none)", "1"}));
+
+      runTasklet(excel);
+      execute("update upd_rerun set upd_cnt = 9 where num1 = 1");
+      runTasklet(excel);
+
+      // num1 = 1 is rewritten only by the first run, and num1 = 2 by neither.
+      assertThat(countRows("select count(*) from upd_rerun where num1 = 1 and upd_cnt = 9"))
+          .isEqualTo(1);
+      assertThat(countRows("select count(*) from upd_rerun where num1 = 2 and upd_cnt = 0"))
+          .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("only rewrites rows whose timestamp column is older than the validity days")
+    void appliesExpirationCheck() throws Exception {
+      execute("create table upd_exp (num1 integer primary key, last_updated "
+          + timestampColumnType() + ", phone varchar(20))");
+      execute("insert into upd_exp values (1, " + timestampDaysAgoExpr(100) + ", '090')");
+      execute("insert into upd_exp values (2, " + timestampDaysAgoExpr(1) + ", '080')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_exp", "last_updated", "30")), List.of(), List.of(),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from upd_exp where num1 = 1 and phone is null"))
+          .isEqualTo(1);
+      assertThat(countRows("select count(*) from upd_exp where num1 = 2 and phone = '080'"))
+          .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("walks every batch when the matching rows outnumber maxSelectLines, even though "
+        + "the rewritten rows still match the conditions")
+    void walksEveryBatch() throws Exception {
+      execute("create table upd_paging (num1 integer primary key, phone varchar(20))");
+      execute("insert into upd_paging values (1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_paging", null, null)), List.of(), List.of(),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      runTasklet(excel, 2);
+
+      assertThat(countRows("select count(*) from upd_paging where phone is null")).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("hard-deletes the related-table rows linked to the rewritten rows only")
+    void hardDeletesRelatedRows() throws Exception {
+      execute("create table upd_parent (num1 integer primary key, status varchar(20), "
+          + "phone varchar(20))");
+      execute("create table upd_child (code varchar(20) primary key, parent_num integer, "
+          + "rem_flg boolean default false)");
+      execute("insert into upd_parent values (1, 'CLOSED', '090'), (2, 'OPEN', '080')");
+      execute("insert into upd_child values ('a1', 1, false), ('a2', 1, false), ('b1', 2, false)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_parent", null, null)),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE", "num1", "upd_child",
+              "parent_num", "(none)", null, null, null, null, null}),
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "CLOSED"}),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      runTasklet(excel);
+
+      // Hard-deleted, not soft-deleted: the rows are gone rather than flagged.
+      assertThat(countRows("select count(*) from upd_child where parent_num = 1")).isZero();
+      assertThat(countRows("select count(*) from upd_child where parent_num = 2")).isEqualTo(1);
+      assertThat(countRows("select count(*) from upd_parent where phone is null")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("skips rewriting a row that has a linked related-table row (Check and Skip "
+        + "Delete)")
+    void skipsRowWithLinkedRelatedRow() throws Exception {
+      execute("create table upd_skip_parent (num1 integer primary key, phone varchar(20))");
+      execute("create table upd_skip_child (code varchar(20) primary key, parent_num integer)");
+      execute("insert into upd_skip_parent values (1, '090'), (2, '080')");
+      execute("insert into upd_skip_child values ('a1', 1)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_skip_parent", null, null)),
+          List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
+              "CHECK_AND_SKIP_DELETE", "num1", "upd_skip_child", "parent_num", "(none)", null,
+              null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from upd_skip_parent where num1 = 1 and phone = "
+          + "'090'")).isEqualTo(1);
+      assertThat(countRows("select count(*) from upd_skip_parent where num1 = 2 and phone is "
+          + "null")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("logs the per-table update count, and the related-table delete count")
+    void logsUpdateAndDeleteCounts() throws Exception {
+      execute("create table upd_log (num1 integer primary key, phone varchar(20))");
+      execute("create table upd_log_child (code varchar(20) primary key, parent_num integer)");
+      execute("insert into upd_log values (1, '090'), (2, '080')");
+      execute("insert into upd_log_child values ('a1', 1)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_log", null, null)),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE", "num1", "upd_log_child",
+              "parent_num", "(none)", null, null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      try {
+        runTasklet(excel);
+      } finally {
+        detachLogCapture(appender);
+      }
+
+      @SuppressWarnings("null")
+      List<String> messages = appender.list.stream()
+          .map(event -> event.getFormattedMessage().trim()).toList();
+
+      assertThat(messages).contains("Update records : 2 record(s) in upd_log",
+          "Delete records : 1 record(s) from upd_log_child");
     }
   }
 

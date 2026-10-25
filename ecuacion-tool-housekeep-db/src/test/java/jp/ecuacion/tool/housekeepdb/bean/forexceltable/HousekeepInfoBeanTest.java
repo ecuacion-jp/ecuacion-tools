@@ -47,6 +47,9 @@ class HousekeepInfoBeanTest {
       "ABNORMAL_DATA_CHECK", "tbl1", "id1", "(none)", null, null, null, null, null, null,
       null};
 
+  private static final String[] UPDATE_BASE = {"task1", "conn1", "Update", "UPDATE", "tbl1",
+      "id1", "(none)", null, null, null, null, null, null, null};
+
   private static HousekeepInfoBean bean(String[] base, int index, @Nullable String value) {
     String[] copy = Arrays.copyOf(base, base.length);
     copy[index] = value;
@@ -323,6 +326,54 @@ class HousekeepInfoBeanTest {
       HousekeepInfoBean b = bean(CHECK_BASE);
 
       assertThatThrownBy(b::isSoftDelete).isInstanceOf(RuntimeException.class);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // update
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("update")
+  class Update {
+
+    @Test
+    @DisplayName("UPDATE is a valid process type, and isUpdate() returns true only for it")
+    void updateIsValid() {
+      assertThat(validator.validate(bean(UPDATE_BASE))).isEmpty();
+      assertThat(bean(UPDATE_BASE).isUpdate()).isTrue();
+      assertThat(bean(HARD_BASE).isUpdate()).isFalse();
+      assertThat(bean(SOFT_BASE).isUpdate()).isFalse();
+      assertThat(bean(CHECK_BASE).isUpdate()).isFalse();
+    }
+
+    @Test
+    @DisplayName("the soft-delete column must be empty")
+    void softDeleteColumnMustBeEmpty() {
+      @SuppressWarnings("null")
+      Set<ConstraintViolation<HousekeepInfoBean>> result =
+          validator.validate(bean(UPDATE_BASE, 9, "del_flg"));
+
+      assertThat(result).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("the soft-delete update columns must be empty")
+    void softDeleteUpdateColumnsMustBeEmpty() {
+      @SuppressWarnings("null")
+      Set<ConstraintViolation<HousekeepInfoBean>> result =
+          validator.validate(bean(UPDATE_BASE, 10, "upd_at"));
+
+      assertThat(result).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("isRelatedRecordSoftDelete() follows the task for a delete task, and is always "
+        + "false (hard delete) for an update task")
+    void isRelatedRecordSoftDelete() {
+      assertThat(bean(SOFT_BASE).isRelatedRecordSoftDelete()).isTrue();
+      assertThat(bean(HARD_BASE).isRelatedRecordSoftDelete()).isFalse();
+      assertThat(bean(UPDATE_BASE).isRelatedRecordSoftDelete()).isFalse();
     }
   }
 

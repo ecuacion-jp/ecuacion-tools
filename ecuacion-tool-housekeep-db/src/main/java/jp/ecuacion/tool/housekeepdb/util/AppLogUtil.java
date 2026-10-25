@@ -89,4 +89,22 @@ public class AppLogUtil extends SplibLogUtil {
           table + ": " + count + " record(s) deleted. (" + condition + ")", indents);
     }
   }
+
+  /**
+   * Logs how many rows an update statement (of an update task) affected.
+   *
+   * @param detailLogger the logger to write to
+   * @param table the table the statement ran against
+   * @param count the number of rows affected
+   * @param condition the where-condition text, for the log line
+   * @param logLevel the level to log at
+   * @param indents the indent depth of the log line
+   */
+  public static void logUpdateLines(DetailLogger detailLogger, String table, int count,
+      String condition, Level logLevel, int indents) {
+    if (logLevel != null) {
+      log(detailLogger, logLevel,
+          table + ": " + count + " record(s) updated. (" + condition + ")", indents);
+    }
+  }
 }

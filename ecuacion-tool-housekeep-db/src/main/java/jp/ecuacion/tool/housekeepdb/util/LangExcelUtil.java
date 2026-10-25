@@ -28,6 +28,7 @@ public class LangExcelUtil {
   public static final String HOUSEKEEP_DB_SETTINGS = "EXCEL_SHEET_HOUSEKEEP_DB_SETTINGS";
   public static final String RELATED_TABLE_SETTINGS = "EXCEL_SHEET_RELATED_TABLE_SETTINGS";
   public static final String SEARCH_CONDITION_SETTINGS = "EXCEL_SHEET_SEARCH_CONDITION_SETTINGS";
+  public static final String UPDATE_COLUMN_SETTINGS = "EXCEL_SHEET_UPDATE_COLUMN_SETTINGS";
 
   private Locale locale;
 
@@ -115,6 +116,7 @@ public class LangExcelUtil {
     public static final String VALUE_SOFT_DELETE = "EXCEL_VALUE_SOFT_DELETE";
     public static final String VALUE_HARD_DELETE = "EXCEL_VALUE_HARD_DELETE";
     public static final String VALUE_ABNORMAL_DATA_CHECK = "EXCEL_VALUE_ABNORMAL_DATA_CHECK";
+    public static final String VALUE_UPDATE = "EXCEL_VALUE_UPDATE";
 
     @SuppressWarnings("MutablePublicArray")
     public static final String[] HEADER_LABELS = new String[] {TASK_ID,
@@ -172,5 +174,23 @@ public class LangExcelUtil {
     public static final String[] HEADER_LABELS = new String[] {HousekeepDbSettings.TASK_ID,
         CONDITION_COLUMN_NAME, CONDITION_OPERATOR, CONDITION_COLUMN_LITERAL_SYMBOL,
         CONDITION_COLUMN_VALUE};
+  }
+
+  /**
+   * Contains message IDs related to UpdateColumnSettings.
+   */
+  public static class UpdateColumnSettings {
+    public static final String UPDATE_COLUMN_NAME = "EXCEL_TABLE_HEADER_UPDATE_COLUMN_NAME";
+    public static final String UPDATE_VALUE_TYPE = "EXCEL_TABLE_HEADER_UPDATE_VALUE_TYPE";
+    public static final String UPDATE_VALUE_TYPE_INTERNAL_VALUE =
+        "EXCEL_TABLE_HEADER_UPDATE_VALUE_TYPE_INTERNAL_VALUE";
+    public static final String UPDATE_COLUMN_LITERAL_SYMBOL =
+        "EXCEL_TABLE_HEADER_UPDATE_COLUMN_LITERAL_SYMBOL";
+    public static final String UPDATE_COLUMN_VALUE = "EXCEL_TABLE_HEADER_UPDATE_COLUMN_VALUE";
+
+    @SuppressWarnings("MutablePublicArray")
+    public static final String[] HEADER_LABELS = new String[] {HousekeepDbSettings.TASK_ID,
+        UPDATE_COLUMN_NAME, UPDATE_VALUE_TYPE, UPDATE_VALUE_TYPE_INTERNAL_VALUE,
+        UPDATE_COLUMN_LITERAL_SYMBOL, UPDATE_COLUMN_VALUE};
   }
 }
