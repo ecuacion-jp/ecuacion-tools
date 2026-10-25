@@ -19,7 +19,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import jp.ecuacion.lib.validation.constraints.PatternWithDescription;
-import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueInfoBean;
+import jp.ecuacion.tool.housekeepdb.bean.ColumnAndValueConditionBean;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.bean.StringExcelTableBean;
 import org.jspecify.annotations.Nullable;
@@ -32,26 +32,29 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
   @NotEmpty
   private String taskId;
   // conditionColumn is embedded as-is (unquoted, unescaped) into generated SQL by
-  // ColumnAndValueInfoBean.getSqlFragment(), so only unquoted SQL identifier characters are
-  // allowed.
+  // ColumnAndValueConditionBean.getSqlFragment(), so only unquoted SQL identifier characters
+  // are allowed.
   @NotEmpty
   @PatternWithDescription(regexp = "^[A-Za-z_][A-Za-z0-9_]*$",
       description = "letters, digits and underscores only, and must not start with a digit")
   private String conditionColumn;
   @NotEmpty
+  @Pattern(regexp = "^(equal|not equal)$")
+  private String conditionOperator;
+  @NotEmpty
   @Pattern(regexp = "^(\\(none\\)|quotes\\(\\'\\)$)")
   private String conditionColumnNeedsQuotationMark;
   @NotEmpty
   private String conditionColumnValue;
-  private ColumnAndValueInfoBean conditionColumnInfo;
+  private ColumnAndValueConditionBean conditionColumnInfo;
 
   public static final String[] HEADER_LABEL_KEYS =
       LangExcelUtil.SearchConditionSettings.HEADER_LABELS;
 
   @Override
   protected @Nullable String[] getFieldNameArray() {
-    return new String[] {"taskId", "conditionColumn", "conditionColumnNeedsQuotationMark",
-        "conditionColumnValue"};
+    return new String[] {"taskId", "conditionColumn", "conditionOperator",
+        "conditionColumnNeedsQuotationMark", "conditionColumnValue"};
   }
 
   /**
@@ -72,6 +75,10 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
     return conditionColumn;
   }
 
+  public String getConditionOperator() {
+    return conditionOperator;
+  }
+
   public String getConditionColumnNeedsQuotationMark() {
     return conditionColumnNeedsQuotationMark;
   }
@@ -80,13 +87,13 @@ public class WhereConditionInfoBean extends StringExcelTableBean {
     return conditionColumnValue;
   }
 
-  public ColumnAndValueInfoBean getConditionColumnInfo() {
+  public ColumnAndValueConditionBean getConditionColumnInfo() {
     return conditionColumnInfo;
   }
 
   @Override
   public void afterReading() {
-    conditionColumnInfo = new ColumnAndValueInfoBean(conditionColumn,
+    conditionColumnInfo = new ColumnAndValueConditionBean(conditionColumn, conditionOperator,
         conditionColumnNeedsQuotationMark, conditionColumnValue);
   }
 }

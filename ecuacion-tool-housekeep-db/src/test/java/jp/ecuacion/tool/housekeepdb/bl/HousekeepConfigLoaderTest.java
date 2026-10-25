@@ -144,8 +144,8 @@ class HousekeepConfigLoaderTest {
                   "quotes(')", null, null, null, null, null},
               new String[] {"task-2", "Delete", "DELETE", "child_code", "rel_b", "code",
                   "quotes(')", null, null, null, null, null}),
-          List.of(new String[] {"task-1", "status", "quotes(')", "COMPLETED"},
-              new String[] {"task-2", "status", "quotes(')", "RUNNING"}));
+          List.of(new String[] {"task-1", "status", "equal", "quotes(')", "COMPLETED"},
+              new String[] {"task-2", "status", "equal", "quotes(')", "RUNNING"}));
 
       HousekeepConfigLoader loader = new HousekeepConfigLoader();
       loader.load(excel.toString());
