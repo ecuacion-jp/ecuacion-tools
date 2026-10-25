@@ -136,9 +136,9 @@ class HousekeepConfigLoaderTest {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.of(
               new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "tbl_a", "id1",
-                  "(none)", null, null, null, null, null, null, null, null},
+                  "(none)", null, null, null, null, null, null, null},
               new String[] {"task-2", "conn1", "Hard Delete", "HARD_DELETE", "tbl_b", "id1",
-                  "(none)", null, null, null, null, null, null, null, null}),
+                  "(none)", null, null, null, null, null, null, null}),
           List.of(
               new String[] {"task-1", "Delete", "DELETE", "child_code", "rel_a", "code",
                   "quotes(')", null, null, null, null, null},
@@ -182,7 +182,7 @@ class HousekeepConfigLoaderTest {
     void neitherDeleteNorCheckAndSkipDeleteFailsValidation() throws Exception {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "tbl_a",
-              "id1", "(none)", null, null, null, null, null, null, null, null}),
+              "id1", "(none)", null, null, null, null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "Delete", "NOT_A_VALID_PATTERN", "child_code",
               "rel_a", "code", "quotes(')", null, null, null, null, null}),
           List.of());

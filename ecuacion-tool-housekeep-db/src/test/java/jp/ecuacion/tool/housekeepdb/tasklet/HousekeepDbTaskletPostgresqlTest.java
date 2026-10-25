@@ -114,7 +114,7 @@ class HousekeepDbTaskletPostgresqlTest extends AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(connectionRow),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "sc_scoped", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "sc_scoped", "num1", "(none)", null, null, null, null, null, null, null}),
           List.of(), List.of());
 
       runTasklet(excel);
