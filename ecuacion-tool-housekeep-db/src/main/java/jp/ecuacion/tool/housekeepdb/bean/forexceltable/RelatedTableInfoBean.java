@@ -37,7 +37,8 @@ import org.jspecify.annotations.Nullable;
  * <p>{@code isSoftDeleteInternalValue} is no longer an Excel column here: it used to be a
  *     VLOOKUP-hidden column duplicating the value from the Housekeep DB Settings sheet, but
  *     {@link HousekeepConfigLoader} already links each row to its {@link HousekeepInfoBean} by
- *     task ID, so it copies that value onto this field itself after linking (see
+ *     task ID, so it sets this field itself after linking - the task's own soft / hard delete
+ *     kind, or hard delete for an update task (see
  *     {@code getHousekeepInfoList()}), before running {@link AfterMergeValidation}-grouped
  *     validation. The 2 constraints below that key off it are therefore in that group: they'd
  *     otherwise fail every time, since this field is never populated at Excel-read time (unlike
@@ -151,8 +152,8 @@ public class RelatedTableInfoBean extends StringExcelTableBean implements Delete
   }
 
   /**
-   * Sets the soft/hard delete kind of the task this related-table row belongs to, copied from
-   * the linked {@link HousekeepInfoBean} after merging - see the class Javadoc.
+   * Sets the soft/hard delete kind this related-table row is processed with, derived from the
+   * linked {@link HousekeepInfoBean} after merging - see the class Javadoc.
    *
    * @param isSoftDeleteInternalValue {@link HousekeepInfoBean#DELETE_KIND_SOFT} or
    *     {@link HousekeepInfoBean#DELETE_KIND_HARD}

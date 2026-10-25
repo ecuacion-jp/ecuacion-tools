@@ -11,7 +11,7 @@
 `ecuacion-tools` provides executable tools useful for maintaining servers and applications.
 
 - **ecuacion-tool-command-api** — Receives commands through a web API and executes them on the installed server. Linux or mac OS supported.
-- **ecuacion-tool-housekeep-db** — Deletes old records from a database based on configurable retention rules.
+- **ecuacion-tool-housekeep-db** — Deletes old records from a database, or rewrites their columns (e.g. anonymization), based on configurable retention rules.
 - **ecuacion-tool-housekeep-files** — Deletes or archives old files on local or remote (SFTP) filesystems based on configurable rules.
 
 ## Versioning
