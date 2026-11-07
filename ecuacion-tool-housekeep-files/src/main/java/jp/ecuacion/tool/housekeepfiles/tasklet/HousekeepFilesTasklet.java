@@ -32,7 +32,6 @@ import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -55,14 +54,7 @@ public class HousekeepFilesTasklet implements Tasklet {
   @FileExtension(".xlsx")
   private final @Nullable String excelPath;
 
-  // Not set when this tasklet is instantiated directly (e.g. in tests) instead of through Spring.
-  @Autowired(required = false)
-  @Nullable
   Environment env;
-
-  // Not set when this tasklet is instantiated directly (e.g. in tests) instead of through Spring.
-  @Autowired(required = false)
-  @Nullable
   SplibMailUtil splibMailUtil;
 
   /**
@@ -70,8 +62,10 @@ public class HousekeepFilesTasklet implements Tasklet {
    *
    * @param excelPath the excel file path, or {@code null} if unset
    */
-  public HousekeepFilesTasklet(
+  public HousekeepFilesTasklet(Environment env, SplibMailUtil splibMailUtil,
       @Value("${" + PROP_EXCEL_PATH + ":#{null}}") @Nullable String excelPath) {
+    this.env = env;
+    this.splibMailUtil = splibMailUtil;
     this.excelPath = excelPath;
   }
 
@@ -84,8 +78,7 @@ public class HousekeepFilesTasklet implements Tasklet {
 
     String excelPath = validateExcelPath();
 
-    @Nullable String targetSystemName = env == null ? null
-        : Objects.requireNonNull(env).getProperty(Constants.PROP_TARGET_SYSTEM_NAME);
+    @Nullable String targetSystemName = env.getProperty(Constants.PROP_TARGET_SYSTEM_NAME);
 
     HousekeepLogUtil.logStarted(detailLogger, Constants.TOOL_NAME, excelPath, targetSystemName);
 
@@ -93,8 +86,7 @@ public class HousekeepFilesTasklet implements Tasklet {
     // plain "new"), so they cannot read these properties from the Environment directly. Bridge
     // them through JVM system properties here, which also makes values set in
     // application.properties / application_profile.properties effective, not only "-D"
-    // arguments. Left untouched when this tasklet is instantiated directly without Spring (e.g.
-    // in tests), in which case only "-D" is honored.
+    // arguments.
     bridgeEnvPropertyToSystemProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING);
     bridgeEnvPropertyToSystemProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS);
     bridgeEnvPropertyToSystemProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES);
@@ -118,8 +110,8 @@ public class HousekeepFilesTasklet implements Tasklet {
    * key, if present. See the call site in {@link #execute} for why this bridging is needed.
    */
   private void bridgeEnvPropertyToSystemProperty(String key) {
-    if (env != null && Objects.requireNonNull(env).containsProperty(key)) {
-      System.setProperty(key, Objects.requireNonNull(Objects.requireNonNull(env).getProperty(key)));
+    if (env.containsProperty(key)) {
+      System.setProperty(key, Objects.requireNonNull(env.getProperty(key)));
     }
   }
 

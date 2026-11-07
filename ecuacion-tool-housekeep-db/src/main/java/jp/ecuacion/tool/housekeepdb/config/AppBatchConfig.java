@@ -24,7 +24,6 @@ import jp.ecuacion.tool.housekeepdb.tasklet.HousekeepDbTasklet;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -39,8 +38,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 @SuppressWarnings("NullAway.Init")
 public class AppBatchConfig extends SplibAppParentBatchConfig {
 
-  @Autowired
-  private HousekeepDbTasklet housekeepDbTasklet;
+  private final HousekeepDbTasklet housekeepDbTasklet;
 
   /**
    * Constructs a new instance.
@@ -50,14 +48,14 @@ public class AppBatchConfig extends SplibAppParentBatchConfig {
    * @param exceptionHandler exceptionHandler
    */
   public AppBatchConfig(SplibJobExecutionListener jobExecutionListener,
-      SplibStepExecutionListener stepExecutionListener,
-      SplibBatchExceptionHandler exceptionHandler) {
+      SplibStepExecutionListener stepExecutionListener, SplibBatchExceptionHandler exceptionHandler,
+      HousekeepDbTasklet housekeepDbTasklet) {
     super(jobExecutionListener, stepExecutionListener, exceptionHandler);
+    this.housekeepDbTasklet = housekeepDbTasklet;
   }
 
   @Bean(name = "housekeepDbJob")
-  Job housekeepDbJob(JobRepository jobRepository,
-      PlatformTransactionManager transactionManager) {
+  Job housekeepDbJob(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
 
     return preparedJobBuilder("housekeepDbJob", jobRepository)
         .start(housekeepDbJobStep1(jobRepository, transactionManager)).build();
