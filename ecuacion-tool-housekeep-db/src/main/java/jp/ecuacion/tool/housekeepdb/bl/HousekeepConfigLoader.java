@@ -28,6 +28,7 @@ import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
+import jp.ecuacion.tool.housekeepdb.bean.forexceltable.UpdateColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import jp.ecuacion.util.excel.table.reader.concrete.StringOneLineHeaderExcelTableReader;
@@ -127,6 +128,11 @@ public class HousekeepConfigLoader {
             RelatedTableInfoBean.class, langLocal.get(LangExcelUtil.RELATED_TABLE_SETTINGS),
             langLocal.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS)).readToBean(filePath,
                 true);
+    List<UpdateColumnInfoBean> updateColumnList =
+        new StringOneLineHeaderExcelTableToBeanReader<UpdateColumnInfoBean>(
+            UpdateColumnInfoBean.class, langLocal.get(LangExcelUtil.UPDATE_COLUMN_SETTINGS),
+            langLocal.getHeaderLabels(UpdateColumnInfoBean.HEADER_LABEL_KEYS))
+                .readToBean(filePath, true);
 
     // Set for detecting duplicate task IDs.
     Set<String> housekeepInfoTaskIdSet = new HashSet<>();
@@ -155,6 +161,22 @@ public class HousekeepConfigLoader {
       hpBean.setRelatedRecordTableInfoList(relatedTableList.stream()
           .filter(bean -> bean.getTaskId().equals(hpBean.getTaskId())).toList());
 
+      hpBean.setUpdateColumnInfoList(updateColumnList.stream()
+          .filter(bean -> bean.getTaskId().equals(hpBean.getTaskId())).toList());
+
+      // "Update Column Settings" rows are what an update task rewrites, so an update task needs
+      // at least one, and any other task none.
+      if (hpBean.isUpdate() && hpBean.getUpdateColumnInfoList().isEmpty()) {
+        new Violations().add(new BusinessViolation("MSG_ERR_UPD_COL_REQUIRED", hpBean.getTaskId()))
+            .throwIfAny();
+      }
+
+      if (!hpBean.isUpdate() && !hpBean.getUpdateColumnInfoList().isEmpty()) {
+        UpdateColumnInfoBean updBean = hpBean.getUpdateColumnInfoList().get(0);
+        new Violations().add(new BusinessViolation("MSG_ERR_UPD_COL_FOR_NON_UPDATE",
+            updBean.getTaskId(), updBean.getUpdateColumn())).throwIfAny();
+      }
+
       // An abnormal data check task deletes nothing, so there's nothing for related-table rows to
       // cascade to or skip.
       if (hpBean.isAbnormalDataCheck() && !hpBean.getRelatedRecordTableInfoList().isEmpty()) {
@@ -168,13 +190,15 @@ public class HousekeepConfigLoader {
       // Excel column - see RelatedTableInfoBean's class Javadoc. The constraints depending on it
       // are deferred to the AfterMergeValidation group for the same reason.
       for (RelatedTableInfoBean relBean : hpBean.getRelatedRecordTableInfoList()) {
-        relBean.setIsSoftDeleteInternalValue(hpBean.getProcessKindInternalValue());
+        relBean.setIsSoftDeleteInternalValue(hpBean.isRelatedRecordSoftDelete()
+            ? HousekeepInfoBean.DELETE_KIND_SOFT
+            : HousekeepInfoBean.DELETE_KIND_HARD);
         new Violations().validate(relBean, AfterMergeValidation.class).throwIfAny();
       }
     }
 
-    // Verify there are no unused records in "Related Table Settings" and
-    // "Search Condition Settings".
+    // Verify there are no unused records in "Related Table Settings",
+    // "Search Condition Settings" and "Update Column Settings".
     // If found, a task ID mismatch may mean the configuration is not as intended, so treat as
     // an error.
     // "DB Connection Settings" is limited to one per task and is required, so unused entries
@@ -197,6 +221,16 @@ public class HousekeepConfigLoader {
       if (!condSet.contains(condBean)) {
         new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_COND",
             condBean.getTaskId(), condBean.getConditionColumn())).throwIfAny();
+      }
+    }
+
+    Set<UpdateColumnInfoBean> updSet = new HashSet<>();
+    housekeepList.stream().forEach(bean -> updSet.addAll(bean.getUpdateColumnInfoList()));
+    for (UpdateColumnInfoBean updBean : updateColumnList) {
+      // Since there is no key to match on, compare by object identity.
+      if (!updSet.contains(updBean)) {
+        new Violations().add(new BusinessViolation("MSG_ERR_DATA_NOT_USED_UPD_COL",
+            updBean.getTaskId(), updBean.getUpdateColumn())).throwIfAny();
       }
     }
 

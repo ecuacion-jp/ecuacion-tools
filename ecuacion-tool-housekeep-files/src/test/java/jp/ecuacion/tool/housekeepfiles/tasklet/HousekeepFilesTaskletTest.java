@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.util.List;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.splib.core.util.SplibMailUtil;
 import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesTaskRecord;
@@ -51,6 +52,10 @@ import org.springframework.mock.env.MockEnvironment;
 @SuppressWarnings("null")
 @DisplayName("HousekeepFilesTasklet")
 class HousekeepFilesTaskletTest {
+
+  private static HousekeepFilesTasklet newTasklet(@Nullable String excelPath) {
+    return new HousekeepFilesTasklet(new MockEnvironment(), mock(SplibMailUtil.class), excelPath);
+  }
 
   /**
    * Writes a settings excel file whose sheet names and header labels are localized to "en", the
@@ -120,7 +125,7 @@ class HousekeepFilesTaskletTest {
           "IGNORE"};
       Path excelFile = buildExcelFile(java.util.Collections.singletonList(taskRow));
 
-      RepeatStatus status = new HousekeepFilesTasklet(excelFile.toString())
+      RepeatStatus status = newTasklet(excelFile.toString())
           .execute(mock(StepContribution.class), mock(ChunkContext.class));
 
       assertThat(status).isEqualTo(RepeatStatus.FINISHED);
@@ -182,8 +187,8 @@ class HousekeepFilesTaskletTest {
 
       MockEnvironment env = new MockEnvironment();
       env.setProperty(Constants.PROP_TARGET_SYSTEM_NAME, "my-system");
-      HousekeepFilesTasklet tasklet = new HousekeepFilesTasklet(excelFile.toString());
-      tasklet.env = env;
+      HousekeepFilesTasklet tasklet =
+          new HousekeepFilesTasklet(env, mock(SplibMailUtil.class), excelFile.toString());
 
       ListAppender<ILoggingEvent> appender = attachLogCapture();
       try {
@@ -212,7 +217,7 @@ class HousekeepFilesTaskletTest {
 
       ListAppender<ILoggingEvent> appender = attachLogCapture();
       try {
-        new HousekeepFilesTasklet(excelFile.toString())
+        newTasklet(excelFile.toString())
             .execute(mock(StepContribution.class), mock(ChunkContext.class));
 
         List<String> messages =
@@ -247,8 +252,8 @@ class HousekeepFilesTaskletTest {
 
       MockEnvironment env = new MockEnvironment();
       env.setProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING, "false");
-      HousekeepFilesTasklet tasklet = new HousekeepFilesTasklet(excelFile.toString());
-      tasklet.env = env;
+      HousekeepFilesTasklet tasklet =
+          new HousekeepFilesTasklet(env, mock(SplibMailUtil.class), excelFile.toString());
 
       System.clearProperty(Constants.PROP_SFTP_STRICT_HOST_KEY_CHECKING);
       try {
@@ -267,8 +272,8 @@ class HousekeepFilesTaskletTest {
       Path excelFile = buildCreateDirExcel(tempDir);
 
       MockEnvironment env = new MockEnvironment();
-      HousekeepFilesTasklet tasklet = new HousekeepFilesTasklet(excelFile.toString());
-      tasklet.env = env;
+      HousekeepFilesTasklet tasklet =
+          new HousekeepFilesTasklet(env, mock(SplibMailUtil.class), excelFile.toString());
 
       System.setProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS, "12345");
       try {
@@ -278,23 +283,6 @@ class HousekeepFilesTaskletTest {
             .isEqualTo("12345");
       } finally {
         System.clearProperty(Constants.PROP_SFTP_CONNECT_TIMEOUT_MILLIS);
-      }
-    }
-
-    @Test
-    @DisplayName("when env is null (tasklet instantiated outside Spring), no system property "
-        + "is touched")
-    void doesNothingWhenEnvIsNull(@TempDir Path tempDir) throws Exception {
-      Path excelFile = buildCreateDirExcel(tempDir);
-
-      System.clearProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES);
-      try {
-        new HousekeepFilesTasklet(excelFile.toString())
-            .execute(mock(StepContribution.class), mock(ChunkContext.class));
-
-        assertThat(System.getProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES)).isNull();
-      } finally {
-        System.clearProperty(Constants.PROP_UNZIP_MAX_TOTAL_BYTES);
       }
     }
   }
@@ -307,7 +295,7 @@ class HousekeepFilesTaskletTest {
     @Test
     @DisplayName("a null excelPath fails @NotEmpty validation")
     void nullExcelPathFails() {
-      assertThatThrownBy(() -> new HousekeepFilesTasklet(null).execute(
+      assertThatThrownBy(() -> newTasklet(null).execute(
           mock(StepContribution.class), mock(ChunkContext.class)))
               .isInstanceOf(ViolationException.class);
     }
@@ -316,7 +304,7 @@ class HousekeepFilesTaskletTest {
     @Test
     @DisplayName("an empty excelPath fails @NotEmpty validation")
     void emptyExcelPathFails() {
-      assertThatThrownBy(() -> new HousekeepFilesTasklet("").execute(
+      assertThatThrownBy(() -> newTasklet("").execute(
           mock(StepContribution.class), mock(ChunkContext.class)))
               .isInstanceOf(ViolationException.class);
     }
@@ -325,7 +313,7 @@ class HousekeepFilesTaskletTest {
     @Test
     @DisplayName("a path pointing to a non-existent file fails @FileExists validation")
     void nonExistentFileFails() {
-      assertThatThrownBy(() -> new HousekeepFilesTasklet("/no/such/file.xlsx")
+      assertThatThrownBy(() -> newTasklet("/no/such/file.xlsx")
           .execute(mock(StepContribution.class), mock(ChunkContext.class)))
               .isInstanceOf(ViolationException.class);
     }
@@ -337,7 +325,7 @@ class HousekeepFilesTaskletTest {
       Path file = tempDir.resolve("settings.txt");
       Files.writeString(file, "not an excel file");
 
-      assertThatThrownBy(() -> new HousekeepFilesTasklet(file.toString())
+      assertThatThrownBy(() -> newTasklet(file.toString())
           .execute(mock(StepContribution.class), mock(ChunkContext.class)))
               .isInstanceOf(ViolationException.class);
     }
@@ -350,7 +338,7 @@ class HousekeepFilesTaskletTest {
       Files.writeString(file, "not actually an xlsx file");
 
       assertThatExceptionOfType(ViolationException.class)
-          .isThrownBy(() -> new HousekeepFilesTasklet(file.toString())
+          .isThrownBy(() -> newTasklet(file.toString())
               .execute(mock(StepContribution.class), mock(ChunkContext.class)))
           .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
               .extracting(BusinessViolation::getMessageId)
