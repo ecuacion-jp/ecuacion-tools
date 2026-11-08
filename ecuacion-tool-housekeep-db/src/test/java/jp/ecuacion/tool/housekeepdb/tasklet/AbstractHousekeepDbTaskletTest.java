@@ -44,6 +44,7 @@ import jp.ecuacion.tool.housekeepcommon.util.HousekeepWarnMailUtil;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DbConnectionInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.HousekeepInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.RelatedTableInfoBean;
+import jp.ecuacion.tool.housekeepdb.bean.forexceltable.UpdateColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.WhereConditionInfoBean;
 import jp.ecuacion.tool.housekeepdb.util.LangExcelUtil;
 import org.apache.poi.poifs.crypt.EncryptionInfo;
@@ -86,10 +87,7 @@ abstract class AbstractHousekeepDbTaskletTest {
   /** Column type usable for a timestamp column in this dialect's DDL. */
   protected abstract String timestampColumnType();
 
-  /**
-   * Column type for a timestamp column carrying no time-zone offset, matching the
-   * "LocalDateTime" value of the Excel "Expiration Check: Timestamp Column Data Type" column.
-   */
+  /** Column type for a timestamp column carrying no time-zone offset. */
   protected abstract String localTimestampColumnType();
 
   /** SQL expression yielding a point in time {@code daysAgo} days before now. */
@@ -125,8 +123,21 @@ abstract class AbstractHousekeepDbTaskletTest {
 
   protected Path buildExcelFile(List<String[]> dbConnectionRows, List<String[]> housekeepRows,
       List<String[]> relatedRows, List<String[]> searchRows) throws IOException {
+    return buildExcelFile(dbConnectionRows, housekeepRows, relatedRows, searchRows, List.of());
+  }
+
+  protected Path buildExcelFile(List<String[]> dbConnectionRows, List<String[]> housekeepRows,
+      List<String[]> relatedRows, List<String[]> searchRows, List<String[]> updateColumnRows)
+      throws IOException {
     return buildExcelFile(Locale.of("en"), dbConnectionRows, housekeepRows, relatedRows,
-        searchRows);
+        searchRows, updateColumnRows);
+  }
+
+  protected Path buildExcelFile(Locale locale, List<String[]> dbConnectionRows,
+      List<String[]> housekeepRows, List<String[]> relatedRows, List<String[]> searchRows)
+      throws IOException {
+    return buildExcelFile(locale, dbConnectionRows, housekeepRows, relatedRows, searchRows,
+        List.of());
   }
 
   /**
@@ -135,8 +146,8 @@ abstract class AbstractHousekeepDbTaskletTest {
    * from the "locale" row of the "Info" sheet.
    */
   protected Path buildExcelFile(Locale locale, List<String[]> dbConnectionRows,
-      List<String[]> housekeepRows, List<String[]> relatedRows, List<String[]> searchRows)
-      throws IOException {
+      List<String[]> housekeepRows, List<String[]> relatedRows, List<String[]> searchRows,
+      List<String[]> updateColumnRows) throws IOException {
     LangExcelUtil lang = new LangExcelUtil(locale);
 
     try (XSSFWorkbook wb = new XSSFWorkbook()) {
@@ -152,6 +163,8 @@ abstract class AbstractHousekeepDbTaskletTest {
           lang.getHeaderLabels(RelatedTableInfoBean.HEADER_LABEL_KEYS), relatedRows);
       writeSheet(wb, lang.get(LangExcelUtil.SEARCH_CONDITION_SETTINGS),
           lang.getHeaderLabels(WhereConditionInfoBean.HEADER_LABEL_KEYS), searchRows);
+      writeSheet(wb, lang.get(LangExcelUtil.UPDATE_COLUMN_SETTINGS),
+          lang.getHeaderLabels(UpdateColumnInfoBean.HEADER_LABEL_KEYS), updateColumnRows);
 
       Path path = Files.createTempFile("housekeep-db-test-", ".xlsx");
       try (OutputStream os = Files.newOutputStream(path)) {
@@ -251,7 +264,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(
               new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "hd_basic", "num1",
-                  "(none)", null, null, null, null, null, null, null, null}),
+                  "(none)", null, null, null, null, null, null, null}),
           List.of(), List.of());
 
       runTasklet(excel);
@@ -270,7 +283,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(
               new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "hd_withflag",
-                  "code", "quotes(')", null, null, null, "rem_flg", null, null, null, null}),
+                  "code", "quotes(')", null, null, "rem_flg", null, null, null, null}),
           List.of(), List.of());
 
       runTasklet(excel);
@@ -297,7 +310,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE", "sd_basic",
-              "num1", "(none)", null, null, null, "rem_flg", null, null, null, null}),
+              "num1", "(none)", null, null, "rem_flg", null, null, null, null}),
           List.of(), List.of());
 
       runTasklet(excel);
@@ -318,7 +331,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE", "sd_rerun",
-              "num1", "(none)", null, null, null, "rem_flg", null, null, null, null}),
+              "num1", "(none)", null, null, "rem_flg", null, null, null, null}),
           List.of(), List.of());
 
       runTasklet(excel);
@@ -335,7 +348,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE", "sd_audit",
-              "num1", "(none)", null, null, null, "rem_flg", "upd_at", "upd_by", "quotes(')",
+              "num1", "(none)", null, null, "rem_flg", "upd_at", "upd_by", "quotes(')",
               "SYSTEM"}),
           List.of(), List.of());
 
@@ -344,6 +357,26 @@ abstract class AbstractHousekeepDbTaskletTest {
       assertThat(countRows(
           "select count(*) from sd_audit where rem_flg = true and upd_at is not null "
               + "and upd_by = 'SYSTEM'")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("also updates a configured date (not timestamp) column")
+    void updatesDateColumn() throws Exception {
+      execute("create table sd_audit_date (num1 integer primary key, rem_flg boolean default "
+          + "false, upd_on date)");
+      execute("insert into sd_audit_date values (1, false, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
+              "sd_audit_date", "num1", "(none)", null, null, "rem_flg", "upd_on", null,
+              null, null}),
+          List.of(), List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows(
+          "select count(*) from sd_audit_date where rem_flg = true and upd_on is not null"))
+          .isEqualTo(1);
     }
   }
 
@@ -365,7 +398,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "exp_basic",
-              "num1", "(none)", "last_updated", "OffsetDateTime", "30", null, null, null, null,
+              "num1", "(none)", "last_updated", "30", null, null, null, null,
               null}),
           List.of(), List.of());
 
@@ -376,8 +409,7 @@ abstract class AbstractHousekeepDbTaskletTest {
     }
 
     @Test
-    @DisplayName("works the same against an offset-less timestamp column (\"LocalDateTime\"), "
-        + "which the generated SQL handles without consulting the configured column data type")
+    @DisplayName("works the same against an offset-less timestamp column")
     void onlyDeletesExpiredRowsWithLocalDateTimeColumn() throws Exception {
       execute("create table exp_local (num1 integer primary key, last_updated "
           + localTimestampColumnType() + ")");
@@ -386,7 +418,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "exp_local", "num1", "(none)", "last_updated", "LocalDateTime", "30", null, null,
+              "exp_local", "num1", "(none)", "last_updated", "30", null, null,
               null, null, null}),
           List.of(), List.of());
 
@@ -394,6 +426,26 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       assertThat(countRows("select count(*) from exp_local where num1 = 1")).isZero();
       assertThat(countRows("select count(*) from exp_local where num1 = 2")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("works the same against a date column (on postgres, comparing an untyped "
+        + "current-time literal with a date column used to fail)")
+    void onlyDeletesExpiredRowsWithDateColumn() throws Exception {
+      execute("create table exp_date (num1 integer primary key, last_updated date)");
+      execute("insert into exp_date values (1, " + timestampDaysAgoExpr(100) + ")");
+      execute("insert into exp_date values (2, " + timestampDaysAgoExpr(1) + ")");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "exp_date", "num1", "(none)", "last_updated", "30", null, null,
+              null, null, null}),
+          List.of(), List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from exp_date where num1 = 1")).isZero();
+      assertThat(countRows("select count(*) from exp_date where num1 = 2")).isEqualTo(1);
     }
   }
 
@@ -415,7 +467,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "rt_parent",
-              "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "num1", "(none)", null, null, null, null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "Delete", "DELETE", "child_code",
               "rt_child", "code", "quotes(')", null, null, null, null, null}),
           List.of());
@@ -437,7 +489,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "rt_parent2",
-              "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "num1", "(none)", null, null, null, null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
               "CHECK_AND_SKIP_DELETE", "child_code", "rt_child2", "code", "quotes(')", null, null,
               null, null, null}),
@@ -458,7 +510,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "rt_parent3",
-              "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "num1", "(none)", null, null, null, null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
               "CHECK_AND_SKIP_DELETE", "child_code", "rt_child3", "code", "quotes(')", null, null,
               null, null, null}),
@@ -482,7 +534,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
-              "rt_parent_sd", "num1", "(none)", null, null, null, "rem_flg", null, null, null,
+              "rt_parent_sd", "num1", "(none)", null, null, "rem_flg", null, null, null,
               null}),
           List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
               "CHECK_AND_SKIP_DELETE", "child_code", "rt_child_sd", "code", "quotes(')",
@@ -508,7 +560,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
-              "rt_parent_sd2", "num1", "(none)", null, null, null, "rem_flg", null, null, null,
+              "rt_parent_sd2", "num1", "(none)", null, null, "rem_flg", null, null, null,
               null}),
           List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
               "CHECK_AND_SKIP_DELETE", "child_code", "rt_child_sd2", "code", "quotes(')",
@@ -538,9 +590,9 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "sc_basic",
-              "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "num1", "(none)", null, null, null, null, null, null, null}),
           List.of(),
-          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "COMPLETED"}));
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "COMPLETED"}));
 
       runTasklet(excel);
 
@@ -559,16 +611,280 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "sc_multi", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "sc_multi", "num1", "(none)", null, null, null, null, null, null, null}),
           List.of(),
-          List.of(new String[] {"task-1", "status", "quotes(')", "COMPLETED"},
-              new String[] {"task-1", "category", "quotes(')", "A"}));
+          List.of(new String[] {"task-1", "status", "equal", "quotes(')", "COMPLETED"},
+              new String[] {"task-1", "category", "equal", "quotes(')", "A"}));
 
       runTasklet(excel);
 
       assertThat(countRows("select count(*) from sc_multi where num1 = 1")).isZero();
       assertThat(countRows("select count(*) from sc_multi where num1 = 2")).isEqualTo(1);
       assertThat(countRows("select count(*) from sc_multi where num1 = 3")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("\"not equal\" also matches rows whose column is null")
+    void notEqualAlsoMatchesNull() throws Exception {
+      execute("create table sc_ne (num1 integer primary key, status varchar(20))");
+      execute("insert into sc_ne values (1, 'COMPLETED'), (2, 'RUNNING'), (3, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "sc_ne",
+              "num1", "(none)", null, null, null, null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "status", "not equal", "quotes(')", "RUNNING"}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from sc_ne where num1 = 1")).isZero();
+      assertThat(countRows("select count(*) from sc_ne where num1 = 2")).isEqualTo(1);
+      assertThat(countRows("select count(*) from sc_ne where num1 = 3")).isZero();
+    }
+
+    @Test
+    @DisplayName("\"equal\" with (null) matches only rows whose column is null")
+    void equalNullMatchesNull() throws Exception {
+      execute("create table sc_eq_null (num1 integer primary key, status varchar(20))");
+      execute("insert into sc_eq_null values (1, 'COMPLETED'), (2, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "sc_eq_null", "num1", "(none)", null, null, null, null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "(none)", "(null)"}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from sc_eq_null where num1 = 1")).isEqualTo(1);
+      assertThat(countRows("select count(*) from sc_eq_null where num1 = 2")).isZero();
+    }
+
+    @Test
+    @DisplayName("\"not equal\" with (null) matches only rows whose column is not null")
+    void notEqualNullMatchesNotNull() throws Exception {
+      execute("create table sc_ne_null (num1 integer primary key, status varchar(20))");
+      execute("insert into sc_ne_null values (1, 'COMPLETED'), (2, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "sc_ne_null", "num1", "(none)", null, null, null, null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "status", "not equal", "(none)", "(null)"}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from sc_ne_null where num1 = 1")).isZero();
+      assertThat(countRows("select count(*) from sc_ne_null where num1 = 2")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("a boolean column can be compared with an unquoted true / false")
+    void comparesBooleanColumn() throws Exception {
+      execute("create table sc_bool (num1 integer primary key, done_flg boolean)");
+      execute("insert into sc_bool values (1, true), (2, false), (3, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
+              "sc_bool", "num1", "(none)", null, null, null, null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "done_flg", "not equal", "(none)", "true"}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from sc_bool where num1 = 1")).isEqualTo(1);
+      assertThat(countRows("select count(*) from sc_bool where num1 = 2")).isZero();
+      assertThat(countRows("select count(*) from sc_bool where num1 = 3")).isZero();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // update
+  // -------------------------------------------------------------------------
+
+  @Nested
+  @DisplayName("update")
+  class Update {
+
+    private String[] updateRow(String table, @Nullable String timestampColumn,
+        @Nullable String days) {
+      return new String[] {"task-1", "conn1", "Update", "UPDATE", table, "num1", "(none)",
+          timestampColumn, days, null, null, null, null, null};
+    }
+
+    @Test
+    @DisplayName("rewrites the configured columns of the matching rows with a fixed value, the "
+        + "current timestamp and null, leaving the other rows and columns untouched")
+    void rewritesConfiguredColumns() throws Exception {
+      execute("create table upd_basic (num1 integer primary key, status varchar(20), "
+          + "user_ref varchar(20), phone varchar(20), anonymized boolean, anonymized_at "
+          + timestampColumnType() + ", memo varchar(20))");
+      execute("insert into upd_basic values (1, 'CLOSED', 'U1', '090', false, null, 'm1'), "
+          + "(2, 'OPEN', 'U2', '080', false, null, 'm2')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_basic", null, null)), List.of(),
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "CLOSED"}),
+          List.of(
+              new String[] {"task-1", "user_ref", "Fixed Value", "FIXED_VALUE", "quotes(')",
+                  "SYS001"},
+              new String[] {"task-1", "phone", "NULL", "NULL", null, null},
+              new String[] {"task-1", "anonymized", "Fixed Value", "FIXED_VALUE", "(none)",
+                  "true"},
+              new String[] {"task-1", "anonymized_at", "Current Timestamp", "CURRENT_TIMESTAMP",
+                  null, null}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from upd_basic where num1 = 1 and user_ref = "
+          + "'SYS001' and phone is null and anonymized = true and anonymized_at is not null "
+          + "and memo = 'm1'")).isEqualTo(1);
+      assertThat(countRows("select count(*) from upd_basic where num1 = 2 and user_ref = 'U2' "
+          + "and phone = '080' and anonymized = false and anonymized_at is null"))
+          .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("rows already processed are left out by a search condition, so a re-run "
+        + "rewrites nothing")
+    void searchConditionLeavesProcessedRowsOut() throws Exception {
+      execute("create table upd_rerun (num1 integer primary key, anonymized boolean, "
+          + "upd_cnt integer)");
+      execute("insert into upd_rerun values (1, false, 0), (2, true, 0)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_rerun", null, null)), List.of(),
+          List.<String[]>of(new String[] {"task-1", "anonymized", "not equal", "(none)", "true"}),
+          List.of(
+              new String[] {"task-1", "anonymized", "Fixed Value", "FIXED_VALUE", "(none)",
+                  "true"},
+              new String[] {"task-1", "upd_cnt", "Fixed Value", "FIXED_VALUE", "(none)", "1"}));
+
+      runTasklet(excel);
+      execute("update upd_rerun set upd_cnt = 9 where num1 = 1");
+      runTasklet(excel);
+
+      // num1 = 1 is rewritten only by the first run, and num1 = 2 by neither.
+      assertThat(countRows("select count(*) from upd_rerun where num1 = 1 and upd_cnt = 9"))
+          .isEqualTo(1);
+      assertThat(countRows("select count(*) from upd_rerun where num1 = 2 and upd_cnt = 0"))
+          .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("only rewrites rows whose timestamp column is older than the validity days")
+    void appliesExpirationCheck() throws Exception {
+      execute("create table upd_exp (num1 integer primary key, last_updated "
+          + timestampColumnType() + ", phone varchar(20))");
+      execute("insert into upd_exp values (1, " + timestampDaysAgoExpr(100) + ", '090')");
+      execute("insert into upd_exp values (2, " + timestampDaysAgoExpr(1) + ", '080')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_exp", "last_updated", "30")), List.of(), List.of(),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from upd_exp where num1 = 1 and phone is null"))
+          .isEqualTo(1);
+      assertThat(countRows("select count(*) from upd_exp where num1 = 2 and phone = '080'"))
+          .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("walks every batch when the matching rows outnumber maxSelectLines, even though "
+        + "the rewritten rows still match the conditions")
+    void walksEveryBatch() throws Exception {
+      execute("create table upd_paging (num1 integer primary key, phone varchar(20))");
+      execute("insert into upd_paging values (1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5')");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_paging", null, null)), List.of(), List.of(),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      runTasklet(excel, 2);
+
+      assertThat(countRows("select count(*) from upd_paging where phone is null")).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("hard-deletes the related-table rows linked to the rewritten rows only")
+    void hardDeletesRelatedRows() throws Exception {
+      execute("create table upd_parent (num1 integer primary key, status varchar(20), "
+          + "phone varchar(20))");
+      execute("create table upd_child (code varchar(20) primary key, parent_num integer, "
+          + "rem_flg boolean default false)");
+      execute("insert into upd_parent values (1, 'CLOSED', '090'), (2, 'OPEN', '080')");
+      execute("insert into upd_child values ('a1', 1, false), ('a2', 1, false), ('b1', 2, false)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_parent", null, null)),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE", "num1", "upd_child",
+              "parent_num", "(none)", null, null, null, null, null}),
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "CLOSED"}),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      runTasklet(excel);
+
+      // Hard-deleted, not soft-deleted: the rows are gone rather than flagged.
+      assertThat(countRows("select count(*) from upd_child where parent_num = 1")).isZero();
+      assertThat(countRows("select count(*) from upd_child where parent_num = 2")).isEqualTo(1);
+      assertThat(countRows("select count(*) from upd_parent where phone is null")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("skips rewriting a row that has a linked related-table row (Check and Skip "
+        + "Delete)")
+    void skipsRowWithLinkedRelatedRow() throws Exception {
+      execute("create table upd_skip_parent (num1 integer primary key, phone varchar(20))");
+      execute("create table upd_skip_child (code varchar(20) primary key, parent_num integer)");
+      execute("insert into upd_skip_parent values (1, '090'), (2, '080')");
+      execute("insert into upd_skip_child values ('a1', 1)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_skip_parent", null, null)),
+          List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
+              "CHECK_AND_SKIP_DELETE", "num1", "upd_skip_child", "parent_num", "(none)", null,
+              null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from upd_skip_parent where num1 = 1 and phone = "
+          + "'090'")).isEqualTo(1);
+      assertThat(countRows("select count(*) from upd_skip_parent where num1 = 2 and phone is "
+          + "null")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("logs the per-table update count, and the related-table delete count")
+    void logsUpdateAndDeleteCounts() throws Exception {
+      execute("create table upd_log (num1 integer primary key, phone varchar(20))");
+      execute("create table upd_log_child (code varchar(20) primary key, parent_num integer)");
+      execute("insert into upd_log values (1, '090'), (2, '080')");
+      execute("insert into upd_log_child values ('a1', 1)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(updateRow("upd_log", null, null)),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE", "num1", "upd_log_child",
+              "parent_num", "(none)", null, null, null, null, null}),
+          List.of(),
+          List.<String[]>of(new String[] {"task-1", "phone", "NULL", "NULL", null, null}));
+
+      ListAppender<ILoggingEvent> appender = attachLogCapture();
+      try {
+        runTasklet(excel);
+      } finally {
+        detachLogCapture(appender);
+      }
+
+      @SuppressWarnings("null")
+      List<String> messages = appender.list.stream()
+          .map(event -> event.getFormattedMessage().trim()).toList();
+
+      assertThat(messages).contains("Update records : 2 record(s) in upd_log",
+          "Delete records : 1 record(s) from upd_log_child");
     }
   }
 
@@ -591,9 +907,9 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.of(
               new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "mt_a", "num1",
-                  "(none)", null, null, null, null, null, null, null, null},
+                  "(none)", null, null, null, null, null, null, null},
               new String[] {"task-2", "conn1", "Soft Delete", "SOFT_DELETE", "mt_b", "num1",
-                  "(none)", null, null, null, "rem_flg", null, null, null, null}),
+                  "(none)", null, null, "rem_flg", null, null, null, null}),
           List.of(), List.of());
 
       runTasklet(excel);
@@ -708,7 +1024,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "pg_basic", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "pg_basic", "num1", "(none)", null, null, null, null, null, null, null}),
           List.of(), List.of());
 
       // maxSelectLines=2 forces the while(true) loop to iterate 3 times for 5 rows.
@@ -729,7 +1045,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "pg_skip_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "pg_skip_parent", "num1", "(none)", null, null, null, null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
               "CHECK_AND_SKIP_DELETE", "child_code", "pg_skip_child", "code", "quotes(')", null,
               null, null, null, null}),
@@ -752,7 +1068,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
-              "pg_soft", "num1", "(none)", null, null, null, "rem_flg", null, null, null, null}),
+              "pg_soft", "num1", "(none)", null, null, "rem_flg", null, null, null, null}),
           List.of(), List.of());
 
       runTasklet(excel, 2);
@@ -772,7 +1088,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "pg_mix_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "pg_mix_parent", "num1", "(none)", null, null, null, null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
               "CHECK_AND_SKIP_DELETE", "child_code", "pg_mix_child", "code", "quotes(')", null,
               null, null, null, null}),
@@ -796,7 +1112,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "pg_allskip_parent", "num1", "(none)", null, null, null, null, null, null, null,
+              "pg_allskip_parent", "num1", "(none)", null, null, null, null, null, null,
               null}),
           List.<String[]>of(new String[] {"task-1", "Check and Skip Delete",
               "CHECK_AND_SKIP_DELETE", "child_code", "pg_allskip_child", "code", "quotes(')", null,
@@ -829,7 +1145,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "log_basic", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "log_basic", "num1", "(none)", null, null, null, null, null, null, null}),
           List.of(), List.of());
 
       ListAppender<ILoggingEvent> appender = attachLogCapture();
@@ -870,7 +1186,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "log_empty", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "log_empty", "num1", "(none)", null, null, null, null, null, null, null}),
           List.of(), List.of());
 
       ListAppender<ILoggingEvent> appender = attachLogCapture();
@@ -908,9 +1224,9 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.of(
               new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "cv_dup", "num1",
-                  "(none)", null, null, null, null, null, null, null, null},
+                  "(none)", null, null, null, null, null, null, null},
               new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "cv_dup", "num1",
-                  "(none)", null, null, null, null, null, null, null, null}),
+                  "(none)", null, null, null, null, null, null, null}),
           List.of(), List.of());
 
       assertThatExceptionOfType(ViolationException.class).isThrownBy(() -> runTasklet(excel))
@@ -924,7 +1240,7 @@ abstract class AbstractHousekeepDbTaskletTest {
     void unknownDbConnectionIdFails() throws Exception {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "no-such-conn", "Hard Delete", "HARD_DELETE",
-              "cv_unknown_conn", "num1", "(none)", null, null, null, null, null, null, null,
+              "cv_unknown_conn", "num1", "(none)", null, null, null, null, null, null,
               null}),
           List.of(), List.of());
 
@@ -940,7 +1256,7 @@ abstract class AbstractHousekeepDbTaskletTest {
     void orphanRelatedTableRowFails() throws Exception {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "cv_orphan_rel", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "cv_orphan_rel", "num1", "(none)", null, null, null, null, null, null, null}),
           List.<String[]>of(new String[] {"task-unknown", "Delete", "DELETE",
               "child_code", "rt_orphan", "code", "quotes(')", null, null, null, null, null}),
           List.of());
@@ -957,10 +1273,11 @@ abstract class AbstractHousekeepDbTaskletTest {
     void orphanSearchConditionRowFails() throws Exception {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "cv_orphan_cond", "num1", "(none)", null, null, null, null, null, null, null,
+              "cv_orphan_cond", "num1", "(none)", null, null, null, null, null, null,
               null}),
           List.of(),
-          List.<String[]>of(new String[] {"task-unknown", "status", "quotes(')", "COMPLETED"}));
+          List.<String[]>of(
+              new String[] {"task-unknown", "status", "equal", "quotes(')", "COMPLETED"}));
 
       assertThatExceptionOfType(ViolationException.class).isThrownBy(() -> runTasklet(excel))
           .satisfies(ex -> assertThat(ex.getViolations().getBusinessViolations())
@@ -1023,8 +1340,7 @@ abstract class AbstractHousekeepDbTaskletTest {
     private String[] checkRow(String taskId, String table, @Nullable String timestampColumn,
         @Nullable String days, @Nullable String softDeleteColumn) {
       return new String[] {taskId, "conn1", "Abnormal Data Check", "ABNORMAL_DATA_CHECK", table,
-          "num1", "(none)", timestampColumn, timestampColumn == null ? null : "OffsetDateTime",
-          days, softDeleteColumn, null, null, null, null};
+          "num1", "(none)", timestampColumn, days, softDeleteColumn, null, null, null, null};
     }
 
     @Test
@@ -1036,7 +1352,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(checkRow("task-1", "ec_found", null, null, null)), List.of(),
-          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "PENDING"}));
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "PENDING"}));
 
       ListAppender<ILoggingEvent> appender = attachLogCapture();
       String content;
@@ -1063,7 +1379,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(checkRow("task-1", "ec_none", null, null, null)), List.of(),
-          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "PENDING"}));
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "PENDING"}));
 
       SplibMailUtil mailUtil = mock(SplibMailUtil.class);
       run(excel, mailEnv(), mailUtil);
@@ -1137,7 +1453,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(checkRow("task-1", "ec_multi1", null, null, null),
               new String[] {"task-2", "conn1", "Hard Delete", "HARD_DELETE", "ec_multi_del",
-                  "num1", "(none)", null, null, null, null, null, null, null, null},
+                  "num1", "(none)", null, null, null, null, null, null, null},
               checkRow("task-3", "ec_multi2", null, null, null)),
           List.of(), List.of());
 
@@ -1308,7 +1624,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
-              "rts_parent", "num1", "(none)", null, null, null, "rem_flg", null, null, null,
+              "rts_parent", "num1", "(none)", null, null, "rem_flg", null, null, null,
               null}),
           List.<String[]>of(new String[] {"task-1", "Delete", "DELETE",
               "child_code", "rts_child", "code", "quotes(')", "rem_flg", null, null, null, null}),
@@ -1332,7 +1648,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
-              "rts_parent2", "num1", "(none)", null, null, null, "rem_flg", null, null, null,
+              "rts_parent2", "num1", "(none)", null, null, "rem_flg", null, null, null,
               null}),
           List.<String[]>of(new String[] {"task-1", "Delete", "DELETE",
               "child_code", "rts_child2", "code", "quotes(')", "rem_flg", "upd_at", "upd_by",
@@ -1343,6 +1659,31 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       assertThat(countRows("select count(*) from rts_child2 where rem_flg = true "
           + "and upd_at is not null and upd_by = 'SYSTEM'")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("also updates the related row's configured date (not timestamp) column")
+    void updatesDateColumnOnRelatedRow() throws Exception {
+      execute("create table rts_parent3 (num1 integer primary key, rem_flg boolean default "
+          + "false, child_code varchar(20))");
+      execute("create table rts_child3 (code varchar(20) primary key, rem_flg boolean default "
+          + "false, upd_on date)");
+      execute("insert into rts_parent3 values (1, false, 'c1')");
+      execute("insert into rts_child3 values ('c1', false, null)");
+
+      Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
+          List.<String[]>of(new String[] {"task-1", "conn1", "Soft Delete", "SOFT_DELETE",
+              "rts_parent3", "num1", "(none)", null, null, "rem_flg", null, null, null,
+              null}),
+          List.<String[]>of(new String[] {"task-1", "Delete", "DELETE",
+              "child_code", "rts_child3", "code", "quotes(')", "rem_flg", "upd_on", null, null,
+              null}),
+          List.of());
+
+      runTasklet(excel);
+
+      assertThat(countRows("select count(*) from rts_child3 where rem_flg = true "
+          + "and upd_on is not null")).isEqualTo(1);
     }
   }
 
@@ -1365,7 +1706,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "rtf_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "rtf_parent", "num1", "(none)", null, null, null, null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "Delete", "DELETE",
               "child_code", "rtf_child", "code", "quotes(')", "rem_flg", null, null, null, null}),
           List.of());
@@ -1386,7 +1727,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "rtf_parent2", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "rtf_parent2", "num1", "(none)", null, null, null, null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "Delete", "DELETE",
               "child_code", "rtf_child2", "code", "quotes(')", "rem_flg", null, null, null, null}),
           List.of());
@@ -1419,7 +1760,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "mrt_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "mrt_parent", "num1", "(none)", null, null, null, null, null, null, null}),
           List.of(
               new String[] {"task-1", "Delete", "DELETE", "child_code",
                   "mrt_child_del", "code", "quotes(')", null, null, null, null, null},
@@ -1448,7 +1789,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "mrt2_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "mrt2_parent", "num1", "(none)", null, null, null, null, null, null, null}),
           List.of(
               new String[] {"task-1", "Delete", "DELETE", "child_x_code", "mrt2_child_x", "code",
                   "quotes(')", null, null, null, null, null},
@@ -1479,7 +1820,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "mrt3_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "mrt3_parent", "num1", "(none)", null, null, null, null, null, null, null}),
           List.of(
               new String[] {"task-1", "Check and Skip Delete", "CHECK_AND_SKIP_DELETE",
                   "skip1_code", "mrt3_skip1", "code", "quotes(')", null, null, null, null, null},
@@ -1513,7 +1854,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "cas_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "cas_parent", "num1", "(none)", null, null, null, null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "Delete", "DELETE", "child_code", "cas_child",
               "code", "quotes(')", null, null, null, null, null}),
           List.of());
@@ -1553,7 +1894,7 @@ abstract class AbstractHousekeepDbTaskletTest {
 
       Path excel = buildExcelFile(List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE",
-              "rt2_parent", "num1", "(none)", null, null, null, null, null, null, null, null}),
+              "rt2_parent", "num1", "(none)", null, null, null, null, null, null, null}),
           // table_a's row is listed first, so it is processed first and its deletion cascades
           // away table_b's row before table_b's own related-table row is processed - see
           // HousekeepRelatedTableDeleter.deleteRelatedData()'s stream filter, which preserves
@@ -1593,9 +1934,9 @@ abstract class AbstractHousekeepDbTaskletTest {
           List.of(dbConnectionRow("conn1"), dbConnectionRow("conn2")),
           List.of(
               new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "mc_a", "num1",
-                  "(none)", null, null, null, null, null, null, null, null},
+                  "(none)", null, null, null, null, null, null, null},
               new String[] {"task-2", "conn2", "Hard Delete", "HARD_DELETE", "mc_b", "num1",
-                  "(none)", null, null, null, null, null, null, null, null}),
+                  "(none)", null, null, null, null, null, null, null}),
           List.of(), List.of());
 
       runTasklet(excel);
@@ -1628,10 +1969,10 @@ abstract class AbstractHousekeepDbTaskletTest {
       // Every sheet is exercised so that a mistranslated label on any of them fails this test.
       Path excel = buildExcelFile(Locale.of("ja"), List.<String[]>of(dbConnectionRow("conn1")),
           List.<String[]>of(new String[] {"task-1", "conn1", "論理廃止", "SOFT_DELETE", "loc_parent",
-              "num1", "(none)", null, null, null, "rem_flg", null, null, null, null}),
+              "num1", "(none)", null, null, "rem_flg", null, null, null, null}),
           List.<String[]>of(new String[] {"task-1", "論理廃止／削除", "DELETE", "child_code",
               "loc_child", "code", "quotes(')", "rem_flg", null, null, null, null}),
-          List.<String[]>of(new String[] {"task-1", "status", "quotes(')", "COMPLETED"}));
+          List.<String[]>of(new String[] {"task-1", "status", "equal", "quotes(')", "COMPLETED"}));
 
       runTasklet(excel);
 
@@ -1665,7 +2006,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path excel = buildExcelFile(List.<String[]>of(row),
           List.<String[]>of(
               new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "pw_var", "num1",
-                  "(none)", null, null, null, null, null, null, null, null}),
+                  "(none)", null, null, null, null, null, null, null}),
           List.of(), List.of());
 
       MockEnvironment env = new MockEnvironment();
@@ -1693,7 +2034,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       Path excel = buildExcelFile(List.<String[]>of(row),
           List.<String[]>of(
               new String[] {"task-1", "conn1", "Hard Delete", "HARD_DELETE", "pw_var_unresolved",
-                  "num1", "(none)", null, null, null, null, null, null, null, null}),
+                  "num1", "(none)", null, null, null, null, null, null, null}),
           List.of(), List.of());
 
       // runTasklet() uses an empty MockEnvironment, so "${DB_PASSWORD}" cannot resolve.

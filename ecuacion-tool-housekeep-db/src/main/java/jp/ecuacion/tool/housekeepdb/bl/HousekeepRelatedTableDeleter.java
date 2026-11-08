@@ -86,7 +86,7 @@ public class HousekeepRelatedTableDeleter {
       List<SqlConditionInterface> whereList = new ArrayList<>();
       whereList.add(relatedBean.getRelatedTableIdColumnInfo().getBoundCondition(value));
 
-      if (info.isSoftDelete()) {
+      if (info.isRelatedRecordSoftDelete()) {
         whereList.add(relatedBean.getSoftDeleteColumnInfo().getBoundCondition(false));
       }
 
@@ -162,7 +162,7 @@ public class HousekeepRelatedTableDeleter {
         // Delete (or soft-delete) the related-table record whose key column holds the value just
         // read back above.
         final Object val = rs.getObject(fkCol.getColumn());
-        recordDeleter.softOrHardDeleteOne(conn, relatedInfo, info.isSoftDelete(),
+        recordDeleter.softOrHardDeleteOne(conn, relatedInfo, info.isRelatedRecordSoftDelete(),
             info.getDbConnectionInfo().getProtocol(), val, tableRecordDeleted, 6);
       }
     }

@@ -248,9 +248,12 @@ class CommandApiControllerTest {
       mockMvc
           .perform(post("/api/key/execute").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
-          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"))
+          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value(0))
           .andExpect(jsonPath("$.stdout").value("hello"))
-          .andExpect(jsonPath("$.stderr").value(""));
+          .andExpect(jsonPath("$.stderr").value(""))
+          // "*Truncated" appear only when output actually was truncated
+          .andExpect(jsonPath("$.stdoutTruncated").doesNotExist())
+          .andExpect(jsonPath("$.stderrTruncated").doesNotExist());
     }
 
     @Test
@@ -292,7 +295,7 @@ class CommandApiControllerTest {
       mockMvc
           .perform(post("/api/key/execute").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, CORRECT_API_KEY))
-          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
+          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value(0));
     }
 
     @Test
@@ -300,7 +303,7 @@ class CommandApiControllerTest {
       mockMvc
           .perform(post("/api/key/execute").param("scriptId", SCRIPT_ID)
               .header(SplibApiKeyAuthenticationFilter.HEADER_API_KEY, OTHER_API_KEY))
-          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
+          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value(0));
     }
 
     @Test
@@ -369,7 +372,7 @@ class CommandApiControllerTest {
     @Test
     void getOnGetOnlyScriptSucceeds() throws Exception {
       mockMvc.perform(get("/api/public/execute").param("scriptId", GET_ONLY_SCRIPT_ID))
-          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"))
+          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value(0))
           .andExpect(jsonPath("$.stdout").value("hello"))
           .andExpect(jsonPath("$.stderr").value(""));
     }
@@ -383,7 +386,7 @@ class CommandApiControllerTest {
     @Test
     void postOnPostOnlyScriptSucceeds() throws Exception {
       mockMvc.perform(post("/api/public/execute").param("scriptId", SCRIPT_ID))
-          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
+          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value(0));
     }
 
     @Test
@@ -411,7 +414,7 @@ class CommandApiControllerTest {
       mockMvc
           .perform(get("/api/public/execute").param("scriptId", ALL_METHODS_SCRIPT_ID)
               .param("parameters", "param1,param2"))
-          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value("0"));
+          .andExpect(status().isOk()).andExpect(jsonPath("$.returnCode").value(0));
     }
 
     /**

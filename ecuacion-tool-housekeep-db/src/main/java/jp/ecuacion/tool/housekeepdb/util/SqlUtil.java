@@ -90,6 +90,12 @@ public class SqlUtil {
    * Creates the condition that filters records whose {@code timestampColumn} is older than
    * {@code deleteTargetInDays} days.
    *
+   * <p>The current time literal is given an explicit temporal type, and the column is compared
+   *     with it as-is, so that the condition works whichever of date, timestamp (without time zone)
+   *     or timestamp with time zone the column is. On postgres, an untyped literal would be
+   *     resolved to the column's type instead, and {@code 'now' - date_column} gives an integer
+   *     (days), which then fails to compare with {@code '30 days'}.</p>
+   *
    * @param protocol database kind like 'postgresql'
    * @param timestampColumn column holding the timestamp to check
    * @param deleteTargetInDays number of days used as the expiration threshold
@@ -100,13 +106,14 @@ public class SqlUtil {
     String now = getTimestampNow(protocol);
 
     if (protocol.equals("postgresql")) {
-      return "'" + now + "' - " + timestampColumn + " > '" + deleteTargetInDays + " days'";
+      return timestampColumn + " < timestamptz '" + now + "' - interval '" + deleteTargetInDays
+          + " days'";
 
     } else if (protocol.equals("mysql")) {
       // The "timestamp" keyword makes the literal's temporal type explicit so it can be used in
       // interval arithmetic without relying on an implicit string-to-datetime conversion.
-      return "timestamp '" + now + "' - interval '" + deleteTargetInDays + "' day > "
-          + timestampColumn;
+      return timestampColumn + " < timestamp '" + now + "' - interval '" + deleteTargetInDays
+          + "' day";
 
     } else {
       throw new RuntimeException("Protocol not recognized. protocol: " + protocol);

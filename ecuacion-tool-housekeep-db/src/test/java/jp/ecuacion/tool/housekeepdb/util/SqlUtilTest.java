@@ -119,21 +119,23 @@ class SqlUtilTest {
   class GetExpirationCondition {
 
     @Test
-    @DisplayName("'postgresql' protocol renders interval subtraction with a quoted 'n days'")
+    @DisplayName("'postgresql' protocol compares the column with a timestamptz literal minus a "
+        + "quoted 'n days' interval")
     void postgresql() {
       String result = SqlUtil.getExpirationCondition("postgresql", "updated_at", 30);
 
       assertThat(result).matches(
-          "'.+' - updated_at > '30 days'");
+          "updated_at < timestamptz '.+' - interval '30 days'");
     }
 
     @Test
-    @DisplayName("'mysql' protocol renders interval subtraction with a quoted 'n day'")
+    @DisplayName("'mysql' protocol compares the column with a timestamp literal minus a quoted "
+        + "'n' day interval")
     void mysql() {
       String result = SqlUtil.getExpirationCondition("mysql", "updated_at", 30);
 
       assertThat(result).matches(
-          "timestamp '.+' - interval '30' day > updated_at");
+          "updated_at < timestamp '.+' - interval '30' day");
     }
 
     @Test

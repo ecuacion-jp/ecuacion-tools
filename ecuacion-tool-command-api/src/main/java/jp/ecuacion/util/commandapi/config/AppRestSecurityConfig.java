@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 /**
- * Provides app secutiry config.
+ * Provides app security config.
  */
 @Configuration
 @EnableWebSecurity

@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import jp.ecuacion.lib.core.logging.DetailLogger;
+import jp.ecuacion.tool.housekeepdb.bean.ColumnInfoBean;
 import jp.ecuacion.tool.housekeepdb.bean.SqlConditionInterface;
 import jp.ecuacion.tool.housekeepdb.bean.forexceltable.DeleteTargetInfo;
 import jp.ecuacion.tool.housekeepdb.util.AppLogUtil;
@@ -31,10 +32,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.event.Level;
 
 /**
- * Deletes (or soft-deletes) the one record in a {@link DeleteTargetInfo} table identified by a
- * key value, shared by {@link HousekeepMainTableDeleter} (target table) and
- * {@link HousekeepRelatedTableDeleter} (related table) since both delete a single record the same
+ * Deletes (or soft-deletes) or updates the one record in a table identified by a key value,
+ * shared by {@link HousekeepMainTableDeleter} (target table) and
+ * {@link HousekeepRelatedTableDeleter} (related table) since both process a single record the same
  * way once they've settled on which table / key column / key value to use.
+ *
+ * <p>A soft delete is a preset of {@link #updateOne}: it rewrites the soft-delete flag (and the
+ *     optional "update timestamp" / "update user id" columns) of the record the same way an
+ *     update task rewrites its "Update Column Settings" columns.</p>
  */
 public class RecordDeleter {
 
@@ -71,8 +76,9 @@ public class RecordDeleter {
       String protocol, Object keyValue, Map<String, Integer> tableRecordDeleted, int indents)
       throws SQLException {
 
-    List<SqlConditionInterface> updateSetList = new ArrayList<>();
+    int count;
     if (isSoftDelete) {
+      List<SqlConditionInterface> updateSetList = new ArrayList<>();
       updateSetList.add(target.getSoftDeleteColumnInfo().getBoundCondition(true));
 
       if (!StringUtils.isEmpty(target.getSoftDeleteUpdateTimestampColumn())) {
@@ -83,33 +89,71 @@ public class RecordDeleter {
       if (!StringUtils.isEmpty(target.getSoftDeleteUpdateUserIdColumn())) {
         updateSetList.add(target.getSoftDeleteUpdateUserIdColumnAndValueInfo());
       }
+
+      count = executeUpdate(conn, target.getTargetTable(), target.getDeleteKeyColumnInfo(),
+          updateSetList, keyValue, "delete", indents);
+
+    } else {
+      List<SqlConditionInterface> whereList = new ArrayList<>();
+      whereList.add(target.getDeleteKeyColumnInfo().getBoundCondition(keyValue));
+
+      // When hard-deleting and a soft-delete column is specified, also add a condition that
+      // the column is true.
+      if (!StringUtils.isEmpty(target.getSoftDeleteColumn())) {
+        whereList.add(target.getSoftDeleteColumnInfo().getBoundCondition(true));
+      }
+
+      SqlFragment where = SqlUtil.getWhere(whereList);
+      String sql = "delete from " + target.getTargetTable() + where.sql();
+
+      try (PreparedStatement delStmt = AppLogUtil.getStatement(detailLogger, conn, sql,
+          where.bindValues(), "delete", indents)) {
+        count = delStmt.executeUpdate();
+      }
     }
-
-    SqlFragment set = SqlUtil.getUpdateSet(updateSetList);
-    String softDeleteSql = "update " + target.getTargetTable() + set.sql();
-    String hardDeleteSql = "delete from " + target.getTargetTable();
-
-    List<SqlConditionInterface> whereList = new ArrayList<>();
-    whereList.add(target.getDeleteKeyColumnInfo().getBoundCondition(keyValue));
-
-    // When hard-deleting and a soft-delete column is specified, also add a condition that
-    // the column is true.
-    if (!isSoftDelete && !StringUtils.isEmpty(target.getSoftDeleteColumn())) {
-      whereList.add(target.getSoftDeleteColumnInfo().getBoundCondition(true));
-    }
-
-    SqlFragment where = SqlUtil.getWhere(whereList);
-    String sql = (isSoftDelete ? softDeleteSql : hardDeleteSql) + where.sql();
-
-    PreparedStatement delStmt = AppLogUtil.getStatement(detailLogger, conn, sql,
-        SqlUtil.concatBindValues(set, where), "delete", indents);
-    int count = delStmt.executeUpdate();
 
     tableRecordDeleted.merge(target.getTargetTable(), count, Integer::sum);
 
-    delStmt.close();
-
     AppLogUtil.logDeleteLines(detailLogger, target.getTargetTable(), count,
         target.getDeleteKeyColumnInfo().getColumn() + " = " + keyValue, Level.TRACE, indents);
+  }
+
+  /**
+   * Updates the one record in {@code table} whose {@code keyColumnInfo} column equals
+   * {@code keyValue} with {@code updateSetList}, accumulating the affected row count into
+   * {@code tableRecordUpdated} and logging the outcome.
+   *
+   * @param conn the DB connection of the current task
+   * @param table the table to update a record in
+   * @param keyColumnInfo the column identifying the one record to update
+   * @param updateSetList the items of the SET clause
+   * @param keyValue the value identifying the one record to update; read back from the DB, so
+   *     it's bound as a JDBC parameter - see {@link #softOrHardDeleteOne}
+   * @param tableRecordUpdated accumulates the update count per table, keyed by table name
+   * @param indents the indent depth of the log lines
+   */
+  public void updateOne(Connection conn, String table, ColumnInfoBean keyColumnInfo,
+      List<SqlConditionInterface> updateSetList, Object keyValue,
+      Map<String, Integer> tableRecordUpdated, int indents) throws SQLException {
+    int count =
+        executeUpdate(conn, table, keyColumnInfo, updateSetList, keyValue, "update", indents);
+
+    tableRecordUpdated.merge(table, count, Integer::sum);
+
+    AppLogUtil.logUpdateLines(detailLogger, table, count,
+        keyColumnInfo.getColumn() + " = " + keyValue, Level.TRACE, indents);
+  }
+
+  private int executeUpdate(Connection conn, String table, ColumnInfoBean keyColumnInfo,
+      List<SqlConditionInterface> updateSetList, Object keyValue, String sqlName, int indents)
+      throws SQLException {
+    SqlFragment set = SqlUtil.getUpdateSet(updateSetList);
+    SqlFragment where = SqlUtil.getWhere(keyColumnInfo.getBoundCondition(keyValue));
+    String sql = "update " + table + set.sql() + where.sql();
+
+    try (PreparedStatement stmt = AppLogUtil.getStatement(detailLogger, conn, sql,
+        SqlUtil.concatBindValues(set, where), sqlName, indents)) {
+      return stmt.executeUpdate();
+    }
   }
 }

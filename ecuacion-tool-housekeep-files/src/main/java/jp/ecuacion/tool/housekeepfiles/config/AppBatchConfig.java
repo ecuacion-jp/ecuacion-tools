@@ -24,7 +24,6 @@ import jp.ecuacion.tool.housekeepfiles.tasklet.HousekeepFilesTasklet;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -39,8 +38,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 @SuppressWarnings("NullAway.Init")
 public class AppBatchConfig extends SplibAppParentBatchConfig {
 
-  @Autowired
-  private HousekeepFilesTasklet housekeepFilesTasklet;
+  private final HousekeepFilesTasklet housekeepFilesTasklet;
 
   /**
    * Constructs a new instance.
@@ -50,9 +48,10 @@ public class AppBatchConfig extends SplibAppParentBatchConfig {
    * @param exceptionHandler exceptionHandler
    */
   public AppBatchConfig(SplibJobExecutionListener jobExecutionListener,
-      SplibStepExecutionListener stepExecutionListener,
-      SplibBatchExceptionHandler exceptionHandler) {
+      SplibStepExecutionListener stepExecutionListener, SplibBatchExceptionHandler exceptionHandler,
+      HousekeepFilesTasklet housekeepFilesTasklet) {
     super(jobExecutionListener, stepExecutionListener, exceptionHandler);
+    this.housekeepFilesTasklet = housekeepFilesTasklet;
   }
 
   /* HousekeepFilesTasklet */

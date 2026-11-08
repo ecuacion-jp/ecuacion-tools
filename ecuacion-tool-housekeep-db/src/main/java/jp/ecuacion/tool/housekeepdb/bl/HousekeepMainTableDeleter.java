@@ -43,8 +43,9 @@ import org.slf4j.event.Level;
 
 /**
  * Connects to the DB configured for one housekeep task, walks its target table in batches of up
- * to {@code maxSelectLines} rows, and deletes (or soft-deletes) each expired record - delegating
- * the related-table skip check and cleanup to {@link HousekeepRelatedTableDeleter}.
+ * to {@code maxSelectLines} rows, and deletes (or soft-deletes) each expired record - or, for an
+ * update task, rewrites its "Update Column Settings" columns - delegating the related-table skip
+ * check and cleanup to {@link HousekeepRelatedTableDeleter}.
  */
 public class HousekeepMainTableDeleter {
 
@@ -67,8 +68,8 @@ public class HousekeepMainTableDeleter {
   }
 
   /**
-   * Deletes (or soft-deletes) all records the given task targets, connecting to the DB it
-   * specifies.
+   * Deletes (or soft-deletes) - or updates, for an update task - all records the given task
+   * targets, connecting to the DB it specifies.
    *
    * @param dbConnectionInfoMap db connection settings by ID, keyed as read from the excel file
    * @param info the housekeep task to execute
@@ -79,8 +80,10 @@ public class HousekeepMainTableDeleter {
     String logMsg;
     SplibLogUtil.logKeyValueList(detailLogger, Level.DEBUG, 2,
         List.of(new LogKeyValue("DB Connection ID", String.valueOf(info.getDbConnectionInfoId())),
-            new LogKeyValue("Delete Kind", info.isSoftDelete() ? "Soft Delete" : "Hard Delete")));
+            new LogKeyValue("Process Type", info.isUpdate() ? "Update"
+                : info.isSoftDelete() ? "Soft Delete" : "Hard Delete")));
 
+    Map<String, Integer> tableRecordUpdated = new LinkedHashMap<>();
     Map<String, Integer> tableRecordDeleted = new LinkedHashMap<>();
 
     // DB Connection settings
@@ -134,8 +137,18 @@ public class HousekeepMainTableDeleter {
             recordDeleted = true;
 
             relatedTableDeleter.deleteRelatedData(conn, info, rs, tableRecordDeleted);
-            recordDeleter.softOrHardDeleteOne(conn, info, info.isSoftDelete(),
-                info.getDbConnectionInfo().getProtocol(), idValue, tableRecordDeleted, 4);
+
+            String protocol = info.getDbConnectionInfo().getProtocol();
+            if (info.isUpdate()) {
+              recordDeleter.updateOne(conn, info.getTable(), info.getIdColumnInfo(),
+                  info.getUpdateColumnInfoList().stream().map(b -> b.getSetCondition(protocol))
+                      .toList(),
+                  idValue, tableRecordUpdated, 4);
+
+            } else {
+              recordDeleter.softOrHardDeleteOne(conn, info, info.isSoftDelete(), protocol,
+                  idValue, tableRecordDeleted, 4);
+            }
           }
 
           // Terminate when the end of the target table is reached.
@@ -149,11 +162,14 @@ public class HousekeepMainTableDeleter {
       }
 
       if (recordFound && !recordDeleted) {
-        logMsg = "Record(s) found, but no deletable one(s) only.";
+        logMsg = "Record(s) found, but no " + (info.isUpdate() ? "updatable" : "deletable")
+            + " one(s) only.";
         AppLogUtil.log(detailLogger, Level.INFO, logMsg, 2);
       }
     }
 
+    tableRecordUpdated.keySet().stream().forEach(table -> AppLogUtil.log(detailLogger, Level.INFO,
+        "Update records : " + tableRecordUpdated.get(table) + " record(s) in " + table, 2));
     tableRecordDeleted.keySet().stream().forEach(table -> AppLogUtil.log(detailLogger, Level.INFO,
         "Delete records : " + tableRecordDeleted.get(table) + " record(s) from " + table, 2));
   }
@@ -169,7 +185,11 @@ public class HousekeepMainTableDeleter {
     // Build the WHERE clause.
     List<SqlConditionInterface> whereList = getSearchAndExpirationConditions(info);
 
-    if (info.isSoftDelete()) {
+    if (info.isUpdate()) {
+      // No soft-delete column is used by an update task (it's required to be empty). Leaving
+      // already-processed records out is up to "Search Condition Settings".
+
+    } else if (info.isSoftDelete()) {
       // To avoid updating already-processed records, target only rows where the soft-delete
       // flag is not set.
       whereList.add(info.getSoftDeleteColumnInfo().getBoundCondition(false));

@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jp.ecuacion.tool.housekeepdb.enums;
 
 /**
- * Contains the kind of date time datatypes.
+ * Provides request / response DTOs for the command API web application.
  */
-public enum TimestampKindEnum {
-  offsetDateTime, localDateTime;
-}
+@NullMarked
+package jp.ecuacion.util.commandapi.dto;
+
+import org.jspecify.annotations.NullMarked;
