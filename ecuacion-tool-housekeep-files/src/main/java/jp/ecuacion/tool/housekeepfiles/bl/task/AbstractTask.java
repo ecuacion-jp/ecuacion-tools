@@ -72,22 +72,15 @@ public abstract class AbstractTask {
 
     // Set allowable values based on taskActionKind. Override in individual task classes when
     // exceptional patterns occur.
-    if (taskActionKind == TaskActionKindEnum.create) {
-      inputRuleForSrcPathInfo = PROHIBITED;
-      inputRuleForDestPathInfo = REQUIRED;
-
-    } else if (taskActionKind == TaskActionKindEnum.change) {
-      inputRuleForSrcPathInfo = REQUIRED;
-      inputRuleForDestPathInfo = REQUIRED;
-
-    } else if (taskActionKind == TaskActionKindEnum.delete) {
-      inputRuleForSrcPathInfo = REQUIRED;
-      inputRuleForDestPathInfo = PROHIBITED;
-
-    } else if (taskActionKind == TaskActionKindEnum.createFromOriginal) {
-      inputRuleForSrcPathInfo = REQUIRED;
-      inputRuleForDestPathInfo = ARBITRARY;
-    }
+    inputRuleForSrcPathInfo = switch (taskActionKind) {
+      case create -> PROHIBITED;
+      case change, delete, createFromOriginal -> REQUIRED;
+    };
+    inputRuleForDestPathInfo = switch (taskActionKind) {
+      case create, change -> REQUIRED;
+      case delete -> PROHIBITED;
+      case createFromOriginal -> ARBITRARY;
+    };
   }
 
   public TaskAttrCheckPtnEnum getInputRuleForSrcPath() {

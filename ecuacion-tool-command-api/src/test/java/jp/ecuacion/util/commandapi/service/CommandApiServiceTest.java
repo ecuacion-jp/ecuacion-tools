@@ -340,7 +340,7 @@ class CommandApiServiceTest {
     CommandApiResponse result = service.executeScriptByKey(HttpMethod.POST, SCRIPT_ID, null);
 
     assertEquals("AAAAAAAAAA", result.stdout());
-    assertEquals(Boolean.TRUE, result.stdoutTruncated());
+    assertEquals(true, result.stdoutTruncated());
     assertNull(result.stderrTruncated());
   }
 
