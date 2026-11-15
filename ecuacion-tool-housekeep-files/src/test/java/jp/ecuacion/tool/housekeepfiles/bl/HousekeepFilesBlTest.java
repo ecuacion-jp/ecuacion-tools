@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.function.Function;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
+import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.constant.Constants;
 import jp.ecuacion.tool.housekeepfiles.dto.form.HousekeepFilesForm;
 import jp.ecuacion.tool.housekeepfiles.dto.record.HousekeepFilesAuthRecord;
@@ -195,6 +196,61 @@ class HousekeepFilesBlTest {
       bl.setEnvVarValueGetterOnAuthRecords(List.of(rec), key -> null);
 
       assertThat(rec.getPassword()).isEqualTo("plainPassword");
+    }
+  }
+
+  @Nested
+  @DisplayName("createTaskAndTaskDependentCheck()")
+  class CreateTaskAndTaskDependentCheck {
+
+    private HousekeepFilesTaskRecord sftpCreateDirRecord(String remoteServer) {
+      return new HousekeepFilesTaskRecord("01", "task01", "SFTP_CREATE_DIR", remoteServer, null,
+          null, null, null, "/a", "TRUE", "FALSE", "IGNORE");
+    }
+
+    private HousekeepFilesAuthRecord sftpAuthRecord(String remoteServer) {
+      return new HousekeepFilesAuthRecord(remoteServer, "SFTP", "22", "PASSWORD", "user",
+          "password", null);
+    }
+
+    @Test
+    @DisplayName("adds MSG_ERR_AUTH_SETTINGS_NOT_FOUND when no auth record matches the server of "
+        + "a remote task")
+    void authSettingsNotFound() throws Exception {
+      HousekeepFilesForm form = new HousekeepFilesForm();
+      form.getTaskInfoHdRec().recList.add(sftpCreateDirRecord("old.example.com"));
+      form.getAuthInfoRecList().add(sftpAuthRecord("new.example.com"));
+
+      Violations violations = new Violations();
+      bl.createTaskAndTaskDependentCheck(form, violations);
+
+      assertThat(violations.getBusinessViolations()).extracting(BusinessViolation::getMessageId)
+          .containsExactly("MSG_ERR_AUTH_SETTINGS_NOT_FOUND");
+    }
+
+    @Test
+    @DisplayName("passes when an auth record matches the server and protocol of a remote task")
+    void authSettingsFound() throws Exception {
+      HousekeepFilesForm form = new HousekeepFilesForm();
+      form.getTaskInfoHdRec().recList.add(sftpCreateDirRecord("new.example.com"));
+      form.getAuthInfoRecList().add(sftpAuthRecord("new.example.com"));
+
+      Violations violations = new Violations();
+      bl.createTaskAndTaskDependentCheck(form, violations);
+
+      assertThat(violations.getBusinessViolations()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("does not require auth records for local tasks")
+    void localTaskNeedsNoAuthSettings() throws Exception {
+      HousekeepFilesForm form = new HousekeepFilesForm();
+      form.getTaskInfoHdRec().recList.add(createDirRecord("01", "task01", "/a"));
+
+      Violations violations = new Violations();
+      bl.createTaskAndTaskDependentCheck(form, violations);
+
+      assertThat(violations.getBusinessViolations()).isEmpty();
     }
   }
 }
