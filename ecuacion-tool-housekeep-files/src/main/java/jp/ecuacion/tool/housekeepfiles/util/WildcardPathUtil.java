@@ -111,8 +111,8 @@ public class WildcardPathUtil {
   /*
    * Converts a single path segment containing "*"/"?" wildcards into an equivalent regex: "*"
    * becomes ".*", "?" becomes ".", and every other character is quoted so it matches only itself
-   * - notably including regex metacharacters like {@code "(", ")", "[", "]", "+", "{", "}", "|",
-   * "^", "$"} - which a directory or file name placed by an untrusted party could otherwise use
+   * - notably including regex metacharacters like "(", ")", "[", "]", "+", "{", "}", "|", "^",
+   * "$" - which a directory or file name placed by an untrusted party could otherwise use
    * to break Pattern.compile() (e.g. an unbalanced "(") or to unintentionally match more than
    * intended.
    */
