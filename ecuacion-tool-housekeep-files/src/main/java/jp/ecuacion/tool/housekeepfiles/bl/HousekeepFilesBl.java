@@ -25,7 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import jp.ecuacion.lib.core.exception.ViolationException;
 import jp.ecuacion.lib.core.logging.DetailLogger;
 import jp.ecuacion.lib.core.util.ExceptionUtil;
@@ -164,6 +166,11 @@ public class HousekeepFilesBl {
   /** Creates task instances for all task records and runs task-specific input validation. */
   public void createTaskAndTaskDependentCheck(HousekeepFilesForm form, Violations violations)
       throws Exception {
+    // Keys ("<server name>-<protocol>") of the auth records, used to check that every remote task
+    // has its server authentication settings.
+    Set<String> authKeySet = form.getAuthInfoRecList().stream()
+        .map(rec -> rec.getRemoteServer() + "-" + rec.getProtocol()).collect(Collectors.toSet());
+
     for (HousekeepFilesTaskRecord dtRec : form.getTaskInfoHdRec().recList) {
       createTaskInstance(dtRec, dtRec.getTaskPtn());
       // Per-task required/prohibited field validation.
@@ -173,6 +180,16 @@ public class HousekeepFilesBl {
         for (BusinessViolation bv : ex.getViolations().getBusinessViolations()) {
           violations.add(bv);
         }
+      }
+
+      // Remote tasks need the server authentication settings for their server and protocol.
+      // Without this check, a mismatch (e.g. the server name changed only in one of the sheets)
+      // surfaces as an unexplained NullPointerException when connecting.
+      String protocol = dtRec.task.getConnectionProtocol();
+      if (protocol != null && !StringUtils.isEmpty(dtRec.getRemoteServer())
+          && !authKeySet.contains(dtRec.getRemoteServer() + "-" + protocol)) {
+        violations.add(new BusinessViolation("MSG_ERR_AUTH_SETTINGS_NOT_FOUND", dtRec.getTaskId(),
+            dtRec.getTaskName(), dtRec.getRemoteServer(), protocol));
       }
     }
   }
