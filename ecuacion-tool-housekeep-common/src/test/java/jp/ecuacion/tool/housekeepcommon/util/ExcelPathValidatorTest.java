@@ -43,6 +43,8 @@ class ExcelPathValidatorTest {
 
   /** Mirrors the {@code excelPath} field every real caller (a tasklet) carries. */
   static class Caller {
+    // Read only reflectively by Jakarta Validation.
+    @SuppressWarnings("UnusedVariable")
     @NotEmpty
     @FileExists
     @FileExtension(".xlsx")

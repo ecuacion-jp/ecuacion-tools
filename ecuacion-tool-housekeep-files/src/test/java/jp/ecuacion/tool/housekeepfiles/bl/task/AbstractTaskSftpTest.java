@@ -23,7 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import jp.ecuacion.lib.core.violation.BusinessViolation;
 import jp.ecuacion.lib.core.violation.Violations;
 import jp.ecuacion.tool.housekeepfiles.bean.ConnectionToRemoteServer;
@@ -51,10 +51,10 @@ class AbstractTaskSftpTest extends AbstractSftpTest {
     @Override
     public void taskDependentCheck(HousekeepFilesTaskRecord taskRec, Violations violations) {}
 
-    @SuppressWarnings({"NullAway", "null"})
     @Override
     public TaskActionKindEnum getTaskActionKind() {
-      return null;
+      // Irrelevant to the SFTP access methods under test; any non-null value will do.
+      return TaskActionKindEnum.change;
     }
 
     @Override
@@ -77,7 +77,7 @@ class AbstractTaskSftpTest extends AbstractSftpTest {
 
   /** Creates a path string that does not exist by incorporating a random value. */
   private String getTestRootPath() {
-    return SFTP_ROOT_PATH + "/" + new Random().nextLong();
+    return SFTP_ROOT_PATH + "/" + ThreadLocalRandom.current().nextLong();
   }
 
   private void createTestRootDir(String testRootPath) {
