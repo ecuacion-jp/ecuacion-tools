@@ -35,7 +35,6 @@ class AppRestExceptionHandlerActionTest {
   @Test
   @DisplayName("implements SplibRestExceptionHandlerAction")
   void implementsRestActionInterface() {
-    @SuppressWarnings("null")
     AppRestExceptionHandlerAction action = new AppRestExceptionHandlerAction(mock(SplibMailUtil.class));
 
     Assertions.assertThat(action).isInstanceOf(SplibRestExceptionHandlerAction.class);

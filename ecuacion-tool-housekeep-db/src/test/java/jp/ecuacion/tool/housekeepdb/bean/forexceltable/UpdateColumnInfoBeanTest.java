@@ -37,7 +37,6 @@ class UpdateColumnInfoBeanTest {
 
   // Column order: taskId, updateColumn, valueType, valueTypeInternalValue, needsQuotationMark,
   // value
-  @SuppressWarnings("null")
   private static UpdateColumnInfoBean bean(String column, String valueTypeInternalValue,
       @Nullable String literalSymbol, @Nullable String value) {
     return new UpdateColumnInfoBean(Arrays.asList("task1", column, "(display value)",

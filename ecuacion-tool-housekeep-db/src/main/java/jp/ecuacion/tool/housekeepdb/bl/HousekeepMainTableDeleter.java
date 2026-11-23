@@ -74,6 +74,7 @@ public class HousekeepMainTableDeleter {
    * @param dbConnectionInfoMap db connection settings by ID, keyed as read from the excel file
    * @param info the housekeep task to execute
    */
+  @SuppressWarnings("null")
   public void execute(Map<String, DbConnectionInfoBean> dbConnectionInfoMap, HousekeepInfoBean info)
       throws ClassNotFoundException, SQLException {
 

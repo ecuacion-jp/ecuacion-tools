@@ -30,7 +30,6 @@ import org.springframework.mock.env.MockEnvironment;
  * {@link AbstractHousekeepDbTaskletTest} (and its Postgresql/Mysql subclasses) for the full
  * integration tests.
  */
-@SuppressWarnings("null")
 @DisplayName("HousekeepDbTasklet")
 class HousekeepDbTaskletTest {
 

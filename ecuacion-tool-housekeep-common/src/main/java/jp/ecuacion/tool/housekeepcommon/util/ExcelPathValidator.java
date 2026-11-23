@@ -49,7 +49,7 @@ public final class ExcelPathValidator {
   public static String validate(Object excelPathBean, @Nullable String excelPath) {
     new Violations()
         .addAll(Validation.buildDefaultValidatorFactory().getValidator().validate(excelPathBean))
-        .messageParameters(Violations.newMessageParameters().isMessageWithItemName(true))
+        .messageParameters(Violations.newMessageParameters().showsItemName(true))
         .throwIfAny();
 
     String nonnullExcelPath = Objects.requireNonNull(excelPath);
