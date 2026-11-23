@@ -111,7 +111,6 @@ abstract class AbstractHousekeepDbTaskletTest {
     runTasklet(excelFile, 1000);
   }
 
-  @SuppressWarnings("null")
   protected static void runTasklet(Path excelFile, int maxSelectLines) throws Exception {
     RepeatStatus status =
         new HousekeepDbTasklet(excelFile.toString(), maxSelectLines, new MockEnvironment(),
@@ -956,7 +955,6 @@ abstract class AbstractHousekeepDbTaskletTest {
   @DisplayName("target system name")
   class TargetSystemName {
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("when set, is logged as an additional startup info line, alongside the "
         + "unmodified start/finish messages")
@@ -1317,7 +1315,6 @@ abstract class AbstractHousekeepDbTaskletTest {
       return env;
     }
 
-    @SuppressWarnings("null")
     private void run(Path excel, MockEnvironment env, SplibMailUtil mailUtil) throws Exception {
       RepeatStatus status = new HousekeepDbTasklet(excel.toString(), 1000, env, mailUtil)
           .execute(mock(StepContribution.class), mock(ChunkContext.class));
@@ -1371,6 +1368,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       assertThat(content).doesNotContain("and more");
     }
 
+    @SuppressWarnings("null")
     @Test
     @DisplayName("no matching record sends no email")
     void noRecordSendsNoMail() throws Exception {
@@ -1464,6 +1462,7 @@ abstract class AbstractHousekeepDbTaskletTest {
       assertThat(countRows("select count(*) from ec_multi_del")).isZero();
     }
 
+    @SuppressWarnings("null")
     @Test
     @DisplayName("without the recipients configured, records found are only logged and the run "
         + "still finishes normally")
@@ -1514,7 +1513,6 @@ abstract class AbstractHousekeepDbTaskletTest {
   @DisplayName("excel path validation")
   class ExcelPathValidation {
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("a null excelPath fails @NotEmpty validation")
     void nullExcelPathFails() {
@@ -1524,7 +1522,6 @@ abstract class AbstractHousekeepDbTaskletTest {
               .isInstanceOf(ViolationException.class);
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("a path pointing to a non-existent file fails @FileExists validation")
     void nonExistentFileFails() {
@@ -1534,7 +1531,6 @@ abstract class AbstractHousekeepDbTaskletTest {
               .isInstanceOf(ViolationException.class);
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("a non-.xlsx extension fails @FileExtension validation")
     void wrongExtensionFails(@TempDir Path tempDir) throws IOException {
@@ -1547,7 +1543,6 @@ abstract class AbstractHousekeepDbTaskletTest {
               .isInstanceOf(ViolationException.class);
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("a .xlsx file that isn't a real workbook raises MSG_ERR_EXCEL_PATH_CANNOT_OPEN")
     void unopenableFileFails(@TempDir Path tempDir) throws IOException {
@@ -1563,7 +1558,6 @@ abstract class AbstractHousekeepDbTaskletTest {
               .containsExactly("MSG_ERR_EXCEL_PATH_CANNOT_OPEN"));
     }
 
-    @SuppressWarnings("null")
     @Test
     @DisplayName("a genuinely password-encrypted .xlsx file also raises "
         + "MSG_ERR_EXCEL_PATH_CANNOT_OPEN, via EncryptedDocumentException rather than the plain "

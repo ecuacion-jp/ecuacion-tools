@@ -83,9 +83,7 @@ class RecordDeleterTest {
     @Test
     @DisplayName("no soft-delete-column filter configured -> plain delete by key only")
     void noFilterColumnGeneratesPlainDelete() throws Exception {
-      @SuppressWarnings("null")
       Connection conn = mock(Connection.class);
-      @SuppressWarnings("null")
       PreparedStatement stmt = mock(PreparedStatement.class);
       when(conn.prepareStatement(anyString())).thenReturn(stmt);
       when(stmt.executeUpdate()).thenReturn(1);
@@ -113,9 +111,7 @@ class RecordDeleterTest {
     @DisplayName("with a soft-delete-column filter configured -> delete by key AND the flag "
         + "being true, both bound as JDBC parameters")
     void withFilterColumnAddsBoundFlagCondition() throws Exception {
-      @SuppressWarnings("null")
       Connection conn = mock(Connection.class);
-      @SuppressWarnings("null")
       PreparedStatement stmt = mock(PreparedStatement.class);
       when(conn.prepareStatement(anyString())).thenReturn(stmt);
       when(stmt.executeUpdate()).thenReturn(1);
@@ -150,9 +146,7 @@ class RecordDeleterTest {
     @Test
     @DisplayName("only the flag column configured -> update sets just the flag")
     void onlyFlagColumnConfiguredUpdatesJustTheFlag() throws Exception {
-      @SuppressWarnings("null")
       Connection conn = mock(Connection.class);
-      @SuppressWarnings("null")
       PreparedStatement stmt = mock(PreparedStatement.class);
       when(conn.prepareStatement(anyString())).thenReturn(stmt);
       when(stmt.executeUpdate()).thenReturn(1);
@@ -181,9 +175,7 @@ class RecordDeleterTest {
     @DisplayName("all optional columns configured -> update sets flag, timestamp and "
         + "user-id, in that order")
     void allOptionalColumnsConfiguredUpdatesAllThree() throws Exception {
-      @SuppressWarnings("null")
       Connection conn = mock(Connection.class);
-      @SuppressWarnings("null")
       PreparedStatement stmt = mock(PreparedStatement.class);
       when(conn.prepareStatement(anyString())).thenReturn(stmt);
       when(stmt.executeUpdate()).thenReturn(1);
@@ -225,9 +217,7 @@ class RecordDeleterTest {
     @Test
     @DisplayName("a second delete on the same table merges (adds) onto the existing count")
     void secondCallOnSameTableAccumulates() throws Exception {
-      @SuppressWarnings("null")
       Connection conn = mock(Connection.class);
-      @SuppressWarnings("null")
       PreparedStatement stmt = mock(PreparedStatement.class);
       when(conn.prepareStatement(anyString())).thenReturn(stmt);
       when(stmt.executeUpdate()).thenReturn(3, 5);
